@@ -1,0 +1,17 @@
+# frontend/ and backend/ are separate git repositories with their own
+# histories (see README.md). The parent repo deliberately does not track
+# their contents. When each gets a remote, convert it to a submodule:
+#   git submodule add <remote-url> frontend
+#   git submodule add <remote-url> backend
+# and delete the two lines below.
+/frontend/
+/backend/
+
+node_modules/
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+Thumbs.db
+*.log

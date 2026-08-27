@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Tables & filters" subtitle="Sortable staff table with status cells, plus the faceted filter panel" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--surface-page);font:var(--type-body)}.wrap{padding:20px;display:flex;flex-direction:column;gap:16px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.lbl{font:var(--weight-semibold) 10px/1 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted)}</style>
+<div id="root"></div>
+<script type="text/babel">
+const { DataTable, StatusBadge, FilterPanel, Button } = window.HeritageMuseumDesignSystem_5a5154;
+const rows=[
+ {id:1,name:'Ice Age Britain',cat:'Prehistory',items:128,status:'Published',tone:'success',updated:'2 days ago'},
+ {id:2,name:'Renaissance Portraits',cat:'Art',items:64,status:'Draft',tone:'warning',updated:'5 days ago'},
+ {id:3,name:'Medieval Armoury',cat:'Medieval',items:41,status:'Archived',tone:'neutral',updated:'3 weeks ago'}];
+function Demo(){return(<div className="wrap" style={{display:'grid',gridTemplateColumns:'1fr 200px',gap:20,alignItems:'start'}}>
+  <DataTable dense sortKey="name" sortDir="asc"
+    columns={[{key:'name',header:'Collection',sortable:true},{key:'cat',header:'Category'},{key:'items',header:'Items',align:'right'},
+      {key:'status',header:'Status',render:r=><StatusBadge size="sm" tone={r.tone}>{r.status}</StatusBadge>},
+      {key:'updated',header:'Updated',sortable:true},
+      {key:'act',header:'',align:'right',render:()=><Button size="sm" variant="ghost" iconLeft="pencil">Edit</Button>}]}
+    rows={rows} />
+  <FilterPanel activeCount={1} onClear={()=>{}} sortOptions={['Most popular','Recently added','A–Z']}
+    groups={[{title:'Category',options:[{value:'d',label:'Dinosaurs',count:18},{value:'m',label:'Medieval',count:9},{value:'r',label:'Renaissance',count:12}]}]}
+    selected={{Category:['d']}} />
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>

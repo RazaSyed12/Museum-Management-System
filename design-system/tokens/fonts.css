@@ -1,0 +1,5 @@
+/* Heritage Museum webfonts.
+   The brand sheet specifies Cormorant Garamond (headings) and Source Sans 3 (body).
+   Both are Google Fonts originals, loaded from the Google Fonts CDN — no local
+   binaries were supplied with the brand sheet, so no @font-face src files are shipped. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");

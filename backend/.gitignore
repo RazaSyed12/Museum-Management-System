@@ -1,10 +1,6 @@
 node_modules/
-.next/
-out/
-build/
 dist/
-coverage/
-uploads/
+build/
 
 .env
 .env.local
@@ -14,9 +10,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-*.log
 
 .DS_Store
 Thumbs.db
-*.tsbuildinfo
-.vercel
+coverage/
+*.log
+uploads/

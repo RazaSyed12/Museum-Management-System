@@ -5,21 +5,14 @@ imported design system.
 
 ## Repository layout
 
-| Path | What it is | Git |
-| --- | --- | --- |
-| `design-system/` | The Heritage Museum design system, imported from Claude Design | tracked here |
-| `frontend/` | Next.js visitor site + staff portal | **its own repository** |
-| `backend/` | Node/Express + PostgreSQL API | **its own repository** |
+| Path | What it is |
+| --- | --- |
+| `design-system/` | The Heritage Museum design system, imported from Claude Design |
+| `frontend/` | Next.js visitor site + staff portal (TypeScript) |
+| `backend/` | Node/Express + PostgreSQL API |
 
-`frontend/` and `backend/` each have their own `.git` and their own history, and
-are listed in this repo's `.gitignore` so the parent never tracks their contents.
-Once each has a remote, wire them in as submodules:
-
-```bash
-git submodule add <frontend-remote-url> frontend
-git submodule add <backend-remote-url>  backend
-# then drop /frontend/ and /backend/ from .gitignore
-```
+All three are tracked directly in this repository — a single repo, not separate
+git histories per package.
 
 ## The design system
 

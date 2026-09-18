@@ -1,0 +1,10 @@
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--surface-page);color:var(--text-body);font:var(--type-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{color:var(--text-heading);margin:0;font-family:var(--font-display);font-weight:var(--weight-regular);text-wrap:balance}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+a:hover{color:var(--text-link-hover)}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:var(--radius-sm)}
+img{max-width:100%;display:block}
+@keyframes hm-spin{to{transform:rotate(360deg)}}
+@keyframes hm-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}

@@ -1,0 +1,56 @@
+/* Motion layer for the visitor website. All effects are decorative and disabled under prefers-reduced-motion. */
+@keyframes hm-rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes hm-fade{from{opacity:0}to{opacity:1}}
+@keyframes hm-kenburns{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.16) translate3d(-1.5%,-1.5%,0)}}
+@keyframes hm-cue{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(7px);opacity:1}}
+@keyframes hm-pulse{0%{box-shadow:0 0 0 0 rgba(160,190,120,.55)}70%{box-shadow:0 0 0 9px rgba(160,190,120,0)}100%{box-shadow:0 0 0 0 rgba(160,190,120,0)}}
+@keyframes hm-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes hm-rule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes hm-sheen{0%{transform:translateX(-120%) skewX(-18deg)}60%,100%{transform:translateX(320%) skewX(-18deg)}}
+
+/* Scroll reveal */
+.hm-rise{opacity:0;will-change:opacity,transform}
+.hm-rise.is-in{animation:hm-rise .72s cubic-bezier(.22,.7,.2,1) both;animation-delay:var(--d,0ms)}
+
+/* Hero entrance */
+.hm-hero-bg{animation:hm-kenburns 26s ease-out both alternate infinite}
+.hm-hero-in>*{opacity:0;animation:hm-rise .78s cubic-bezier(.22,.7,.2,1) both}
+.hm-hero-in>*:nth-child(1){animation-delay:.08s}
+.hm-hero-in>*:nth-child(2){animation-delay:.18s}
+.hm-hero-in>*:nth-child(3){animation-delay:.28s}
+.hm-hero-in>*:nth-child(4){animation-delay:.38s}
+.hm-hero-in>*:nth-child(5){animation-delay:.48s}
+.hm-cue{animation:hm-cue 2.2s ease-in-out infinite}
+
+/* Card hover lift — direct children of a grid */
+.hm-lift>*{transition:transform .42s cubic-bezier(.22,.7,.2,1),box-shadow .42s cubic-bezier(.22,.7,.2,1);will-change:transform}
+.hm-lift>*:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+.hm-lift>*:hover img,.hm-lift>*:hover svg[data-media]{transform:scale(1.05)}
+.hm-lift img,.hm-lift svg[data-media]{transition:transform .8s cubic-bezier(.22,.7,.2,1)}
+
+/* Heading rule that draws in with its section */
+.hm-ruled{position:relative;padding-bottom:10px}
+.hm-ruled::after{content:"";position:absolute;left:0;bottom:0;width:56px;height:2px;background:var(--gold-700,#9c7a2a);transform:scaleX(0);transform-origin:left}
+.is-in .hm-ruled::after,.hm-ruled.is-in::after{animation:hm-rule .7s .25s cubic-bezier(.22,.7,.2,1) both}
+
+/* Live status dot */
+.hm-dot{width:8px;height:8px;border-radius:50%;background:#a0be78;animation:hm-pulse 2.4s ease-out infinite;flex:none}
+
+/* Ticker ribbon */
+.hm-ticker{overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.hm-ticker-track{display:flex;width:max-content;animation:hm-marquee 38s linear infinite}
+.hm-ticker:hover .hm-ticker-track{animation-play-state:paused}
+
+/* Sheen sweep on primary/accent buttons inside the hero and promo blocks */
+.hm-sheen{position:relative;overflow:hidden;isolation:isolate}
+.hm-sheen::after{content:"";position:absolute;top:-40%;bottom:-40%;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
+.hm-sheen:hover::after{animation:hm-sheen 1.05s ease-out}
+
+/* Screen transition */
+.hm-screen{animation:hm-fade .38s ease-out both}
+
+@media (prefers-reduced-motion:reduce){
+  .hm-rise,.hm-rise.is-in,.hm-hero-in>*,.hm-hero-bg,.hm-cue,.hm-ticker-track,.hm-screen,.hm-ruled::after{animation:none!important;opacity:1!important;transform:none!important}
+  .hm-lift>*,.hm-lift img{transition:none}
+  .hm-ruled::after{transform:scaleX(1)}
+}

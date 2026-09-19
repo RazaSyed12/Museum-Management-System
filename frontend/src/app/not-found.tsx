@@ -3,17 +3,15 @@
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { Button } from '@/components/forms/Button';
 import { Section } from '@/components/layout/Section';
-import { useResponsiveMode } from '@/lib/useResponsiveMode';
 import { useSiteNav } from '@/lib/nav';
 
 /** Branded 404 for URLs that don't match any route — distinct from
  * UnderConstruction, which is for routes we know about but haven't built. */
 export default function NotFound() {
-  const mode = useResponsiveMode('auto');
   const nav = useSiteNav();
 
   return (
-    <Section mode={mode}>
+    <Section>
       <EmptyState
         icon="compass"
         title="Page not found"

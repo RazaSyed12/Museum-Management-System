@@ -1,8 +1,9 @@
 import type { HTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
+import { cn } from '@/lib/cn';
 
 /* Status is never communicated by colour alone: every badge carries an icon and a word.
-   Ported from design-system/components/feedback/StatusBadge.jsx + StatusBadge.d.ts — keep in sync. */
+   Ported from design-system/components/feedback/StatusBadge.jsx + StatusBadge.d.ts. */
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'member' | 'olive';
 
 export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -13,27 +14,31 @@ export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   size?: 'sm' | 'md';
 }
 
-const TONES: Record<Tone, { bg: string; fg: string; icon: string }> = {
-  neutral: { bg: 'var(--paper-100)', fg: 'var(--neutral-700)', icon: 'circle' },
-  success: { bg: 'var(--success-100)', fg: '#2C5C39', icon: 'check-circle-2' },
-  warning: { bg: 'var(--warning-100)', fg: '#8A6114', icon: 'alert-triangle' },
-  danger: { bg: 'var(--danger-100)', fg: '#8F3124', icon: 'x-circle' },
-  info: { bg: 'var(--info-100)', fg: '#2E4C5E', icon: 'info' },
-  member: { bg: 'var(--sand-200)', fg: 'var(--gold-700)', icon: 'award' },
-  olive: { bg: 'var(--olive-100)', fg: 'var(--olive-700)', icon: 'tag' },
+const TONES: Record<Tone, { classes: string; icon: string }> = {
+  neutral: { classes: 'bg-paper-100 text-neutral-700', icon: 'circle' },
+  success: { classes: 'bg-success-100 text-success-700', icon: 'check-circle-2' },
+  warning: { classes: 'bg-warning-100 text-warning-700', icon: 'alert-triangle' },
+  danger: { classes: 'bg-danger-100 text-danger-700', icon: 'x-circle' },
+  info: { classes: 'bg-info-100 text-info-700', icon: 'info' },
+  member: { classes: 'bg-sand-200 text-gold-700', icon: 'award' },
+  olive: { classes: 'bg-olive-100 text-olive-700', icon: 'tag' },
 };
 
-export function StatusBadge({ children, tone = 'neutral', icon, size = 'md', style, ...rest }: StatusBadgeProps) {
-  const t = TONES[tone] || TONES.neutral;
+export function StatusBadge({ children, tone = 'neutral', icon, size = 'md', className, ...rest }: StatusBadgeProps) {
+  const t = TONES[tone];
   const sm = size === 'sm';
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: sm ? '3px 8px' : '5px 10px', borderRadius: 'var(--radius-pill)',
-      background: t.bg, color: t.fg,
-      font: `var(--weight-semibold) ${sm ? 'var(--text-2xs)' : 'var(--text-xs)'}/1.2 var(--font-body)`,
-      letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase', whiteSpace: 'nowrap', ...style,
-    }} {...rest}>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-pill font-body font-semibold tracking-wide whitespace-nowrap uppercase',
+        // leading goes after the size: tailwind-merge treats a later text-* as
+        // able to set line-height, so an earlier leading-* would be dropped.
+        sm ? 'px-2 py-[3px] text-2xs leading-[1.2]' : 'px-2.5 py-[5px] text-xs leading-[1.2]',
+        t.classes,
+        className,
+      )}
+      {...rest}
+    >
       <Icon name={icon || t.icon} size={sm ? 11 : 13} />
       {children}
     </span>

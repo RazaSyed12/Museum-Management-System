@@ -1,25 +1,5 @@
-/* Heritage Museum design tokens — copied verbatim from design-system/tokens/.
-   Keep these files byte-for-byte identical to the source; re-sync from
-   design-system/ instead of hand-editing when the design updates. */
-@import "../styles/tokens/colors.css";
-@import "../styles/tokens/typography.css";
-@import "../styles/tokens/spacing.css";
-@import "../styles/tokens/elevation.css";
-@import "../styles/tokens/motion.css";
-@import "../styles/tokens/base.css";
+@import 'tailwindcss';
 
-/* Scroll-reveal / hover motion classes (hm-*) used across the visitor site,
-   copied from design-system/ui_kits/visitor_site/motion.css. */
-@import "../styles/visitor-motion.css";
-
-/* Cormorant Garamond + Source Sans 3 are loaded via next/font/google in
-   app/layout.js (self-hosted at build time — no runtime Google Fonts request,
-   no layout shift) instead of tokens/fonts.css's @import. next/font exposes
-   each family as a CSS variable on <html>; point the design system's own
-   --font-display / --font-body roles at them here so every token built on
-   top of those two variables (--type-h1, --type-body, etc.) picks it up
-   automatically. */
-:root {
-  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --font-body: var(--font-source-sans), "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
-}
+@import '../styles/theme.css';
+@import '../styles/base.css';
+@import '../styles/utilities.css';

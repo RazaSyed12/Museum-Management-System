@@ -1,4 +1,5 @@
 import type { ImgHTMLAttributes } from 'react';
+import { cn } from '@/lib/cn';
 
 /* Ported from design-system/components/foundation/Logo.jsx + Logo.d.ts. The
    only change from the source is the `assetBase` default: the design
@@ -21,16 +22,17 @@ export interface LogoProps extends ImgHTMLAttributes<HTMLImageElement> {
   href?: string;
 }
 
-export function Logo({ variant = 'horizontal', height, assetBase = '/assets/', href, style, ...rest }: LogoProps) {
+export function Logo({ variant = 'horizontal', height, assetBase = '/assets/', href, className, style, ...rest }: LogoProps) {
   const h = height ?? (variant === 'primary' ? 140 : variant === 'mark' ? 40 : 44);
   const img = (
     // eslint-disable-next-line @next/next/no-img-element -- fixed brand asset, ported as-is from the design system
     <img
       src={assetBase + SRC[variant]}
       alt="Heritage Museum"
-      style={{ height: h, width: 'auto', display: 'block', ...style }}
+      className={cn('block w-auto', className)}
+      style={{ height: h, ...style }}
       {...rest}
     />
   );
-  return href ? <a href={href} style={{ display: 'inline-flex', textDecoration: 'none' }}>{img}</a> : img;
+  return href ? <a href={href} className="inline-flex no-underline">{img}</a> : img;
 }

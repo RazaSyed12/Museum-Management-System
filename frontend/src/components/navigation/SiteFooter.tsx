@@ -1,8 +1,15 @@
 import type { HTMLAttributes } from 'react';
 import { Logo } from '@/components/foundation/Logo';
 import { Icon } from '@/components/foundation/Icon';
+import { Container } from '@/components/layout/Container';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/navigation/SiteFooter.jsx + SiteFooter.d.ts — keep in sync. */
+/* Ported from design-system/components/navigation/SiteFooter.jsx + SiteFooter.d.ts.
+   The source used one fixed five-column grid at every width (its columns
+   alone need ~950px), so the page scrolled sideways below that. It now
+   collapses: 2 columns on mobile, 3 on tablet, the original five on desktop —
+   with the brand block and the opening-hours block spanning the full row
+   until there's room for them to sit alongside the link columns. */
 export interface FooterColumn {
   title: string;
   links: string[];
@@ -19,46 +26,46 @@ const COLUMNS: FooterColumn[] = [
   { title: 'About', links: ['Our story', 'Press', 'Work with us', 'Contact'] },
 ];
 
-export function SiteFooter({ columns = COLUMNS, assetBase, style, ...rest }: SiteFooterProps) {
+const HEADING = 'type-eyebrow tracking-wider text-sand-300 uppercase';
+
+export function SiteFooter({ columns = COLUMNS, assetBase, className, ...rest }: SiteFooterProps) {
   return (
-    <footer style={{ background: 'var(--surface-inverse)', color: 'var(--paper-100)', ...style }} {...rest}>
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: 'var(--space-16) var(--container-pad-desktop) var(--space-8)', display: 'grid', gap: 'var(--space-12)', gridTemplateColumns: 'minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr)) minmax(180px, 1fr)' }}>
-        <div style={{ display: 'grid', gap: 'var(--space-4)', alignContent: 'start' }}>
+    <footer className={cn('bg-surface-inverse text-paper-100', className)} {...rest}>
+      <Container className="grid grid-cols-2 gap-x-6 gap-y-10 pt-16 pb-8 md:grid-cols-3 md:gap-12 lg:grid-cols-[minmax(220px,1.2fr)_repeat(3,minmax(120px,1fr))_minmax(180px,1fr)]">
+        <div className="col-span-2 grid content-start gap-4 md:col-span-3 lg:col-span-1">
           <Logo variant="mark" height={52} assetBase={assetBase} />
-          <p style={{ font: 'var(--type-body-sm)', color: 'rgba(245,243,233,.72)', maxWidth: 260 }}>
-            Our past. Our stories. Our future.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <p className="type-body-sm max-w-65 text-paper-100/72">Our past. Our stories. Our future.</p>
+          <div className="flex gap-3">
             {['instagram', 'facebook', 'youtube'].map((s) => (
-              <a key={s} href="#" aria-label={s} style={{ display: 'grid', placeItems: 'center', width: 40, height: 40, borderRadius: '50%', border: 'var(--border-width) solid var(--border-inverse)', color: 'var(--sand-300)' }}>
+              <a key={s} href="#" aria-label={s} className="grid size-10 place-items-center rounded-full border border-line-inverse text-sand-300 no-underline">
                 <Icon name={s} size={18} />
               </a>
             ))}
           </div>
         </div>
         {columns.map((c) => (
-          <nav key={c.title} aria-label={c.title} style={{ display: 'grid', gap: 'var(--space-3)', alignContent: 'start' }}>
-            <h4 style={{ font: 'var(--type-eyebrow)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wider)', color: 'var(--sand-300)' }}>{c.title}</h4>
+          <nav key={c.title} aria-label={c.title} className="grid content-start gap-3">
+            <h4 className={HEADING}>{c.title}</h4>
             {c.links.map((l) => (
-              <a key={l} href="#" style={{ font: 'var(--type-body-sm)', color: 'rgba(245,243,233,.8)', textDecoration: 'none' }}>{l}</a>
+              <a key={l} href="#" className="type-body-sm text-paper-100/80 no-underline">{l}</a>
             ))}
           </nav>
         ))}
-        <div style={{ display: 'grid', gap: 'var(--space-3)', alignContent: 'start' }}>
-          <h4 style={{ font: 'var(--type-eyebrow)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wider)', color: 'var(--sand-300)' }}>Opening hours</h4>
-          <p style={{ font: 'var(--type-body-sm)', color: 'rgba(245,243,233,.8)' }}>Mon–Fri 10:00–17:30<br />Sat–Sun 09:30–18:00<br />Last entry 45 minutes before close</p>
-          <p style={{ font: 'var(--type-body-sm)', color: 'rgba(245,243,233,.8)' }}>18 Lanthorn Street<br />hello@heritagemuseum.org<br />+44 20 7946 0102</p>
+        <div className="col-span-2 grid content-start gap-3 md:col-span-3 lg:col-span-1">
+          <h4 className={HEADING}>Opening hours</h4>
+          <p className="type-body-sm text-paper-100/80">Mon–Fri 10:00–17:30<br />Sat–Sun 09:30–18:00<br />Last entry 45 minutes before close</p>
+          <p className="type-body-sm text-paper-100/80">18 Lanthorn Street<br />hello@heritagemuseum.org<br />+44 20 7946 0102</p>
         </div>
-      </div>
-      <div style={{ borderTop: 'var(--border-width) solid var(--border-inverse)' }}>
-        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: 'var(--space-5) var(--container-pad-desktop)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', justifyContent: 'space-between', font: 'var(--type-body-sm)', color: 'rgba(245,243,233,.6)' }}>
+      </Container>
+      <div className="border-t border-line-inverse">
+        <Container className="type-body-sm flex flex-wrap justify-between gap-5 py-5 text-paper-100/60">
           <span>© 2026 Heritage Museum</span>
-          <div style={{ display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-5">
             {['Privacy', 'Terms', 'Accessibility statement', 'Cookies'].map((l) => (
-              <a key={l} href="#" style={{ color: 'rgba(245,243,233,.72)', textDecoration: 'none' }}>{l}</a>
+              <a key={l} href="#" className="text-paper-100/72 no-underline">{l}</a>
             ))}
           </div>
-        </div>
+        </Container>
       </div>
     </footer>
   );

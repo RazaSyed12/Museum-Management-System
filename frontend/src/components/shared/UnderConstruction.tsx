@@ -3,7 +3,6 @@
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { Button } from '@/components/forms/Button';
 import { Section } from '@/components/layout/Section';
-import { useResponsiveMode } from '@/lib/useResponsiveMode';
 import { useSiteNav } from '@/lib/nav';
 
 export interface UnderConstructionProps {
@@ -18,11 +17,10 @@ export interface UnderConstructionProps {
  * footer and mobile nav — only the page body is a stand-in.
  */
 export function UnderConstruction({ title, description }: UnderConstructionProps) {
-  const mode = useResponsiveMode('auto');
   const nav = useSiteNav();
 
   return (
-    <Section mode={mode}>
+    <Section>
       <EmptyState
         icon="construction"
         title={title}

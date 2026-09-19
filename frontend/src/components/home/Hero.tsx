@@ -2,46 +2,49 @@ import { Button } from '@/components/forms/Button';
 import { Icon } from '@/components/foundation/Icon';
 import { Media } from '@/components/foundation/Media';
 import { Container } from '@/components/layout/Container';
-import type { ResponsiveMode } from '@/lib/useResponsiveMode';
 import { events } from '@/lib/sample-data';
 
 /* Ported from the Hero section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 export interface HeroProps {
-  mode: ResponsiveMode;
   go: (label: string) => void;
 }
 
-export function Hero({ mode, go }: HeroProps) {
+export function Hero({ go }: HeroProps) {
   const e = events.find((x) => x.id === 'beneath')!;
-  const small = mode === 'mobile';
   return (
-    <section style={{ position: 'relative', background: 'var(--green-900)', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', inset: 0 }} className="hm-hero-bg">
-        <Media tone="green" ratio="auto" radius="0" caption="Exhibition photography — Great Hall" style={{ height: '100%', aspectRatio: 'auto' }} />
-        <div style={{ position: 'absolute', inset: 0, background: small ? 'var(--scrim-image)' : 'var(--scrim-hero)' }} />
+    <section className="relative overflow-hidden bg-green-900">
+      <div className="absolute inset-0 animate-kenburns motion-reduce:animate-none">
+        <Media tone="green" ratio="auto" caption="Exhibition photography — Great Hall" className="h-full rounded-none" />
+        {/* Vertical scrim on mobile, horizontal once the copy sits beside the image. */}
+        <div className="scrim-image md:scrim-hero absolute inset-0" />
       </div>
-      <Container mode={mode} style={{ position: 'relative' }}>
-        <div className="hm-hero-in" style={{ maxWidth: small ? '100%' : 560, padding: small ? 'var(--space-16) 0 var(--space-10)' : 'var(--space-24) 0', display: 'grid', gap: 'var(--space-5)' }}>
-          <span style={{ font: 'var(--type-eyebrow)', letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase', color: 'var(--sand-300)' }}>Current exhibition</span>
-          <h1 style={{ font: small ? 'var(--weight-regular) var(--text-4xl)/1.05 var(--font-display)' : 'var(--weight-regular) var(--text-6xl)/1.05 var(--font-display)', color: 'var(--paper-50)' }}>{e.title}</h1>
-          <p style={{ font: 'var(--type-body)', fontSize: small ? 16 : 18, color: 'rgba(245,243,233,.86)', maxWidth: 480 }}>{e.description}</p>
-          <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', font: 'var(--type-body-sm)', color: 'var(--sand-300)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Icon name="calendar-days" size={16} />3 Jul 2026 – 3 Jan 2027</span>
-            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Icon name="map-pin" size={16} />Exhibition Wing</span>
+      <Container className="relative">
+        <div className="stagger-in grid gap-5 pt-16 pb-10 md:max-w-140 md:py-24">
+          <span className="type-eyebrow tracking-wider text-sand-300 uppercase">Current exhibition</span>
+          <h1 className="text-4xl/[1.05] text-paper-50 md:text-6xl/[1.05]">{e.title}</h1>
+          <p className="type-body max-w-120 text-paper-100/86 md:text-md">{e.description}</p>
+          <div className="type-body-sm flex flex-wrap items-center gap-4 text-sand-300">
+            <span className="inline-flex items-center gap-1.5"><Icon name="calendar-days" size={16} />3 Jul 2026 – 3 Jan 2027</span>
+            <span className="inline-flex items-center gap-1.5"><Icon name="map-pin" size={16} />Exhibition Wing</span>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
-            <Button className="hm-sheen" variant="accent" size={small ? 'md' : 'lg'} onClick={() => go('Collection')}>Explore exhibition</Button>
-            <Button className="hm-sheen" variant="secondary" size={small ? 'md' : 'lg'} onClick={() => go('Tickets')}
-              style={{ color: 'var(--paper-50)', borderColor: 'rgba(242,226,166,.5)' }}>Book tickets</Button>
+          <div className="mt-2 flex flex-wrap gap-3">
+            <Button className="sheen" variant="accent" size="fluid" onClick={() => go('Collection')}>Explore exhibition</Button>
+            {/* Secondary is an olive outline for light surfaces; on the dark hero it's recoloured, hover included. */}
+            <Button
+              className="sheen border-sand-300/50 text-paper-50 hover:bg-white/10 active:bg-white/15"
+              variant="secondary"
+              size="fluid"
+              onClick={() => go('Tickets')}
+            >
+              Book tickets
+            </Button>
           </div>
         </div>
       </Container>
-      {!small && (
-        <div style={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', display: 'grid', justifyItems: 'center', gap: 6, color: 'var(--sand-300)' }}>
-          <span style={{ font: 'var(--type-body-sm)', fontSize: 11, letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase', opacity: .75 }}>Scroll</span>
-          <span className="hm-cue" style={{ display: 'inline-flex' }}><Icon name="chevron-down" size={18} /></span>
-        </div>
-      )}
+      <div className="absolute bottom-[18px] left-1/2 hidden -translate-x-1/2 justify-items-center gap-1.5 text-sand-300 md:grid">
+        <span className="font-body text-2xs leading-normal tracking-wider uppercase opacity-75">Scroll</span>
+        <span className="inline-flex animate-cue motion-reduce:animate-none"><Icon name="chevron-down" size={18} /></span>
+      </div>
     </section>
   );
 }

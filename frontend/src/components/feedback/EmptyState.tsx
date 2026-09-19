@@ -1,7 +1,8 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { Icon } from '@/components/foundation/Icon';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/feedback/EmptyState.jsx + EmptyState.d.ts — keep in sync. */
+/* Ported from design-system/components/feedback/EmptyState.jsx + EmptyState.d.ts. */
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   icon?: string;
   title: string;
@@ -11,19 +12,22 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   compact?: boolean;
 }
 
-export function EmptyState({ icon = 'search-x', title, description, action, compact, style, ...rest }: EmptyStateProps) {
+export function EmptyState({ icon = 'search-x', title, description, action, compact, className, ...rest }: EmptyStateProps) {
   return (
-    <div style={{
-      display: 'grid', justifyItems: 'center', textAlign: 'center', gap: 'var(--space-3)',
-      padding: compact ? 'var(--space-8)' : 'var(--space-16) var(--space-6)',
-      background: 'var(--surface-card)', border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-lg)', ...style,
-    }} {...rest}>
-      <span style={{ display: 'grid', placeItems: 'center', width: 56, height: 56, borderRadius: '50%', background: 'var(--olive-50)' }}>
-        <Icon name={icon} size={26} color="var(--olive-500)" />
+    <div
+      className={cn(
+        'grid justify-items-center gap-3 rounded-lg border border-dashed border-line-default bg-surface-card text-center',
+        compact ? 'p-8' : 'px-6 py-16',
+        className,
+      )}
+      {...rest}
+    >
+      <span className="grid size-14 place-items-center rounded-full bg-olive-50">
+        <Icon name={icon} size={26} className="text-olive-500" />
       </span>
-      <h3 style={{ font: 'var(--type-h3)' }}>{title}</h3>
-      {description && <p style={{ font: 'var(--type-body)', color: 'var(--text-muted)', maxWidth: 420 }}>{description}</p>}
-      {action && <div style={{ marginTop: 'var(--space-2)' }}>{action}</div>}
+      <h3 className="type-h3">{title}</h3>
+      {description && <p className="type-body max-w-105 text-muted">{description}</p>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }

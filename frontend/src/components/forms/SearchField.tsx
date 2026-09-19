@@ -1,9 +1,9 @@
-'use client';
-
-import { useState, type InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/forms/SearchField.jsx + SearchField.d.ts — keep in sync.
+/* Ported from design-system/components/forms/SearchField.jsx + SearchField.d.ts.
+   The focus ring is `focus-within` on the wrapper rather than React state.
    Note: the source .d.ts extends InputHTMLAttributes directly, but its `size`
    ('sm' | 'md') collides with the native <input size> attribute (a number)
    — Omit that one attribute rather than dropping the documented prop name. */
@@ -14,27 +14,52 @@ export interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElem
   label?: string;
 }
 
-export function SearchField({ placeholder = 'Search collections, artefacts, events', value, onChange, onClear, size = 'md', id = 'search', label, style, ...rest }: SearchFieldProps) {
-  const [focus, setFocus] = useState(false);
-  const h = size === 'sm' ? 36 : 44;
+export function SearchField({
+  placeholder = 'Search collections, artefacts, events',
+  value,
+  onChange,
+  onClear,
+  size = 'md',
+  id = 'search',
+  label,
+  className,
+  ...rest
+}: SearchFieldProps) {
   return (
-    <div style={{ display: 'grid', gap: 'var(--space-2)', ...style }}>
-      {label && <label htmlFor={id} style={{ font: 'var(--type-label)', color: 'var(--text-heading)' }}>{label}</label>}
-      <div role="search" style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--space-2)', height: h, padding: '0 12px',
-        background: 'var(--surface-card)', borderRadius: 'var(--radius-pill)',
-        border: 'var(--border-width) solid ' + (focus ? 'var(--olive-500)' : 'var(--border-default)'),
-        boxShadow: focus ? 'var(--ring-focus)' : 'none', transition: 'var(--transition-control)',
-      }}>
-        <Icon name="search" size={18} color="var(--text-muted)" />
-        <input id={id} type="search" value={value} onChange={onChange} placeholder={placeholder}
+    <div className={cn('grid gap-2', className)}>
+      {label && (
+        <label htmlFor={id} className="type-label text-heading">
+          {label}
+        </label>
+      )}
+      <div
+        role="search"
+        className={cn(
+          'flex items-center gap-2 rounded-pill border border-line-default bg-surface-card px-3 transition-control focus-within:border-olive-500 focus-within:shadow-focus',
+          size === 'sm' ? 'h-9' : 'h-11',
+        )}
+      >
+        <Icon name="search" size={18} className="text-muted" />
+        <input
+          id={id}
+          type="search"
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
           aria-label={label ? undefined : 'Search'}
-          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-          style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', font: 'var(--type-body)', color: 'var(--text-heading)', minWidth: 0 }}
-          {...rest} />
-        {value ? <button type="button" onClick={onClear} aria-label="Clear search" style={{ border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 4 }}>
-          <Icon name="x" size={16} color="var(--text-muted)" />
-        </button> : null}
+          className="type-body min-w-0 flex-1 border-0 bg-transparent text-heading outline-none"
+          {...rest}
+        />
+        {value ? (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Clear search"
+            className="grid cursor-pointer place-items-center border-0 bg-transparent p-1"
+          >
+            <Icon name="x" size={16} className="text-muted" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

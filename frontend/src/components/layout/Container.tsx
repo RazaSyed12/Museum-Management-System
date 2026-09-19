@@ -1,19 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react';
-import type { ResponsiveMode } from '@/lib/useResponsiveMode';
+import type { HTMLAttributes } from 'react';
+import { cn } from '@/lib/cn';
 
-/* Ported from the Container helper in design-system/ui_kits/visitor_site/Shell.jsx. */
-const PAD: Record<ResponsiveMode, string> = {
-  desktop: 'var(--container-pad-desktop)',
-  tablet: 'var(--container-pad-tablet)',
-  mobile: 'var(--container-pad-mobile)',
-};
-
-export interface ContainerProps {
-  mode: ResponsiveMode;
-  children?: ReactNode;
-  style?: CSSProperties;
-}
-
-export function Container({ mode, children, style }: ContainerProps) {
-  return <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: `0 ${PAD[mode]}`, ...style }}>{children}</div>;
+/* Ported from the Container helper in design-system/ui_kits/visitor_site/Shell.jsx.
+   The source took a JS `mode` prop and looked its gutter up; the gutters are
+   now breakpoint utilities (20 / 32 / 48px = --container-pad-mobile / -tablet
+   / -desktop), so there's nothing to pass and no client-side measuring. */
+export function Container({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('mx-auto max-w-page px-5 md:px-8 lg:px-12', className)} {...rest} />;
 }

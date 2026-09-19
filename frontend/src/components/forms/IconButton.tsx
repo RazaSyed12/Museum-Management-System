@@ -1,9 +1,9 @@
-'use client';
-
-import { useState, type ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/forms/IconButton.jsx + IconButton.d.ts — keep in sync. */
+/* Ported from design-system/components/forms/IconButton.jsx + IconButton.d.ts.
+   Hover is a CSS variant now rather than React state. */
 type Size = 'sm' | 'md' | 'lg';
 type Variant = 'ghost' | 'outline' | 'solid' | 'inverse';
 
@@ -16,29 +16,31 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   size?: Size;
 }
 
-const SIZES: Record<Size, number> = { sm: 36, md: 44, lg: 52 };
+const SIZES: Record<Size, string> = { sm: 'size-9', md: 'size-11', lg: 'size-13' };
 
-export function IconButton({ icon, label, variant = 'ghost', size = 'md', disabled, style, ...rest }: IconButtonProps) {
-  const [hover, setHover] = useState(false);
-  const box = SIZES[size] || 44;
-  const fills: Record<Variant, { bg: string; fg: string; bd: string }> = {
-    ghost: { bg: hover ? 'var(--paper-100)' : 'transparent', fg: 'var(--text-heading)', bd: 'transparent' },
-    outline: { bg: hover ? 'var(--olive-50)' : 'var(--surface-card)', fg: 'var(--olive-700)', bd: 'var(--border-default)' },
-    solid: { bg: hover ? 'var(--action-primary-hover)' : 'var(--action-primary)', fg: 'var(--text-inverse)', bd: 'transparent' },
-    inverse: { bg: hover ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.10)', fg: 'var(--paper-50)', bd: 'var(--border-inverse)' },
-  };
-  const fill = fills[variant];
+// `rest` is the resting look; `hover` is kept apart so a disabled button can
+// drop it (a disabled control shouldn't react to the pointer).
+const VARIANTS: Record<Variant, { rest: string; hover: string }> = {
+  ghost: { rest: 'border-transparent bg-transparent text-heading', hover: 'hover:bg-paper-100' },
+  outline: { rest: 'border-line-default bg-surface-card text-olive-700', hover: 'hover:bg-olive-50' },
+  solid: { rest: 'border-transparent bg-action-primary text-inverse', hover: 'hover:bg-action-primary-hover' },
+  inverse: { rest: 'border-line-inverse bg-white/10 text-paper-50', hover: 'hover:bg-white/18' },
+};
+
+export function IconButton({ icon, label, variant = 'ghost', size = 'md', disabled, className, ...rest }: IconButtonProps) {
+  const v = VARIANTS[variant];
   return (
     <button
-      type="button" aria-label={label} disabled={disabled}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        width: box, height: box, display: 'inline-grid', placeItems: 'center',
-        borderRadius: 'var(--radius-md)', border: `var(--border-width) solid ${fill.bd}`,
-        background: disabled ? 'var(--action-disabled-bg)' : fill.bg,
-        color: disabled ? 'var(--action-disabled-text)' : fill.fg,
-        cursor: disabled ? 'not-allowed' : 'pointer', transition: 'var(--transition-control)', ...style,
-      }}
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      className={cn(
+        'inline-grid place-items-center rounded-md border transition-control',
+        SIZES[size],
+        v.rest,
+        disabled ? 'cursor-not-allowed bg-action-disabled-bg text-action-disabled-text' : ['cursor-pointer', v.hover],
+        className,
+      )}
       {...rest}
     >
       <Icon name={icon} size={size === 'sm' ? 18 : 20} />

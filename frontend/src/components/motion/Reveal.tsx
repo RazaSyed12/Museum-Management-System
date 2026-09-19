@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState, createElement, type CSSProperties, type ElementType, type ReactNode, type RefObject } from 'react';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/ui_kits/visitor_site/Motion.jsx — keep in sync.
-   Scroll-reveal helper for the visitor website; disabled entirely under
-   prefers-reduced-motion via the .hm-rise rules in styles/visitor-motion.css.
+/* Ported from design-system/ui_kits/visitor_site/Motion.jsx.
+   Scroll-reveal helper for the visitor website. The rise animation and its
+   reduced-motion opt-out are Tailwind utilities (animate-rise, defined in
+   styles/theme.css); the `is-in` class it adds is also what makes a `ruled`
+   heading inside it draw its rule (styles/utilities.css).
    No caller ever needs a custom IntersectionObserverInit (Reveal always
    calls this with no arguments), so the options param the source carried
    is dropped — that also removes the exhaustive-deps question of whether
@@ -37,11 +40,16 @@ export interface RevealProps {
 }
 
 /** Wraps children in a rise-and-fade block that plays once when scrolled into view. */
-export function Reveal({ delay = 0, as = 'div', style, className = '', children }: RevealProps) {
+export function Reveal({ delay = 0, as = 'div', style, className, children }: RevealProps) {
   const [ref, seen] = useInView();
   return createElement(as, {
     ref,
-    className: `hm-rise ${seen ? 'is-in' : ''} ${className}`.trim(),
+    className: cn(
+      'opacity-0 will-change-[opacity,transform] motion-reduce:opacity-100',
+      seen && 'is-in animate-rise motion-reduce:animate-none',
+      className,
+    ),
+    // The stagger delay differs per instance, so it travels as a variable that animate-rise reads.
     style: { '--d': `${delay}ms`, ...style } as CSSProperties,
   }, children);
 }

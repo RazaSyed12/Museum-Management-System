@@ -1,0 +1,51 @@
+/* Global element styles — ported from design-system/tokens/base.css, plus the
+   motion-duration tokens from design-system/tokens/motion.css.
+   Tailwind's preflight has already reset margins, headings, links and images
+   by the time these run; this layer puts the design system's defaults back. */
+
+@layer base {
+  :root {
+    --duration-instant: 80ms;
+    --duration-fast: 140ms;
+    --duration-base: 220ms;
+    --duration-slow: 360ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --duration-instant: 0ms;
+      --duration-fast: 0ms;
+      --duration-base: 0ms;
+      --duration-slow: 0ms;
+    }
+  }
+
+  body {
+    @apply bg-surface-page text-body type-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply m-0 font-display font-normal text-heading text-balance;
+  }
+
+  p {
+    @apply m-0 text-pretty;
+  }
+
+  /* Plain links are olive and underlined; anything styled as a button, card
+     or nav item opts out with no-underline and its own colour. */
+  a {
+    @apply text-link underline decoration-1 underline-offset-2;
+  }
+
+  a:hover {
+    @apply text-link-hover;
+  }
+
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    @apply rounded-sm outline-2 outline-offset-2 outline-focus-ring;
+  }
+}

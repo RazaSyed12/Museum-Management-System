@@ -4,8 +4,9 @@ import { Media } from '@/components/foundation/Media';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { Icon } from '@/components/foundation/Icon';
 import { Button } from '@/components/forms/Button';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/cards/EventCard.jsx + EventCard.d.ts — keep in sync. */
+/* Ported from design-system/components/cards/EventCard.jsx + EventCard.d.ts. */
 type Availability = 'available' | 'limited' | 'soldout' | 'cancelled';
 
 export interface EventCardProps extends HTMLAttributes<HTMLElement> {
@@ -35,39 +36,40 @@ const AVAIL: Record<Availability, { tone: 'success' | 'warning' | 'danger'; labe
 
 function Meta({ icon, children }: { icon: string; children: ReactNode }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: 'var(--type-body-sm)', color: 'var(--text-body)' }}>
-      <Icon name={icon} size={15} color="var(--olive-500)" />{children}
+    <span className="type-body-sm inline-flex items-center gap-1.5 text-body">
+      <Icon name={icon} size={15} className="text-olive-500" />
+      {children}
     </span>
   );
 }
 
-export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, style, ...rest }: EventCardProps) {
-  const a = AVAIL[availability] || AVAIL.available;
+export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, className, ...rest }: EventCardProps) {
+  const a = AVAIL[availability];
   const blocked = availability === 'soldout' || availability === 'cancelled';
   const row = layout === 'horizontal';
   return (
-    <Card padding={0} interactive={!blocked} style={{ display: row ? 'grid' : 'block', gridTemplateColumns: row ? '260px minmax(0,1fr)' : undefined, ...style }} {...rest}>
+    <Card interactive={!blocked} className={cn('p-0', row ? 'grid grid-cols-[260px_minmax(0,1fr)]' : 'block', className)} {...rest}>
       {row ? (
-        <div style={{ minWidth: 0, overflow: 'hidden' }}>
-          <Media src={image} ratio="auto" tone="green" caption={title} radius="0" style={{ width: '100%', height: '100%', aspectRatio: 'auto', minHeight: 200 }} />
+        <div className="min-w-0 overflow-hidden">
+          <Media src={image} ratio="auto" tone="green" caption={title} className="h-full min-h-50 w-full rounded-none" />
         </div>
       ) : (
-        <Media src={image} ratio="16 / 9" tone="green" caption={title} radius="0" />
+        <Media src={image} ratio="16 / 9" tone="green" caption={title} className="rounded-none" />
       )}
-      <div style={{ display: 'grid', gap: 'var(--space-3)', padding: 'var(--space-5)', alignContent: 'start' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+      <div className="grid content-start gap-3 p-5">
+        <div className="flex flex-wrap gap-2">
           <StatusBadge tone={a.tone} size="sm">{a.label}</StatusBadge>
           {free && <StatusBadge tone="info" size="sm" icon="gift">Free</StatusBadge>}
         </div>
-        <h3 style={{ font: 'var(--type-h3)' }}>{title}</h3>
-        {description && <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>{description}</p>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2) var(--space-5)' }}>
+        <h3 className="type-h3">{title}</h3>
+        {description && <p className="type-body-sm text-muted">{description}</p>}
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
           {date && <Meta icon="calendar-days">{date}</Meta>}
           {time && <Meta icon="clock">{time}</Meta>}
           {location && <Meta icon="map-pin">{location}</Meta>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', marginTop: 'var(--space-1)' }}>
-          <span style={{ font: 'var(--weight-semibold) var(--text-md)/1 var(--font-body)', color: 'var(--text-heading)' }}>
+        <div className="mt-1 flex items-center justify-between gap-4">
+          <span className="font-body text-md leading-none font-semibold text-heading">
             {free ? 'Free entry' : price}
           </span>
           <Button variant={blocked ? 'secondary' : 'primary'} size="sm" disabled={blocked} onClick={onBook} as={blocked ? 'button' : 'a'} href={blocked ? undefined : href}>

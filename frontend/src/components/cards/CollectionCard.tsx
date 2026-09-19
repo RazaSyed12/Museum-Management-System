@@ -2,8 +2,9 @@ import type { HTMLAttributes } from 'react';
 import { Card } from './Card';
 import { Media } from '@/components/foundation/Media';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
+import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/cards/CollectionCard.jsx + CollectionCard.d.ts — keep in sync. */
+/* Ported from design-system/components/cards/CollectionCard.jsx + CollectionCard.d.ts. */
 export interface CollectionCardProps extends HTMLAttributes<HTMLElement> {
   name: string;
   /** Staff-managed category — never hard-coded. */
@@ -16,18 +17,18 @@ export interface CollectionCardProps extends HTMLAttributes<HTMLElement> {
   href?: string;
 }
 
-export function CollectionCard({ name, category, period, description, itemCount, image, tone = 'olive', href = '#', style, ...rest }: CollectionCardProps) {
+export function CollectionCard({ name, category, period, description, itemCount, image, tone = 'olive', href = '#', className, ...rest }: CollectionCardProps) {
   return (
-    <Card interactive as="a" href={href} padding={0} style={style} {...rest}>
-      <Media src={image} ratio="4 / 3" tone={tone} caption={name} radius="0" />
-      <div style={{ display: 'grid', gap: 'var(--space-2)', padding: 'var(--space-4) var(--space-5) var(--space-5)' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+    <Card interactive as="a" href={href} className={cn('p-0', className)} {...rest}>
+      <Media src={image} ratio="4 / 3" tone={tone} caption={name} className="rounded-none" />
+      <div className="grid gap-2 px-5 pt-4 pb-5">
+        <div className="flex flex-wrap gap-2">
           {category && <StatusBadge tone="olive" size="sm">{category}</StatusBadge>}
           {period && <StatusBadge tone="neutral" size="sm" icon="hourglass">{period}</StatusBadge>}
         </div>
-        <h3 style={{ font: 'var(--type-h3)', color: 'var(--text-heading)' }}>{name}</h3>
-        {description && <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{description}</p>}
-        {itemCount != null && <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-accent)', fontWeight: 'var(--weight-semibold)' }}>{itemCount} objects</span>}
+        <h3 className="type-h3 text-heading">{name}</h3>
+        {description && <p className="type-body-sm line-clamp-2 text-muted">{description}</p>}
+        {itemCount != null && <span className="type-body-sm font-semibold text-accent-fg">{itemCount} objects</span>}
       </div>
     </Card>
   );

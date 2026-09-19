@@ -1,10 +1,7 @@
 # Heritage Museum — backend
 
 Node/Express API over PostgreSQL, serving the visitor website and the staff portal.
-
-This is its **own git repository**, with a history separate from the frontend.
-It sits inside the `Museum-Management-System` working tree for convenience;
-the parent repo does not track its contents.
+It lives in the `Museum-Management-System` monorepo alongside `frontend/`.
 
 ## Getting started
 
@@ -17,8 +14,7 @@ npm run dev              # http://localhost:4000
 
 ## Domain
 
-Taken from the design system's screens and its prototype data
-(`design-system/ui_kits/*/data.js` shows the exact shapes the UI expects).
+What the visitor website and the staff portal need from the API:
 
 | Resource | Notes |
 | --- | --- |

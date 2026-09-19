@@ -5,12 +5,12 @@ function Hero({ mode, go }) {
   const small = mode === 'mobile';
   return (
     <section style={{ position:'relative', background:'var(--green-900)', overflow:'hidden' }}>
-      <div style={{ position:'absolute', inset:0 }}>
+      <div style={{ position:'absolute', inset:0 }} className="hm-hero-bg">
         <Media tone="green" ratio="auto" radius="0" caption="Exhibition photography — Great Hall" style={{ height:'100%', aspectRatio:'auto' }} />
         <div style={{ position:'absolute', inset:0, background: small ? 'var(--scrim-image)' : 'var(--scrim-hero)' }} />
       </div>
       <Container mode={mode} style={{ position:'relative' }}>
-        <div style={{ maxWidth: small ? '100%' : 560, padding: small ? 'var(--space-16) 0 var(--space-10)' : 'var(--space-24) 0', display:'grid', gap:'var(--space-5)' }}>
+        <div className="hm-hero-in" style={{ maxWidth: small ? '100%' : 560, padding: small ? 'var(--space-16) 0 var(--space-10)' : 'var(--space-24) 0', display:'grid', gap:'var(--space-5)' }}>
           <span style={{ font:'var(--type-eyebrow)', letterSpacing:'var(--tracking-wider)', textTransform:'uppercase', color:'var(--sand-300)' }}>Current exhibition</span>
           <h1 style={{ font: small ? 'var(--weight-regular) var(--text-4xl)/1.05 var(--font-display)' : 'var(--weight-regular) var(--text-6xl)/1.05 var(--font-display)', color:'var(--paper-50)' }}>{e.title}</h1>
           <p style={{ font:'var(--type-body)', fontSize: small ? 16 : 18, color:'rgba(245,243,233,.86)', maxWidth:480 }}>{e.description}</p>
@@ -19,12 +19,18 @@ function Hero({ mode, go }) {
             <span style={{ display:'inline-flex', gap:6, alignItems:'center' }}><Icon name="map-pin" size={16} />Exhibition Wing</span>
           </div>
           <div style={{ display:'flex', gap:'var(--space-3)', flexWrap:'wrap', marginTop:'var(--space-2)' }}>
-            <Button variant="accent" size={small?'md':'lg'} onClick={()=>go('Collection')}>Explore exhibition</Button>
-            <Button variant="secondary" size={small?'md':'lg'} onClick={()=>go('Tickets')}
+            <Button className="hm-sheen" variant="accent" size={small?'md':'lg'} onClick={()=>go('Collection')}>Explore exhibition</Button>
+            <Button className="hm-sheen" variant="secondary" size={small?'md':'lg'} onClick={()=>go('Tickets')}
               style={{ color:'var(--paper-50)', borderColor:'rgba(242,226,166,.5)' }}>Book tickets</Button>
           </div>
         </div>
       </Container>
+      {!small && (
+        <div style={{ position:'absolute', left:'50%', bottom:18, transform:'translateX(-50%)', display:'grid', justifyItems:'center', gap:6, color:'var(--sand-300)' }}>
+          <span style={{ font:'var(--type-body-sm)', fontSize:11, letterSpacing:'var(--tracking-wider)', textTransform:'uppercase', opacity:.75 }}>Scroll</span>
+          <span className="hm-cue" style={{ display:'inline-flex' }}><Icon name="chevron-down" size={18} /></span>
+        </div>
+      )}
     </section>
   );
 }
@@ -44,13 +50,31 @@ function VisitStrip({ mode }) {
             <div key={c.title} style={{ display:'flex', gap:'var(--space-3)', alignItems:'flex-start' }}>
               <Icon name={c.icon} size={20} color="var(--sand-300)" />
               <span style={{ display:'grid', gap:2 }}>
-                <span style={{ font:'var(--type-label)', color:'var(--paper-50)' }}>{c.title}</span>
+                <span style={{ font:'var(--type-label)', color:'var(--paper-50)', display:'inline-flex', alignItems:'center', gap:8 }}>
+                  {c.title === 'Open today' && <i className="hm-dot" />}{c.title}
+                </span>
                 <span style={{ font:'var(--type-body-sm)', color:'rgba(245,243,233,.66)' }}>{c.body}</span>
               </span>
             </div>
           ))}
         </div>
       </Container>
+    </div>
+  );
+}
+
+function Ticker({ mode }) {
+  const items = ['Beneath the Lanthorn — now on view', 'Free general admission', 'Members see new exhibitions a week early', 'Curator talk: Reading the Lanthorn Hoard · 24 Sep', 'BSL tours first Saturday of the month'];
+  const run = items.concat(items);
+  return (
+    <div className="hm-ticker" style={{ background:'var(--surface-accent)', borderBottom:'1px solid var(--border-subtle)', padding:`${mode==='mobile'?10:12}px 0` }}>
+      <div className="hm-ticker-track">
+        {run.map((t,i) => (
+          <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:'var(--space-4)', padding:'0 var(--space-6)', font:'var(--type-body-sm)', color:'var(--text-heading)', whiteSpace:'nowrap' }}>
+            {t}<Icon name="sparkles" size={13} color="var(--gold-700)" />
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -72,7 +96,7 @@ function MembershipPromo({ mode, isMember, go }) {
           <div style={{ display:'flex', gap:'var(--space-3)', flexWrap:'wrap' }}>
             {isMember
               ? <><StatusBadge tone="member">Active member</StatusBadge><Button variant="secondary" onClick={()=>go('Membership')}>View your benefits</Button></>
-              : <><Button onClick={()=>go('Membership')}>Become a member</Button><Button variant="ghost" onClick={()=>go('Membership')}>Compare benefits</Button></>}
+              : <><Button className="hm-sheen" onClick={()=>go('Membership')}>Become a member</Button><Button variant="ghost" onClick={()=>go('Membership')}>Compare benefits</Button></>}
           </div>
         </div>
         {mode === 'desktop' && <Media ratio="4 / 3" tone="sand" caption="Members' evening, Great Hall" />}
@@ -101,6 +125,7 @@ function HomeScreen({ mode, nav }) {
     <Page mode={mode} nav={{ ...nav, active:'Home' }}>
       <Hero mode={mode} go={nav.go} />
       <VisitStrip mode={mode} />
+      <Ticker mode={mode} />
       <Section mode={mode} eyebrow="Collections" title="Featured collections"
         action={<Button variant="ghost" iconRight="arrow-right" onClick={()=>nav.go('Collections')}>All collections</Button>}>
         <Grid mode={mode} desktop={3} tablet={2} mobile={1}>
@@ -136,4 +161,4 @@ function HomeScreen({ mode, nav }) {
   );
 }
 
-Object.assign(window, { HomeScreen, Hero, VisitStrip, MembershipPromo });
+Object.assign(window, { HomeScreen, Hero, VisitStrip, MembershipPromo, Ticker });

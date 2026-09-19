@@ -4,7 +4,7 @@ out/
 build/
 dist/
 coverage/
-uploads/
+/backend/uploads/
 
 .env
 .env.local

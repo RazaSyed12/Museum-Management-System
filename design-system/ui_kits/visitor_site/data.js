@@ -40,7 +40,7 @@ window.HM = {
       description:'Dr Naomi Vale on what ninety-two buried objects tell us about belief.' },
     { id:'family-fossil', title:'Family fossil workshop', date:'27 Sep 2026', endDate:'27 Sep 2026', time:'10:00–12:30', location:'Learning Studio',
       price:'£8 · £5 members', priceValue:8, memberPrice:5, availability:'soldout', remaining:0, capacity:40,
-      description:'Cast your own ammonite and meet the museum’s palaeontologists.' },
+      description:'Cast your own ammonite and meet the museum\u2019s palaeontologists.' },
     { id:'night-drawing', title:'Late-night life drawing', date:'2 Oct 2026', endDate:'2 Oct 2026', time:'19:00–21:00', location:'Gallery 9',
       price:'£18 · £14 members', priceValue:18, memberPrice:14, availability:'cancelled', remaining:0, capacity:30,
       description:'This session has been cancelled. Ticket holders have been refunded in full.' },

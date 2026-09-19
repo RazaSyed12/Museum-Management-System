@@ -178,7 +178,7 @@ function MembershipScreen({ mode, nav }) {
     { icon:'clock-4', title:'Early access', body:'Book new exhibitions a week before general release.' },
     { icon:'users', title:'Bring a guest', body:'One guest at the member price on every visit.' },
     { icon:'coffee', title:'Ten percent off the café and shop', body:'Including the second-hand book room.' },
-    { icon:'mail', title:'Members’ letter', body:'A quarterly letter from the curators, printed and posted.' },
+    { icon:'mail', title:'Members\u2019 letter', body:'A quarterly letter from the curators, printed and posted.' },
   ];
   return (
     <Page mode={mode} nav={{ ...nav, active:'Membership' }}>

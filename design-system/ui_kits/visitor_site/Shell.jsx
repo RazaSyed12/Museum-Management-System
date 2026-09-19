@@ -12,23 +12,23 @@ function Section({ mode, title, eyebrow, action, children, tone, style }) {
       padding: `${mode === 'mobile' ? 'var(--space-10)' : 'var(--space-16)'} 0`, ...style }}>
       <Container mode={mode}>
         {(title || action) && (
-          <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:'var(--space-4)', marginBottom:'var(--space-6)', flexWrap:'wrap' }}>
+          <Reveal style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:'var(--space-4)', marginBottom:'var(--space-6)', flexWrap:'wrap' }}>
             <div style={{ display:'grid', gap:6 }}>
               {eyebrow && <span style={{ font:'var(--type-eyebrow)', letterSpacing:'var(--tracking-wider)', textTransform:'uppercase', color:'var(--olive-600)' }}>{eyebrow}</span>}
-              {title && <h2 style={{ font: mode === 'mobile' ? 'var(--weight-regular) var(--text-2xl)/1.2 var(--font-display)' : 'var(--type-h2)' }}>{title}</h2>}
+              {title && <h2 className="hm-ruled" style={{ font: mode === 'mobile' ? 'var(--weight-regular) var(--text-2xl)/1.2 var(--font-display)' : 'var(--type-h2)' }}>{title}</h2>}
             </div>
             {action}
-          </div>
+          </Reveal>
         )}
-        {children}
+        <Reveal delay={110}>{children}</Reveal>
       </Container>
     </section>
   );
 }
 
-function Grid({ mode, desktop = 3, tablet = 2, mobile = 1, children, style }) {
+function Grid({ mode, desktop = 3, tablet = 2, mobile = 1, children, style, className = '' }) {
   const cols = mode === 'mobile' ? mobile : mode === 'tablet' ? tablet : desktop;
-  return <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols}, minmax(0,1fr))`, gap:'var(--space-5)', ...style }}>{children}</div>;
+  return <div className={`hm-lift ${className}`.trim()} style={{ display:'grid', gridTemplateColumns:`repeat(${cols}, minmax(0,1fr))`, gap:'var(--space-5)', ...style }}>{children}</div>;
 }
 
 function MobileNav({ open, onClose, onNavigate, user, isMember }) {

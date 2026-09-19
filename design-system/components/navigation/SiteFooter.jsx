@@ -4,7 +4,7 @@ import { Icon } from '../foundation/Icon.jsx';
 
 const COLUMNS = [
   { title: 'Visit', links: ['Plan your visit', 'Opening hours', 'Getting here', 'Accessibility', 'Families'] },
-  { title: 'Explore', links: ['Collections', 'What’s on', 'Membership', 'Learning', 'Support us'] },
+  { title: 'Explore', links: ['Collections', 'What\u2019s on', 'Membership', 'Learning', 'Support us'] },
   { title: 'About', links: ['Our story', 'Press', 'Work with us', 'Contact'] },
 ];
 

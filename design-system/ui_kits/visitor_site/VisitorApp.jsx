@@ -98,7 +98,7 @@ function App() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--paper-200)' }}>
       <Toolbar screen={screen} setScreen={setScreen} mode={mode} setMode={setMode} who={who} setWho={setWho} />
-      <Frame mode={mode} key={mode}><Screen {...props} /></Frame>
+      <Frame mode={mode} key={mode}><div className="hm-screen" key={screen + who}><Screen {...props} /></div></Frame>
     </div>
   );
 }

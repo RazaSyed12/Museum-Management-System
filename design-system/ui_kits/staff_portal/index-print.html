@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="omelette-print-source" content="v1787730264829261 ui_kits/staff_portal/index.html">
+<title>Heritage Museum — staff portal screens</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<style>
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+*{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}
+doc-page:not(:defined){visibility:hidden}
+[style*="sticky"]{position:static !important}
+[style*="overflow: auto"]{overflow:visible !important}
+.cover{display:grid;gap:10px;padding-bottom:24px;border-bottom:2px solid var(--olive-500)}
+.cover h1{font:var(--type-h1);color:var(--text-heading);margin:0}
+.cover p{font:var(--type-body);color:var(--text-body);margin:0;max-width:5.6in}
+.eyebrow{font:var(--type-eyebrow);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--olive-600)}
+.shot{break-before:page;padding-top:6px}
+.shot h2{font:var(--weight-medium) 20px/1.2 var(--font-display);color:var(--text-heading);margin:0}
+.shot .meta{font:var(--weight-semibold) 10px/1.4 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin:2px 0 10px}
+.viewport{border:1px solid var(--border-default);overflow:hidden}
+.w1440{width:1440px;zoom:.5}
+.w768{width:768px;zoom:.9}
+.w390{width:390px;zoom:1}
+</style>
+</head>
+<body>
+<doc-page margin="0.5in">
+<div class="cover">
+<span class="eyebrow">Heritage Museum · Design system</span>
+<h1>Staff portal screens</h1>
+<p>The management interface: dashboard, collection and item management, categories, events, ticket allocation, bookings, and role-based access control. Desktop screens are reproduced at half scale; the tablet and mobile navigation states follow at the end.</p>
+</div>
+<div id="root"></div>
+</doc-page>
+<script src="../../doc-page.js"></script>
+<script type="text/babel" src="StaffShell.jsx"></script>
+<script type="text/babel" src="DashboardScreen.jsx"></script>
+<script type="text/babel" src="CollectionAdmin.jsx"></script>
+<script type="text/babel" src="EventAdmin.jsx"></script>
+<script type="text/babel" src="BookingAdmin.jsx"></script>
+<script type="text/babel">
+const noop = () => {};
+
+function Shot({ title, meta, mode, children }) {
+  const cls = mode === 'mobile' ? 'w390' : mode === 'tablet' ? 'w768' : 'w1440';
+  const w = mode === 'mobile' ? 390 : mode === 'tablet' ? 691 : 720;
+  return (
+    <section className="shot">
+      <h2>{title}</h2>
+      <p className="meta">{meta}</p>
+      <div className="viewport" style={{ width: w }}>
+        <div className={cls}>{children}</div>
+      </div>
+    </section>
+  );
+}
+
+const nav = (active) => ({ active, go: noop });
+const D = 'Desktop · 1440px';
+
+function PrintDoc() {
+  return (
+    <>
+      <Shot title="Dashboard" meta={D + ' · summary cards, upcoming events, activity feed, quick actions'}><DashboardScreen mode="desktop" nav={nav('Dashboard')} /></Shot>
+      <Shot title="Collection management" meta={D + ' · searchable, filterable table with status and row actions'}><CollectionsAdminScreen mode="desktop" nav={nav('Collections')} /></Shot>
+      <Shot title="Create / edit collection" meta={D + ' · details, category creation, image upload, publishing controls'}><CollectionFormScreen mode="desktop" nav={nav('Collections')} /></Shot>
+      <Shot title="Collection item management" meta={D + ' · item list with the add-item modal open'}><ItemsAdminScreen mode="desktop" nav={nav('Items')} /></Shot>
+      <Shot title="Category management" meta={D + ' · categories are data, never hard-coded'}><CategoriesScreen mode="desktop" nav={nav('Categories')} /></Shot>
+      <Shot title="Event management" meta={D + ' · status, dates, capacity and booked-progress per event'}><EventsAdminScreen mode="desktop" nav={nav('Events')} /></Shot>
+      <Shot title="Create / edit event" meta={D + ' · scheduling, associated collections, capacity and member allocation'}><EventFormScreen mode="desktop" nav={nav('Events')} /></Shot>
+      <Shot title="Ticket management" meta={D + ' · allocation split, remaining availability, editable pricing'}><TicketsAdminScreen mode="desktop" nav={nav('Tickets')} /></Shot>
+      <Shot title="Booking management" meta={D + ' · payment and booking status across all bookings'}><BookingsScreen mode="desktop" nav={nav('Bookings')} /></Shot>
+      <Shot title="Staff & roles" meta={D + ' · role-based access control with permissions under roles'}><StaffRolesScreen mode="desktop" nav={nav('Staff & roles')} /></Shot>
+      <Shot title="Dashboard — tablet" meta="Tablet · 768px · sidebar collapses to an icon rail" mode="tablet"><DashboardScreen mode="tablet" nav={nav('Dashboard')} /></Shot>
+      <Shot title="Event management — tablet" meta="Tablet · 768px · table scrolls horizontally inside the content column" mode="tablet"><EventsAdminScreen mode="tablet" nav={nav('Events')} /></Shot>
+      <Shot title="Dashboard — mobile" meta="Mobile · 390px · navigation moves into a left drawer" mode="mobile"><DashboardScreen mode="mobile" nav={nav('Dashboard')} /></Shot>
+      <Shot title="Collection management — mobile" meta="Mobile · 390px · stacked toolbar, horizontally scrolling table" mode="mobile"><CollectionsAdminScreen mode="mobile" nav={nav('Collections')} /></Shot>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintDoc />);
+</script>
+</body>
+</html>

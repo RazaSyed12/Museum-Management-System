@@ -1,0 +1,237 @@
+/* Heritage Museum design tokens as a Tailwind v4 theme.
+
+   Ported from design-system/tokens/{colors,typography,spacing,elevation,motion}.css.
+   The design system is still the source of truth — when a token changes there,
+   mirror it here. Every value below has the same number as its source token;
+   only the names changed, to fit Tailwind's namespaces:
+
+     design token               →  utility
+     --olive-500                →  bg-olive-500 / text-olive-500 / border-olive-500
+     --surface-card             →  bg-surface-card
+     --text-heading             →  text-heading           (text-body, text-muted, ...)
+     --border-subtle            →  border-line-subtle      (line-default/-strong/-inverse)
+     --radius-lg                →  rounded-lg              (rounded-pill for 999px)
+     --shadow-md                →  shadow-md               (shadow-focus for --ring-focus)
+     --text-3xl (38px)          →  text-3xl                (NB: the scale is the design's, so
+                                                            text-md = 18px and text-lg = 20px)
+
+   Defaults we don't use are reset first, so an off-brand colour or size is a
+   missing class rather than a silent fallback. `static` keeps every token
+   available as a CSS variable even when no utility references it. */
+
+@theme static {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+  --leading-*: initial;
+  --tracking-*: initial;
+  --ease-*: initial;
+  --breakpoint-*: initial;
+
+  /* ── Breakpoints ─────────────────────────────────────────────────────────
+     Mobile-first. Base = mobile (< 768), md = tablet (≥ 768), lg = desktop
+     (≥ 1100) — the same thresholds the design system uses for its
+     mobile / tablet / desktop modes. */
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1100px;
+
+  --container-page: 1280px;
+
+  /* ── Colour: brand primitives ───────────────────────────────────────────── */
+  --color-white: #ffffff;
+
+  /* Olive green · Pantone 5757 C */
+  --color-olive-50: #f4f6ec;
+  --color-olive-100: #e6ebd6;
+  --color-olive-200: #cbd6ac;
+  --color-olive-300: #aabb80;
+  --color-olive-400: #8a9f59;
+  --color-olive-500: #6b7f3b;
+  --color-olive-600: #586a31;
+  --color-olive-700: #455326;
+  --color-olive-800: #333e1d;
+
+  /* Dark green · Pantone 5535 C */
+  --color-green-50: #edf2ee;
+  --color-green-100: #d6e2da;
+  --color-green-200: #a9c0b1;
+  --color-green-400: #3e6b4a;
+  --color-green-700: #2a5033;
+  --color-green-900: #1f3b24;
+  --color-green-950: #14231a;
+
+  /* Pale yellow · Pantone 7401 C, plus the gold rule from the logo lockup */
+  --color-sand-50: #fdfaee;
+  --color-sand-100: #faf3dc;
+  --color-sand-200: #f7ebc5;
+  --color-sand-300: #f2e2a6;
+  --color-sand-400: #e8ce7c;
+  --color-sand-500: #d9b856;
+  --color-gold-600: #c9a227;
+  --color-gold-700: #a5851f;
+
+  /* Warm, paper-leaning neutrals */
+  --color-paper-0: #ffffff;
+  --color-paper-50: #fbfaf4; /* page background */
+  --color-paper-100: #f5f3e9;
+  --color-paper-200: #ebe8da;
+  --color-neutral-300: #d9d5c6;
+  --color-neutral-400: #b4af9e;
+  --color-neutral-500: #8c8877;
+  --color-neutral-600: #6b6759;
+  --color-neutral-700: #4a473d;
+  --color-neutral-900: #232219;
+
+  /* Status — never colour-only; always paired with an icon and a label.
+     The -700 text shades were hard-coded in the source components. */
+  --color-success-100: #deeee2;
+  --color-success-600: #3e7d4f;
+  --color-success-700: #2c5c39;
+  --color-warning-100: #faedd1;
+  --color-warning-600: #b4801b;
+  --color-warning-700: #8a6114;
+  --color-danger-100: #f6e1dd;
+  --color-danger-600: #a83a2b;
+  --color-danger-700: #8f3124;
+  --color-danger-800: #78281e;
+  --color-info-100: #dce8ef;
+  --color-info-600: #3a6076;
+  --color-info-700: #2e4c5e;
+
+  /* "Open today" dot */
+  --color-live: #a0be78;
+
+  /* ── Colour: semantic aliases ───────────────────────────────────────────── */
+  --color-surface-page: var(--color-paper-50);
+  --color-surface-card: var(--color-paper-0);
+  --color-surface-sunken: var(--color-paper-100);
+  --color-surface-muted: var(--color-olive-50);
+  --color-surface-inverse: var(--color-green-900);
+  --color-surface-accent: var(--color-sand-100);
+  --color-surface-staff: var(--color-paper-100);
+  --color-surface-staff-nav: var(--color-green-900);
+
+  --color-heading: var(--color-green-900);
+  --color-body: var(--color-neutral-700);
+  --color-muted: var(--color-neutral-500);
+  --color-inverse: var(--color-paper-50);
+  --color-accent-fg: var(--color-olive-600);
+  --color-link: var(--color-olive-600);
+  --color-link-hover: var(--color-green-900);
+
+  --color-line-subtle: var(--color-paper-200);
+  --color-line-default: var(--color-neutral-300);
+  --color-line-strong: var(--color-olive-300);
+  --color-line-inverse: rgb(242 226 166 / 0.28);
+
+  --color-action-primary: var(--color-green-900);
+  --color-action-primary-hover: var(--color-green-700);
+  --color-action-primary-active: var(--color-green-950);
+  --color-action-secondary: var(--color-olive-500);
+  --color-action-secondary-hover: var(--color-olive-600);
+  --color-action-accent: var(--color-sand-300);
+  --color-action-disabled-bg: var(--color-paper-200);
+  --color-action-disabled-text: var(--color-neutral-400);
+
+  --color-focus-ring: var(--color-olive-500);
+  --color-focus-ring-offset: var(--color-paper-50);
+  --color-overlay-scrim: rgb(20 35 26 / 0.56);
+
+  /* ── Type scale — 1.25 major third, 16px base (values in rem) ───────────── */
+  --text-2xs: 0.6875rem; /* 11px — the floor; nothing is smaller */
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.875rem; /* 14 */
+  --text-base: 1rem; /* 16 */
+  --text-md: 1.125rem; /* 18 */
+  --text-lg: 1.25rem; /* 20 */
+  --text-xl: 1.5rem; /* 24 */
+  --text-2xl: 1.875rem; /* 30 */
+  --text-3xl: 2.375rem; /* 38 */
+  --text-4xl: 3rem; /* 48 */
+  --text-5xl: 3.75rem; /* 60 */
+  --text-6xl: 4.75rem; /* 76 */
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.12em; /* eyebrows, wordmark-style labels */
+  --tracking-widest: 0.22em; /* logo lockup sub-line */
+
+  /* ── Shape and depth ────────────────────────────────────────────────────── */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgb(31 59 36 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(31 59 36 / 0.08), 0 1px 2px rgb(31 59 36 / 0.04);
+  --shadow-md: 0 4px 12px rgb(31 59 36 / 0.09);
+  --shadow-lg: 0 12px 28px rgb(31 59 36 / 0.12);
+  --shadow-xl: 0 24px 56px rgb(31 59 36 / 0.16);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --shadow-focus: 0 0 0 3px rgb(107 127 59 / 0.35);
+  --shadow-danger-ring: 0 0 0 3px rgb(168 58 43 / 0.28);
+
+  /* ── Motion ─────────────────────────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Animations for the visitor site's decorative motion layer (from the
+     design system's ui_kits/visitor_site/motion.css). All of them are turned
+     off under prefers-reduced-motion at the point of use (motion-reduce:*). */
+  --animate-rise: hm-rise 0.72s cubic-bezier(0.22, 0.7, 0.2, 1) var(--d, 0ms) both;
+  --animate-hero-in: hm-rise 0.78s cubic-bezier(0.22, 0.7, 0.2, 1) var(--d, 0s) both;
+  --animate-kenburns: hm-kenburns 26s ease-out both alternate infinite;
+  --animate-cue: hm-cue 2.2s ease-in-out infinite;
+  --animate-pulse-ring: hm-pulse 2.4s ease-out infinite;
+  --animate-marquee: hm-marquee 38s linear infinite;
+  --animate-rule: hm-rule 0.7s 0.25s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+  --animate-sheen: hm-sheen 1.05s ease-out;
+  --animate-spin: spin 900ms linear infinite;
+
+  @keyframes hm-rise {
+    from { opacity: 0; transform: translateY(22px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes hm-kenburns {
+    from { transform: scale(1.04) translate3d(0, 0, 0); }
+    to { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
+  }
+  @keyframes hm-cue {
+    0%, 100% { transform: translateY(0); opacity: 0.55; }
+    50% { transform: translateY(7px); opacity: 1; }
+  }
+  @keyframes hm-pulse {
+    0% { box-shadow: 0 0 0 0 rgb(160 190 120 / 0.55); }
+    70% { box-shadow: 0 0 0 9px rgb(160 190 120 / 0); }
+    100% { box-shadow: 0 0 0 0 rgb(160 190 120 / 0); }
+  }
+  @keyframes hm-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes hm-rule {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  @keyframes hm-sheen {
+    0% { transform: translateX(-120%) skewX(-18deg); }
+    60%, 100% { transform: translateX(320%) skewX(-18deg); }
+  }
+}
+
+/* Fonts are loaded by next/font in app/layout.tsx, which exposes each family
+   as a CSS variable on <html>. `inline` bakes those references straight into
+   the font-display / font-body utilities. */
+@theme inline {
+  --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body: var(--font-source-sans), 'Source Sans 3', 'Segoe UI', Helvetica, Arial, sans-serif;
+}

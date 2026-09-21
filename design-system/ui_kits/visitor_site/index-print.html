@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="omelette-print-source" content="v1787730264829261 ui_kits/visitor_site/index.html">
+<title>Heritage Museum — visitor website screens</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<style>
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+*{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}
+doc-page:not(:defined){visibility:hidden}
+[style*="sticky"]{position:static !important}
+.cover{display:grid;gap:10px;padding-bottom:24px;border-bottom:2px solid var(--olive-500)}
+.cover h1{font:var(--type-h1);color:var(--text-heading);margin:0}
+.cover p{font:var(--type-body);color:var(--text-body);margin:0;max-width:5.6in}
+.eyebrow{font:var(--type-eyebrow);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--olive-600)}
+.shot{break-before:page;padding-top:6px}
+.shot h2{font:var(--weight-medium) 20px/1.2 var(--font-display);color:var(--text-heading);margin:0}
+.shot .meta{font:var(--weight-semibold) 10px/1.4 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin:2px 0 10px}
+.viewport{border:1px solid var(--border-default);overflow:hidden}
+.w1440{width:1440px;zoom:.5}
+.w390{width:390px;zoom:1}
+.pair{display:flex;gap:18px;align-items:flex-start}
+</style>
+</head>
+<body>
+<doc-page margin="0.5in">
+<div class="cover">
+<span class="eyebrow">Heritage Museum · Design system</span>
+<h1>Visitor website screens</h1>
+<p>Every public-facing screen at 1440px, plus the 390px mobile layouts. Logged-out and personalised home states, the full ticketing flow, authentication, and membership. Desktop screens are reproduced at half scale.</p>
+</div>
+<div id="root"></div>
+</doc-page>
+<script src="../../doc-page.js"></script>
+<script type="text/babel" src="Shell.jsx"></script>
+<script type="text/babel" src="HomeScreen.jsx"></script>
+<script type="text/babel" src="CollectionScreens.jsx"></script>
+<script type="text/babel" src="EventScreens.jsx"></script>
+<script type="text/babel" src="TicketingScreens.jsx"></script>
+<script type="text/babel" src="AccountScreens.jsx"></script>
+<script type="text/babel">
+const noop = () => {};
+
+function Shot({ title, meta, mode, children }) {
+  return (
+    <section className="shot">
+      <h2>{title}</h2>
+      <p className="meta">{meta}</p>
+      <div className="viewport" style={{ width: mode === 'mobile' ? 390 : 720 }}>
+        <div className={mode === 'mobile' ? 'w390' : 'w1440'}>{children}</div>
+      </div>
+    </section>
+  );
+}
+
+function PrintDoc() {
+  const anon = { user: undefined, isMember: false, go: noop, signIn: noop, signOut: noop, setMember: noop };
+  const member = { user: { name: 'Amara Okafor', initials: 'AO' }, isMember: true, go: noop, signIn: noop, signOut: noop, setMember: noop };
+  const orderMember = useOrder(true);
+  const D = 'Desktop · 1440px';
+  const M = 'Mobile · 390px';
+  return (
+    <>
+      <Shot title="Home — signed out" meta={D + ' · anonymous visitor, popular content'}><HomeScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Home — signed in as a member" meta={D + ' · personalised recommendations, member benefits surfaced'}><HomeScreen mode="desktop" nav={member} /></Shot>
+      <Shot title="Collections browse" meta={D + ' · sidebar filters, sort, three-column grid, pagination'}><CollectionsScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Collection detail" meta={D + ' · hero, metadata, objects, related events and collections'}><CollectionDetailScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Artefact detail" meta={D + ' · gallery, full object metadata, related objects'}><ItemDetailScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="What's on" meta={D + ' · tabs, filters, availability states on every row'}><EventsScreen mode="desktop" nav={member} /></Shot>
+      <Shot title="Event detail" meta={D + ' · sticky ticket rail, availability and cancellation states'}><EventDetailScreen mode="desktop" nav={member} /></Shot>
+      <Shot title="Ticket selection" meta={D + ' · ticket types, member allocation, running order summary'}><TicketSelectScreen mode="desktop" nav={member} order={orderMember} /></Shot>
+      <Shot title="Checkout" meta={D + ' · subtotal, service charge, VAT and member discount before payment'}><CheckoutScreen mode="desktop" nav={member} order={orderMember} /></Shot>
+      <Shot title="Payment" meta={D + ' · prototype card form with success and failure states'}><PaymentScreen mode="desktop" nav={member} order={orderMember} /></Shot>
+      <Shot title="Booking confirmation" meta={D + ' · reference, booking detail, placeholder QR ticket'}><ConfirmationScreen mode="desktop" nav={member} order={orderMember} /></Shot>
+      <Shot title="Sign in" meta={D + ' · split layout, remember me, forgot password'}><SignInScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Create an account" meta={D + ' · states plainly that an account is not a membership'}><RegisterScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Interest onboarding" meta={D + ' · seeds the recommendation profile; skippable'}><InterestsScreen mode="desktop" nav={anon} /></Shot>
+      <Shot title="Profile — bookings" meta={D + ' · membership status, booking history, interests, settings'}><ProfileScreen mode="desktop" nav={member} /></Shot>
+      <Shot title="Membership" meta={D + ' · benefits, placeholder tiers, active-member state'}><MembershipScreen mode="desktop" nav={member} /></Shot>
+      <Shot title="Home" meta={M + ' · hamburger nav, stacked hero, single-column rails'} mode="mobile"><HomeScreen mode="mobile" nav={anon} /></Shot>
+      <Shot title="Collections browse" meta={M + ' · filter button opens a bottom drawer, single-column grid'} mode="mobile"><CollectionsScreen mode="mobile" nav={anon} /></Shot>
+      <Shot title="What's on" meta={M + ' · scrollable tabs, vertical event cards'} mode="mobile"><EventsScreen mode="mobile" nav={member} /></Shot>
+      <Shot title="Ticket selection" meta={M + ' · touch-friendly steppers, summary below the fold'} mode="mobile"><TicketSelectScreen mode="mobile" nav={member} order={orderMember} /></Shot>
+      <Shot title="Checkout" meta={M + ' · single-column form, stacked order summary'} mode="mobile"><CheckoutScreen mode="mobile" nav={member} order={orderMember} /></Shot>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintDoc />);
+</script>
+</body>
+</html>

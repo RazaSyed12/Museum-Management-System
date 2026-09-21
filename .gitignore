@@ -5,6 +5,8 @@ build/
 dist/
 coverage/
 /backend/uploads/
+supabase/.temp/
+supabase/.branches/
 
 .env
 .env.local

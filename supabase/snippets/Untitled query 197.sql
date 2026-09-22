@@ -1,4 +1,4 @@
-select conname, conrelid::regclass as table_name
+select conname
 from pg_constraint
 where connamespace = 'public'::regnamespace and contype = 'c'
-order by table_name, conname;
+order by conname;

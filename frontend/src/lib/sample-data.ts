@@ -44,6 +44,20 @@ export interface Recommendation {
   tone: Tone;
 }
 
+export interface Item {
+  id: string;
+  name: string;
+  period: string;
+  /** Approximate date, e.g. "c. 300 BCE". */
+  date: string;
+  origin: string;
+  description: string;
+  /** The owning collection's `name` (matching the design system's own data
+   *  shape) — resolve to a `Collection` with `collections.find(c => c.name === item.collection)`. */
+  collection: string;
+  location: string;
+}
+
 export const collections: Collection[] = [
   { id: 'ice-age', name: 'Ice Age Britain', category: 'Prehistory', period: 'Pleistocene', items: 128, tone: 'olive',
     description: 'Mammoth, aurochs and the first people to cross the land bridge.', location: 'Gallery 1 · Ground floor' },
@@ -62,6 +76,47 @@ export const collections: Collection[] = [
   { id: 'coins', name: 'Coin & Currency', category: 'Archaeology', period: 'Roman–Georgian', items: 480, tone: 'sand',
     description: 'Two thousand years of money made and spent locally.', location: 'Gallery 6 · First floor' },
 ];
+
+/** The categories and periods every collection actually uses — kept as a
+ *  literal list from design-system/ui_kits/visitor_site/data.js for now,
+ *  the way the design system's own filter screens do it; derive from
+ *  `collections` instead once staff can create categories. */
+export const categories = ['Prehistory', 'Dinosaurs', 'Archaeology', 'Ancient History', 'Medieval', 'Renaissance', 'Art'];
+export const periods = ['Prehistoric', 'Ancient', 'Medieval', 'Early modern', 'Modern'];
+
+/**
+ * Artefact records. Only The Lanthorn Hoard has any — that's the design
+ * system's own fixture, not a bug: every other collection's "Objects in
+ * this collection" section will show an empty state until more are added.
+ */
+export const items: Item[] = [
+  { id: 'helmet', name: 'Bronze ceremonial helmet', period: 'Iron Age', date: 'c. 300 BCE', origin: 'Lanthorn Fields, Kent',
+    description: 'Cast in one piece and never worn in battle.', collection: 'The Lanthorn Hoard', location: 'Case 4A, Gallery 4' },
+  { id: 'torc', name: 'Gold neck torc', period: 'Iron Age', date: 'c. 280 BCE', origin: 'Lanthorn Fields, Kent',
+    description: 'Twisted from eight rods of high-purity gold.', collection: 'The Lanthorn Hoard', location: 'Case 4A, Gallery 4' },
+  { id: 'bowl', name: 'Ritual bowl with boar frieze', period: 'Iron Age', date: 'c. 300 BCE', origin: 'Lanthorn Fields, Kent',
+    description: 'Repoussé decoration showing a boar hunt.', collection: 'The Lanthorn Hoard', location: 'Case 4B, Gallery 4' },
+  { id: 'brooch', name: 'Enamelled disc brooch', period: 'Iron Age', date: 'c. 250 BCE', origin: 'Unknown',
+    description: 'Red and blue enamel set in bronze cells.', collection: 'The Lanthorn Hoard', location: 'Case 4C, Gallery 4' },
+  { id: 'sword', name: 'Iron sword with wooden grip', period: 'Iron Age', date: 'c. 320 BCE', origin: 'Lanthorn Fields, Kent',
+    description: 'Bent double before burial — a deliberate act.', collection: 'The Lanthorn Hoard', location: 'Case 4D, Gallery 4' },
+  { id: 'cauldron', name: 'Riveted bronze cauldron', period: 'Iron Age', date: 'c. 300 BCE', origin: 'Lanthorn Fields, Kent',
+    description: 'Repaired at least four times in antiquity.', collection: 'The Lanthorn Hoard', location: 'Case 4E, Gallery 4' },
+];
+
+export function getCollection(id: string): Collection | undefined {
+  return collections.find((c) => c.id === id);
+}
+
+export function itemsIn(collection: Collection): Item[] {
+  return items.filter((i) => i.collection === collection.name);
+}
+
+export function getItem(collectionId: string, itemId: string): { collection: Collection; item: Item } | undefined {
+  const collection = getCollection(collectionId);
+  const item = collection && items.find((i) => i.id === itemId && i.collection === collection.name);
+  return collection && item ? { collection, item } : undefined;
+}
 
 export const events: MuseumEvent[] = [
   { id: 'twilight', title: 'Twilight at the Museum', date: '14 Sep 2026', endDate: '14 Sep 2026', time: '18:30–21:00', location: 'Great Hall',

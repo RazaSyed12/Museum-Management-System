@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
-import { UnderConstruction } from '@/components/shared/UnderConstruction';
+import { CollectionsBrowse } from '@/components/collections/CollectionsBrowse';
 
-export const metadata: Metadata = { title: 'Collections' };
+export const metadata: Metadata = {
+  title: 'Collections',
+  description: "Browse Heritage Museum's collections. Filter by category to find what you're looking for.",
+};
 
 export default function CollectionsPage() {
-  return <UnderConstruction title="Collections" description="Browse the museum's collections, galleries and objects. This page is still being built." />;
+  return <CollectionsBrowse />;
 }

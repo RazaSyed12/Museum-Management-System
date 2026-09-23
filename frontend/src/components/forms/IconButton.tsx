@@ -2,8 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/forms/IconButton.jsx + IconButton.d.ts.
-   Hover is a CSS variant now rather than React state. */
+/* Hover is a CSS variant rather than React state. */
 type Size = 'sm' | 'md' | 'lg';
 type Variant = 'ghost' | 'outline' | 'solid' | 'inverse';
 

@@ -2,7 +2,6 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/feedback/EmptyState.jsx + EmptyState.d.ts. */
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   icon?: string;
   title: string;

@@ -13,9 +13,7 @@ import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { useSiteNav } from '@/lib/nav';
 import { collections, events, recommendedForYou, popularRightNow } from '@/lib/sample-data';
 
-/* Ported from HomeScreen in design-system/ui_kits/visitor_site/HomeScreen.jsx.
-   The preview harness's own `<Page>` wrapper (header/footer/mobile nav) is
-   dropped here — that chrome now lives once in app/layout.tsx's SiteChrome,
+/* Header/footer/mobile nav chrome lives once in app/layout.tsx's SiteChrome,
    shared by every route instead of being re-assembled per screen. */
 export function HomeContent() {
   const nav = useSiteNav();

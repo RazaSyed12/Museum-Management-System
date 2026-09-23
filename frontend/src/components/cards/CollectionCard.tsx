@@ -4,7 +4,6 @@ import { Media } from '@/components/foundation/Media';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/cards/CollectionCard.jsx + CollectionCard.d.ts. */
 export interface CollectionCardProps extends HTMLAttributes<HTMLElement> {
   name: string;
   /** Staff-managed category — never hard-coded. */

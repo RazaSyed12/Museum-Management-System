@@ -1,7 +1,6 @@
 import { Icon } from '@/components/foundation/Icon';
 import { Container } from '@/components/layout/Container';
 
-/* Ported from the VisitStrip section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 const CELLS = [
   { icon: 'clock', title: 'Open today', body: '10:00 – 17:30 · last entry 16:45' },
   { icon: 'ticket', title: 'General admission', body: 'Free · exhibitions ticketed separately' },

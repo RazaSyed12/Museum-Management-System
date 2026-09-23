@@ -4,10 +4,7 @@ import { Icon } from '@/components/foundation/Icon';
 import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/navigation/SiteFooter.jsx + SiteFooter.d.ts.
-   The source used one fixed five-column grid at every width (its columns
-   alone need ~950px), so the page scrolled sideways below that. It now
-   collapses: 2 columns on mobile, 3 on tablet, the original five on desktop —
+/* The grid collapses: 2 columns on mobile, 3 on tablet, 5 on desktop —
    with the brand block and the opening-hours block spanning the full row
    until there's room for them to sit alongside the link columns. */
 export interface FooterColumn {

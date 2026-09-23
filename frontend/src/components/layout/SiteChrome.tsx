@@ -6,9 +6,7 @@ import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { useSiteNav } from '@/lib/nav';
 
-/* Ported from the Page helper in design-system/ui_kits/visitor_site/Shell.jsx.
-   The source called this per-screen inside the preview harness; here it's
-   mounted once in app/layout.tsx so every route gets the same header,
+/* Mounted once in app/layout.tsx so every route gets the same header,
    footer and mobile menu for free instead of each page re-assembling them. */
 export function SiteChrome({ children }: { children: ReactNode }) {
   const nav = useSiteNav();

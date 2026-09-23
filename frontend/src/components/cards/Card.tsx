@@ -1,8 +1,7 @@
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/cards/Card.jsx + Card.d.ts.
-   Hover lift is CSS now rather than React state, and `padding` became a
+/* Hover lift is CSS rather than React state, and `padding` is a
    className (`p-0` for an edge-to-edge image; the default is p-5).
    The `group/card` hook lets a Media image inside zoom on card hover. */
 export interface CardProps extends HTMLAttributes<HTMLElement> {

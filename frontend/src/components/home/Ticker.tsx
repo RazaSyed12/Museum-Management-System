@@ -1,7 +1,6 @@
 import { Icon } from '@/components/foundation/Icon';
 
-/* Ported from the Ticker section in design-system/ui_kits/visitor_site/HomeScreen.jsx.
-   The list is rendered twice so the track can slide by exactly half its width
+/* The list is rendered twice so the track can slide by exactly half its width
    and loop seamlessly; hovering pauses it. */
 const ITEMS = ['Beneath the Lanthorn — now on view', 'Free general admission', 'Members see new exhibitions a week early', 'Curator talk: Reading the Lanthorn Hoard · 24 Sep', 'BSL tours first Saturday of the month'];
 

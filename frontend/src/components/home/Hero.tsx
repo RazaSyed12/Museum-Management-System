@@ -4,7 +4,6 @@ import { Media } from '@/components/foundation/Media';
 import { Container } from '@/components/layout/Container';
 import { events } from '@/lib/sample-data';
 
-/* Ported from the Hero section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 export interface HeroProps {
   go: (label: string) => void;
 }

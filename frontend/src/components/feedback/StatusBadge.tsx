@@ -2,8 +2,7 @@ import type { HTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
-/* Status is never communicated by colour alone: every badge carries an icon and a word.
-   Ported from design-system/components/feedback/StatusBadge.jsx + StatusBadge.d.ts. */
+/* Status is never communicated by colour alone: every badge carries an icon and a word. */
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'member' | 'olive';
 
 export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {

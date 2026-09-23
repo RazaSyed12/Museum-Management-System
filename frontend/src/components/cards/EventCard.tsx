@@ -6,7 +6,6 @@ import { Icon } from '@/components/foundation/Icon';
 import { Button } from '@/components/forms/Button';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/cards/EventCard.jsx + EventCard.d.ts. */
 type Availability = 'available' | 'limited' | 'soldout' | 'cancelled';
 
 export interface EventCardProps extends HTMLAttributes<HTMLElement> {

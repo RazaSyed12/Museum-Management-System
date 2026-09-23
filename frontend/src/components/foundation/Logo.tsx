@@ -1,11 +1,7 @@
 import type { ImgHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/foundation/Logo.jsx + Logo.d.ts. The
-   only change from the source is the `assetBase` default: the design
-   system's preview kits sit two directories below assets/ (`../../assets/`);
-   in this app the files are copied into public/assets/, served from the
-   site root. */
+/* `assetBase` defaults to the site root; files are copied into public/assets/. */
 const SRC = {
   primary: 'logo-primary.png',
   horizontal: 'logo-lockup-horizontal.png',

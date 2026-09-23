@@ -3,7 +3,6 @@ import { Button } from '@/components/forms/Button';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { Media } from '@/components/foundation/Media';
 
-/* Ported from the MembershipPromo section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 export interface MembershipPromoProps {
   isMember?: boolean;
   go: (label: string) => void;

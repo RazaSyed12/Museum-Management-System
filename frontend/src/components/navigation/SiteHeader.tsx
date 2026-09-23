@@ -9,10 +9,8 @@ import { IconButton } from '@/components/forms/IconButton';
 import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/navigation/SiteHeader.jsx + SiteHeader.d.ts.
-   The source measured the window in JS (`mode="auto"`) to decide what to
-   show; that's now breakpoint visibility utilities, so the header renders
-   the right layout on the server with no resize listener and no flash.
+/* The header renders the right layout on the server via breakpoint visibility
+   utilities, with no resize listener and no flash.
      mobile  (< md): menu button, mark logo, search, sign-in icon
      tablet  (≥ md): + horizontal logo, first four nav items, Sign in button
      desktop (≥ lg): + all nav items, Book tickets button */

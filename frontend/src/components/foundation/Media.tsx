@@ -2,9 +2,7 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 /* Stand-in for museum photography. Swap the placeholder for a real <img> when
-   artefact photography is available — the ratio, radius and scrim stay the same.
-   Ported from design-system/components/foundation/Media.jsx + Media.d.ts. The
-   `radius` prop became `className` (rounded-none for edge-to-edge use). */
+   artefact photography is available — the ratio, radius and scrim stay the same. */
 const TONES = {
   olive: 'from-olive-400 to-olive-700',
   green: 'from-green-400 to-green-950',

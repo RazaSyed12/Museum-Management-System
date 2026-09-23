@@ -6,10 +6,6 @@ import { Icon } from '@/components/foundation/Icon';
 import { SearchField } from '@/components/forms/SearchField';
 import type { SiteHeaderUser } from './SiteHeader';
 
-/* Ported from the MobileNav helper in design-system/ui_kits/visitor_site/Shell.jsx
-   — the design system defines this alongside Container/Section/Grid rather
-   than under components/, but it's real reusable nav chrome, so it gets its
-   own file here rather than living inline in the layout. */
 export interface MobileNavProps {
   open: boolean;
   onClose: () => void;

@@ -4,11 +4,8 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { IconButton } from '@/components/forms/IconButton';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/feedback/Drawer.jsx + Drawer.d.ts.
-   The scrim is `fixed` (the source used `absolute` so it could sit inside its
-   scaled preview frames): on the real site an absolute overlay covers the
-   whole page height, so opening the menu after scrolling put the drawer
-   off-screen at the top of the document. */
+/* The scrim is `fixed` so it covers the whole page height regardless of scroll
+   position, rather than only the initial viewport. */
 export interface DrawerProps extends HTMLAttributes<HTMLElement> {
   open?: boolean;
   /** left = mobile navigation, right = staff detail panels, bottom = mobile filters. */

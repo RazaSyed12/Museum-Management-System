@@ -4,8 +4,7 @@ import { cn } from '@/lib/cn';
 /* Lucide (lucide.dev, ISC) is used as the Heritage Museum icon set — the brand
    sheet shipped no icon library. Glyphs are pulled from the lucide-static CDN and
    painted with the current text colour via a CSS mask, so colour an icon with a
-   text utility:  <Icon name="clock" className="text-sand-300" />
-   Ported from design-system/components/foundation/Icon.jsx + Icon.d.ts. */
+   text utility:  <Icon name="clock" className="text-sand-300" /> */
 const CDN = 'https://unpkg.com/lucide-static@0.454.0/icons/';
 
 export interface IconProps extends HTMLAttributes<HTMLSpanElement> {

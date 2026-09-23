@@ -3,7 +3,6 @@ import { Container } from './Container';
 import { Reveal } from '@/components/motion/Reveal';
 import { cn } from '@/lib/cn';
 
-/* Ported from the Section helper in design-system/ui_kits/visitor_site/Shell.jsx. */
 export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   title?: string;
   eyebrow?: string;

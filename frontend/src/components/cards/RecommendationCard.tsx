@@ -5,8 +5,7 @@ import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
 /* The reason line explains a recommendation in human terms ("Because you explored
-   Prehistory") — never expose scoring, models or technical logic to visitors.
-   Ported from design-system/components/cards/RecommendationCard.jsx + RecommendationCard.d.ts. */
+   Prehistory") — never expose scoring, models or technical logic to visitors. */
 export interface RecommendationCardProps extends HTMLAttributes<HTMLElement> {
   title: string;
   /** What is being recommended: "Collection", "Event", "Artefact". */

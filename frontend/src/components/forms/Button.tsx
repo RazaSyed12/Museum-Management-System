@@ -2,8 +2,7 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/forms/Button.jsx + Button.d.ts.
-   Hover/active/disabled are CSS variants now rather than React state, so
+/* Hover/active/disabled are CSS variants rather than React state, so
    this is a plain server-renderable component. */
 type Variant = 'primary' | 'secondary' | 'accent' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg' | 'fluid';

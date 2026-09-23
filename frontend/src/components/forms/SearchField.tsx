@@ -2,11 +2,6 @@ import type { InputHTMLAttributes } from 'react';
 import { Icon } from '@/components/foundation/Icon';
 import { cn } from '@/lib/cn';
 
-/* Ported from design-system/components/forms/SearchField.jsx + SearchField.d.ts.
-   The focus ring is `focus-within` on the wrapper rather than React state.
-   Note: the source .d.ts extends InputHTMLAttributes directly, but its `size`
-   ('sm' | 'md') collides with the native <input size> attribute (a number)
-   — Omit that one attribute rather than dropping the documented prop name. */
 export interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   onClear?: () => void;
   size?: 'sm' | 'md';

@@ -14,7 +14,9 @@ npm run dev              # http://localhost:4000
 
 ## Domain
 
-What the visitor website and the staff portal need from the API:
+What the visitor website and the staff portal need from the API. See
+[API-REQUIREMENTS.md](API-REQUIREMENTS.md) for concrete endpoint shapes the
+frontend is already built against, in priority order.
 
 | Resource | Notes |
 | --- | --- |

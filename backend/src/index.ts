@@ -1,23 +1,20 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
+import 'dotenv/config';
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import { anonClient } from './lib/supabaseClients';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to Supabase using the secret key — this runs server-side
-// only, so it's safe to use the powerful key here (never in frontend code).
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
-);
-
 // A simple route that proves the server AND the database connection
-// both actually work — not just that the server started.
-app.get('/health', async (req, res) => {
-  const { data, error } = await supabase
+// both actually work — not just that the server started. Uses
+// anonClient() rather than the secret key, so this also proves RLS
+// lets a public caller read public data, which is what a real
+// visitor's request depends on. A secret-key version would report
+// "ok" even if every RLS policy on `categories` were broken.
+app.get('/health', async (req: Request, res: Response) => {
+  const { data, error } = await anonClient()
     .from('categories')
     .select('category_id, name')
     .limit(5);

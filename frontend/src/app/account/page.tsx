@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { UnderConstruction } from '@/components/shared/UnderConstruction';
+import { ProfileScreen } from '@/components/account/ProfileScreen';
 
 export const metadata: Metadata = { title: 'Your account' };
 
 export default function AccountPage() {
-  return <UnderConstruction title="Your account" description="Manage your profile, bookings and membership here soon." />;
+  return <ProfileScreen />;
 }

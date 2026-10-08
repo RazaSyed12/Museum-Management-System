@@ -84,6 +84,11 @@ export const collections: Collection[] = [
 export const categories = ['Prehistory', 'Dinosaurs', 'Archaeology', 'Ancient History', 'Medieval', 'Renaissance', 'Art'];
 export const periods = ['Prehistoric', 'Ancient', 'Medieval', 'Early modern', 'Modern'];
 
+/** The interest-picker's own list (onboarding + profile) — a superset of
+ *  `categories` by one ('Natural History' has no collection yet), kept
+ *  separate because the two pickers serve different purposes. */
+export const interests = ['Dinosaurs', 'Prehistory', 'Ancient History', 'Archaeology', 'Medieval', 'Renaissance', 'Art', 'Natural History'];
+
 /**
  * Artefact records. Only The Lanthorn Hoard has any — that's the design
  * system's own fixture, not a bug: every other collection's "Objects in

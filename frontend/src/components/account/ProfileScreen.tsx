@@ -9,13 +9,15 @@ import { Button } from '@/components/forms/Button';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { DataTable, type Column } from '@/components/data/DataTable';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { SkeletonCard } from '@/components/feedback/Skeleton';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { Field } from '@/components/forms/Field';
 import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
-import { bookings, recommendedForYou, hrefForRecommendation, type Booking } from '@/lib/sample-data';
+import { listBookings } from '@/lib/api/bookings';
+import { recommendedForYou, hrefForRecommendation, type Booking } from '@/lib/sample-data';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 
@@ -35,6 +37,7 @@ export function ProfileScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('bookings');
   const [name, setName] = useState(auth.user?.name ?? '');
+  const [bookings, setBookings] = useState<Booking[]>();
 
   useEffect(() => {
     if (auth.ready && !auth.user) router.replace('/sign-in');
@@ -43,6 +46,10 @@ export function ProfileScreen() {
   useEffect(() => {
     if (auth.user) setName(auth.user.name);
   }, [auth.user]);
+
+  useEffect(() => {
+    listBookings().then(setBookings);
+  }, []);
 
   if (!auth.user) return null;
   const user = auth.user;
@@ -77,7 +84,7 @@ export function ProfileScreen() {
             value={tab}
             onChange={(v) => setTab(v as Tab)}
             items={[
-              { value: 'bookings', label: 'Bookings', count: bookings.length },
+              { value: 'bookings', label: 'Bookings', count: bookings?.length ?? 0 },
               { value: 'saved', label: 'Saved', count: 0 },
               { value: 'interests', label: 'Interests' },
               { value: 'settings', label: 'Settings' },
@@ -87,7 +94,9 @@ export function ProfileScreen() {
       </div>
 
       <Container className="py-8 md:py-12">
-        {tab === 'bookings' && <DataTable<Booking> caption="Your bookings" columns={COLUMNS} rows={bookings} />}
+        {tab === 'bookings' && (
+          bookings ? <DataTable<Booking> caption="Your bookings" columns={COLUMNS} rows={bookings} /> : <SkeletonCard />
+        )}
 
         {tab === 'saved' && (
           <EmptyState

@@ -10,7 +10,7 @@ import { Section } from '@/components/layout/Section';
 import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
-import { collections, type Collection, type Item } from '@/lib/sample-data';
+import type { Collection, Item } from '@/lib/sample-data';
 import { cn } from '@/lib/cn';
 
 /* The facts list only shows fields the data model actually has — no
@@ -23,9 +23,10 @@ export interface ItemDetailProps {
   collection: Collection;
   item: Item;
   relatedItems: Item[];
+  suggestions: Collection[];
 }
 
-export function ItemDetail({ collection, item, relatedItems }: ItemDetailProps) {
+export function ItemDetail({ collection, item, relatedItems, suggestions }: ItemDetailProps) {
   const [shot, setShot] = useState(0);
   const facts: [string, string][] = [
     ['Historical period', item.period],
@@ -34,7 +35,6 @@ export function ItemDetail({ collection, item, relatedItems }: ItemDetailProps) 
     ['Collection', item.collection],
     ['On display', item.location],
   ];
-  const suggestions = collections.filter((c) => c.id !== collection.id).slice(0, 2);
 
   return (
     <>

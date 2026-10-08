@@ -154,3 +154,34 @@ export const popularRightNow: Recommendation[] = [
   { title: 'Twilight at the Museum', kind: 'Event', reason: 'Selling quickly', tone: 'olive' },
   { title: 'Medieval Armoury', kind: 'Collection', reason: 'Trending this week', tone: 'sand' },
 ];
+
+/** Collection recommendations link to the real page now that one exists;
+ *  Event recommendations still fall back to RecommendationCard's default
+ *  ('#') until Events has its own detail pages. Shared by every screen that
+ *  renders a `Recommendation` rail (home, profile) so the link rule lives
+ *  in one place. */
+export function hrefForRecommendation(r: Recommendation): string | undefined {
+  if (r.kind !== 'Collection') return undefined;
+  const collection = collections.find((c) => c.name === r.title);
+  return collection && `/collections/${collection.id}`;
+}
+
+export type BookingStatus = 'Confirmed' | 'Cancelled';
+
+export interface Booking {
+  /** The booking reference doubles as its row id — bookings have no other
+   *  unique key in this fixture. */
+  id: string;
+  ref: string;
+  event: string;
+  date: string;
+  qty: number;
+  total: string;
+  status: BookingStatus;
+}
+
+export const bookings: Booking[] = [
+  { id: 'HM-2026-04821', ref: 'HM-2026-04821', event: 'Beneath the Lanthorn Fields', date: '12 Aug 2026', qty: 2, total: '£24.00', status: 'Confirmed' },
+  { id: 'HM-2026-04455', ref: 'HM-2026-04455', event: 'Curator talk: Reading the Lanthorn Hoard', date: '21 Sep 2026', qty: 1, total: 'Free', status: 'Confirmed' },
+  { id: 'HM-2026-03910', ref: 'HM-2026-03910', event: 'Family fossil workshop', date: '4 May 2026', qty: 4, total: '£20.00', status: 'Cancelled' },
+];

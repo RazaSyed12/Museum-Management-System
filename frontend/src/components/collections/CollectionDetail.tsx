@@ -7,21 +7,23 @@ import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { CollectionCard } from '@/components/cards/CollectionCard';
-import { collections, events, itemsIn, type Collection } from '@/lib/sample-data';
+import type { Collection, Item, MuseumEvent } from '@/lib/sample-data';
 
 /* Works for any collection using only fields the data model actually has —
    no bespoke per-collection copy or invented visit-time estimates. A server
    component throughout: every action here is a real link to a page that
-   now exists, so nothing needs client-side navigation state. */
+   now exists, so nothing needs client-side navigation state. Related data
+   is fetched by the page (lib/api/*) and passed in, not read here, so this
+   component doesn't care whether that data came from the fixture or a
+   real API call. */
 export interface CollectionDetailProps {
   collection: Collection;
+  relatedItems: Item[];
+  relatedCollections: Collection[];
+  relatedEvents: MuseumEvent[];
 }
 
-export function CollectionDetail({ collection }: CollectionDetailProps) {
-  const relatedItems = itemsIn(collection);
-  const relatedEvents = events.slice(0, 2);
-  const relatedCollections = collections.filter((c) => c.id !== collection.id).slice(0, 3);
-
+export function CollectionDetail({ collection, relatedItems, relatedCollections, relatedEvents }: CollectionDetailProps) {
   return (
     <>
       <DetailHero

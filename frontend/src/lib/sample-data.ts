@@ -1,9 +1,9 @@
 /**
  * Placeholder content for the visitor site, ported from
  * design-system/ui_kits/visitor_site/data.js (the design system's own
- * `window.HM` fixture). Replace with real API calls once the collections
- * and events endpoints exist on the backend — every screen that reads from
- * here takes plain props, so swapping the data source doesn't touch them.
+ * `window.HM` fixture). Nothing outside lib/api/* and lib/auth.tsx should
+ * import from this file directly — those two are the mock API boundary,
+ * and they're what gets rewired to real endpoints once the backend exists.
  */
 export type Tone = 'olive' | 'green' | 'sand' | 'stone';
 
@@ -108,20 +108,6 @@ export const items: Item[] = [
   { id: 'cauldron', name: 'Riveted bronze cauldron', period: 'Iron Age', date: 'c. 300 BCE', origin: 'Lanthorn Fields, Kent',
     description: 'Repaired at least four times in antiquity.', collection: 'The Lanthorn Hoard', location: 'Case 4E, Gallery 4' },
 ];
-
-export function getCollection(id: string): Collection | undefined {
-  return collections.find((c) => c.id === id);
-}
-
-export function itemsIn(collection: Collection): Item[] {
-  return items.filter((i) => i.collection === collection.name);
-}
-
-export function getItem(collectionId: string, itemId: string): { collection: Collection; item: Item } | undefined {
-  const collection = getCollection(collectionId);
-  const item = collection && items.find((i) => i.id === itemId && i.collection === collection.name);
-  return collection && item ? { collection, item } : undefined;
-}
 
 export const events: MuseumEvent[] = [
   { id: 'twilight', title: 'Twilight at the Museum', date: '14 Sep 2026', endDate: '14 Sep 2026', time: '18:30–21:00', location: 'Great Hall',

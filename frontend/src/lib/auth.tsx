@@ -29,6 +29,7 @@ export interface AuthUser {
   name: string;
   email: string;
   initials: string;
+  interests: string[];
 }
 
 interface MockAccount {
@@ -54,25 +55,36 @@ interface StoredSession {
   expiresAt: number;
 }
 
-function readAccounts(): MockAccount[] {
-  if (typeof window === 'undefined') return SEED_ACCOUNTS;
+/** Registered/edited accounts, keyed by lowercased email — overrides a seed
+ *  entry of the same email so profile edits, membership and password resets
+ *  persist across a reload instead of reverting to the seed values. */
+function readOverrides(): Record<string, MockAccount> {
+  if (typeof window === 'undefined') return {};
   try {
     const raw = window.localStorage.getItem(ACCOUNTS_KEY);
-    const registered: MockAccount[] = raw ? JSON.parse(raw) : [];
-    return [...SEED_ACCOUNTS, ...registered];
+    return raw ? JSON.parse(raw) : {};
   } catch {
-    return SEED_ACCOUNTS;
+    return {};
   }
 }
 
-function writeAccount(account: MockAccount) {
+function readAccounts(): MockAccount[] {
+  const overrides = readOverrides();
+  const byEmail = new Map(SEED_ACCOUNTS.map((a) => [a.email.toLowerCase(), a]));
+  for (const account of Object.values(overrides)) byEmail.set(account.email.toLowerCase(), account);
+  return [...byEmail.values()];
+}
+
+/** Insert a new account, or replace the stored version of an existing one
+ *  (by email) — the one place any account mutation gets persisted. */
+function upsertAccount(account: MockAccount) {
   try {
-    const raw = window.localStorage.getItem(ACCOUNTS_KEY);
-    const registered: MockAccount[] = raw ? JSON.parse(raw) : [];
-    window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([...registered, account]));
+    const overrides = readOverrides();
+    overrides[account.email.toLowerCase()] = account;
+    window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(overrides));
   } catch {
-    // Storage unavailable (private browsing, quota) — registration still
-    // works for this tab's session, it just won't survive a reload.
+    // Storage unavailable (private browsing, quota) — the change still
+    // applies to this tab's current state, it just won't survive a reload.
   }
 }
 
@@ -131,8 +143,16 @@ export interface AuthContextValue {
   signIn: (email: string, password: string, rememberMe: boolean) => AuthResult;
   signOut: () => void;
   register: (input: { name: string; email: string; password: string }) => AuthResult;
+  /** Always succeeds from the caller's point of view, whether or not the
+   *  email matches an account — never reveal which emails are registered. */
+  requestPasswordReset: (email: string) => void;
+  /** The real flow verifies this via a signed, expiring token from the
+   *  emailed link, which only exists for a real account — so it's safe for
+   *  this to report an unmatched email as an error. */
+  resetPassword: (email: string, newPassword: string) => AuthResult;
   setMember: (isMember: boolean) => void;
   updateProfile: (input: { name: string }) => void;
+  updateInterests: (interests: string[]) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -150,8 +170,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
+  // Every mutation below updates both the live `account` state and storage
+  // (via upsertAccount) in the same step, so a change survives a reload
+  // instead of reverting to whatever was last persisted.
   const value: AuthContextValue = {
-    user: account && { name: account.name, email: account.email, initials: initials(account.name) },
+    user: account && { name: account.name, email: account.email, initials: initials(account.name), interests: account.interests },
     isMember: account?.isMember ?? false,
     ready,
     signIn(email, password, rememberMe) {
@@ -170,16 +193,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: 'An account with that email already exists.' };
       }
       const created: MockAccount = { name, email, password, isMember: false, interests: [] };
-      writeAccount(created);
+      upsertAccount(created);
       writeStoredSession(created.email, false);
       setAccount(created);
       return { ok: true };
     },
+    requestPasswordReset() {
+      // No email service exists yet — the UI that calls this shows the same
+      // message regardless of the result, so there's nothing to do here but
+      // document the no-op. Real version: queue the email, still no-op to the caller.
+    },
+    resetPassword(email, newPassword) {
+      const match = readAccounts().find((a) => a.email.toLowerCase() === email.toLowerCase());
+      if (!match) return { ok: false, error: 'That reset link is invalid or has expired.' };
+      const updated: MockAccount = { ...match, password: newPassword };
+      upsertAccount(updated);
+      if (account?.email.toLowerCase() === updated.email.toLowerCase()) setAccount(updated);
+      return { ok: true };
+    },
     setMember(isMember) {
-      setAccount((cur) => (cur ? { ...cur, isMember } : cur));
+      setAccount((cur) => {
+        if (!cur) return cur;
+        const updated = { ...cur, isMember };
+        upsertAccount(updated);
+        return updated;
+      });
     },
     updateProfile({ name }) {
-      setAccount((cur) => (cur ? { ...cur, name } : cur));
+      setAccount((cur) => {
+        if (!cur) return cur;
+        const updated = { ...cur, name };
+        upsertAccount(updated);
+        return updated;
+      });
+    },
+    updateInterests(interests) {
+      setAccount((cur) => {
+        if (!cur) return cur;
+        const updated = { ...cur, interests };
+        upsertAccount(updated);
+        return updated;
+      });
     },
   };
 

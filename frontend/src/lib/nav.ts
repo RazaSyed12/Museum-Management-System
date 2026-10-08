@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from './auth';
 
 /**
  * Maps the design system's screen names (the labels used throughout
@@ -19,7 +20,8 @@ export const ROUTES = {
   Tickets: '/tickets',
   Membership: '/membership',
   SignIn: '/sign-in',
-  Register: '/sign-in',
+  Register: '/register',
+  Interests: '/interests',
   Profile: '/account',
 } as const;
 
@@ -42,26 +44,36 @@ export interface SiteNav {
    * statically-known union. Unrecognised labels just fall back to '/'.
    */
   go: (label: string) => void;
+  signOut: () => void;
+  setMember: (isMember: boolean) => void;
 }
 
 /**
  * Shared shape the design system's `nav` prop expects (see
  * design-system/ui_kits/visitor_site/*: `nav.go`, `nav.user`, `nav.isMember`,
- * `nav.active`). Auth isn't wired up yet, so every visitor renders as
- * anonymous for now — swap `user`/`isMember` for real session state once
- * accounts exist, the components themselves already handle both cases.
+ * `nav.active`), now backed by the real (mocked) session in lib/auth.tsx.
+ * There's deliberately no `nav.signIn()` here — the source design system's
+ * version took no arguments (just a demo toggle); real sign-in needs
+ * credentials, so the Sign in and Register screens call `useAuth()` directly
+ * instead of proxying through nav.
  */
 export function useSiteNav(): SiteNav {
   const router = useRouter();
   const pathname = usePathname();
+  const auth = useAuth();
 
   return {
-    user: undefined,
-    isMember: false,
+    user: auth.user,
+    isMember: auth.isMember,
     active: activeFromPath(pathname),
     go(label) {
       router.push(ROUTES[label as ScreenName] ?? '/');
     },
+    signOut() {
+      auth.signOut();
+      router.push('/');
+    },
+    setMember: auth.setMember,
   };
 }
 

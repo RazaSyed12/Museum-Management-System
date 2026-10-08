@@ -2,15 +2,15 @@ import { Button } from '@/components/forms/Button';
 import { Icon } from '@/components/foundation/Icon';
 import { Media } from '@/components/foundation/Media';
 import { Container } from '@/components/layout/Container';
-import { events } from '@/lib/sample-data';
+import type { MuseumEvent } from '@/lib/sample-data';
 
 /* Ported from the Hero section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 export interface HeroProps {
   go: (label: string) => void;
+  event: MuseumEvent;
 }
 
-export function Hero({ go }: HeroProps) {
-  const e = events.find((x) => x.id === 'beneath')!;
+export function Hero({ go, event: e }: HeroProps) {
   return (
     <section className="relative overflow-hidden bg-green-900">
       <div className="absolute inset-0 animate-kenburns motion-reduce:animate-none">
@@ -24,8 +24,8 @@ export function Hero({ go }: HeroProps) {
           <h1 className="text-4xl/[1.05] text-paper-50 md:text-6xl/[1.05]">{e.title}</h1>
           <p className="type-body max-w-120 text-paper-100/86 md:text-md">{e.description}</p>
           <div className="type-body-sm flex flex-wrap items-center gap-4 text-sand-300">
-            <span className="inline-flex items-center gap-1.5"><Icon name="calendar-days" size={16} />3 Jul 2026 – 3 Jan 2027</span>
-            <span className="inline-flex items-center gap-1.5"><Icon name="map-pin" size={16} />Exhibition Wing</span>
+            <span className="inline-flex items-center gap-1.5"><Icon name="calendar-days" size={16} />{e.date} – {e.endDate}</span>
+            <span className="inline-flex items-center gap-1.5"><Icon name="map-pin" size={16} />{e.location}</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-3">
             <Button className="sheen" variant="accent" size="fluid" onClick={() => go('Collection')}>Explore exhibition</Button>

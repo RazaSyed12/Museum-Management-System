@@ -34,7 +34,8 @@ export function Hero({ go, event: e }: HeroProps) {
               className="sheen border-sand-300/50 text-paper-50 hover:bg-white/10 active:bg-white/15"
               variant="secondary"
               size="fluid"
-              onClick={() => go('Tickets')}
+              as="a"
+              href={`/tickets/${e.id}`}
             >
               Book tickets
             </Button>

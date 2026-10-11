@@ -54,7 +54,8 @@ export function HomeContent({ heroEvent, featuredCollections, featuredEvents }: 
         <Grid cols={3}>
           {featuredEvents.map((e) => (
             <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
-              location={e.location} price={e.price} free={e.free} availability={e.availability} onBook={() => nav.go('Tickets')} />
+              location={e.location} price={e.price} free={e.free} availability={e.availability}
+              detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
           ))}
         </Grid>
       </Section>

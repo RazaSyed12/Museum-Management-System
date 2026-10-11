@@ -6,7 +6,7 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/forms/Button';
 import { Icon } from '@/components/foundation/Icon';
 import { useAuth } from '@/lib/auth';
-import { interests as ALL_INTERESTS } from '@/lib/sample-data';
+import { interests as ALL_INTERESTS } from '@/lib/content';
 import { cn } from '@/lib/cn';
 
 const ICONS: Record<string, string> = {

@@ -16,8 +16,8 @@ import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
-import { listBookings } from '@/lib/api/bookings';
-import { recommendedForYou, hrefForRecommendation, type Booking } from '@/lib/sample-data';
+import { listBookings, type Booking } from '@/lib/api/bookings';
+import { recommendedForYou, hrefForRecommendation } from '@/lib/content';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 

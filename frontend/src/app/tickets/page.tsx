@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { UnderConstruction } from '@/components/shared/UnderConstruction';
+import { TicketsPicker } from '@/components/tickets/TicketsPicker';
 
-export const metadata: Metadata = { title: 'Tickets' };
+export const metadata: Metadata = { title: 'Book tickets' };
 
 export default function TicketsPage() {
-  return <UnderConstruction title="Tickets" description="Book your visit online. Ticketing isn't live yet — please check back soon." />;
+  return <TicketsPicker />;
 }

@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
-import { UnderConstruction } from '@/components/shared/UnderConstruction';
+import { EventsBrowse } from '@/components/events/EventsBrowse';
 
-export const metadata: Metadata = { title: "What's on" };
+export const metadata: Metadata = {
+  title: "What's on",
+  description: "Exhibitions, talks, workshops and late openings at Heritage Museum.",
+};
 
 export default function EventsPage() {
-  return <UnderConstruction title="Events and exhibitions" description="See what's on at the museum. This page is still being built." />;
+  return <EventsBrowse />;
 }

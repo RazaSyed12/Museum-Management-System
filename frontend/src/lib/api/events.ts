@@ -13,6 +13,10 @@ export interface MuseumEvent {
   price: string;
   priceValue: number;
   memberPrice?: number;
+  /** Under-18/student price — API-REQUIREMENTS.md names this as part of
+   *  the eventual per-event pricing shape ("general / member / child");
+   *  absent on free events, where every ticket type is free anyway. */
+  childPrice?: number;
   free?: boolean;
   availability: EventAvailability;
   remaining: number;

@@ -1,62 +1,13 @@
 /**
- * Placeholder content for the visitor site, ported from
+ * Fixture data backing the MSW handlers in handlers.ts — nothing outside
+ * this mocks/ folder should import from here directly. Ported from
  * design-system/ui_kits/visitor_site/data.js (the design system's own
- * `window.HM` fixture). Nothing outside lib/api/* and lib/auth.tsx should
- * import from this file directly — those two are the mock API boundary,
- * and they're what gets rewired to real endpoints once the backend exists.
+ * `window.HM` fixture). This whole folder goes away once the real backend
+ * exists; see lib/api/* for the contract it's standing in for.
  */
-export type Tone = 'olive' | 'green' | 'sand' | 'stone';
-
-export interface Collection {
-  id: string;
-  name: string;
-  category: string;
-  period: string;
-  items: number;
-  tone: Tone;
-  description: string;
-  location: string;
-}
-
-export type EventAvailability = 'available' | 'limited' | 'soldout' | 'cancelled';
-
-export interface MuseumEvent {
-  id: string;
-  title: string;
-  date: string;
-  endDate: string;
-  time: string;
-  location: string;
-  price: string;
-  priceValue: number;
-  memberPrice?: number;
-  free?: boolean;
-  availability: EventAvailability;
-  remaining: number;
-  capacity: number;
-  description: string;
-}
-
-export interface Recommendation {
-  title: string;
-  kind: string;
-  reason: string;
-  tone: Tone;
-}
-
-export interface Item {
-  id: string;
-  name: string;
-  period: string;
-  /** Approximate date, e.g. "c. 300 BCE". */
-  date: string;
-  origin: string;
-  description: string;
-  /** The owning collection's `name` (matching the design system's own data
-   *  shape) — resolve to a `Collection` with `collections.find(c => c.name === item.collection)`. */
-  collection: string;
-  location: string;
-}
+import type { Collection, Item } from '@/lib/api/collections';
+import type { MuseumEvent } from '@/lib/api/events';
+import type { Booking } from '@/lib/api/bookings';
 
 export const collections: Collection[] = [
   { id: 'ice-age', name: 'Ice Age Britain', category: 'Prehistory', period: 'Pleistocene', items: 128, tone: 'olive',
@@ -77,17 +28,9 @@ export const collections: Collection[] = [
     description: 'Two thousand years of money made and spent locally.', location: 'Gallery 6 · First floor' },
 ];
 
-/** The categories and periods every collection actually uses — kept as a
- *  literal list from design-system/ui_kits/visitor_site/data.js for now,
- *  the way the design system's own filter screens do it; derive from
- *  `collections` instead once staff can create categories. */
+/** Staff-managed category list in the real API — never hard-code this at
+ *  a call site. */
 export const categories = ['Prehistory', 'Dinosaurs', 'Archaeology', 'Ancient History', 'Medieval', 'Renaissance', 'Art'];
-export const periods = ['Prehistoric', 'Ancient', 'Medieval', 'Early modern', 'Modern'];
-
-/** The interest-picker's own list (onboarding + profile) — a superset of
- *  `categories` by one ('Natural History' has no collection yet), kept
- *  separate because the two pickers serve different purposes. */
-export const interests = ['Dinosaurs', 'Prehistory', 'Ancient History', 'Archaeology', 'Medieval', 'Renaissance', 'Art', 'Natural History'];
 
 /**
  * Artefact records. Only The Lanthorn Hoard has any — that's the design
@@ -126,45 +69,6 @@ export const events: MuseumEvent[] = [
     price: '£16 · £12 members', priceValue: 16, memberPrice: 12, availability: 'available', remaining: 640, capacity: 1200,
     description: 'Ninety-two objects from a single Iron Age hoard, shown together for the first time since their discovery in 1974.' },
 ];
-
-export const recommendedForYou: Recommendation[] = [
-  { title: 'Ice Age Britain', kind: 'Collection', reason: 'Because you explored Prehistory', tone: 'olive' },
-  { title: 'Age of Dinosaurs', kind: 'Collection', reason: 'Similar to the fossils you viewed', tone: 'green' },
-  { title: 'Curator talk: Reading the Lanthorn Hoard', kind: 'Event', reason: 'Archaeology, near you this month', tone: 'stone' },
-  { title: 'Coin & Currency', kind: 'Collection', reason: 'Often viewed with The Lanthorn Hoard', tone: 'sand' },
-];
-
-export const popularRightNow: Recommendation[] = [
-  { title: 'The Lanthorn Hoard', kind: 'Collection', reason: 'Most visited this month', tone: 'stone' },
-  { title: 'Age of Dinosaurs', kind: 'Collection', reason: 'Popular with families', tone: 'green' },
-  { title: 'Twilight at the Museum', kind: 'Event', reason: 'Selling quickly', tone: 'olive' },
-  { title: 'Medieval Armoury', kind: 'Collection', reason: 'Trending this week', tone: 'sand' },
-];
-
-/** Collection recommendations link to the real page now that one exists;
- *  Event recommendations still fall back to RecommendationCard's default
- *  ('#') until Events has its own detail pages. Shared by every screen that
- *  renders a `Recommendation` rail (home, profile) so the link rule lives
- *  in one place. */
-export function hrefForRecommendation(r: Recommendation): string | undefined {
-  if (r.kind !== 'Collection') return undefined;
-  const collection = collections.find((c) => c.name === r.title);
-  return collection && `/collections/${collection.id}`;
-}
-
-export type BookingStatus = 'Confirmed' | 'Cancelled';
-
-export interface Booking {
-  /** The booking reference doubles as its row id — bookings have no other
-   *  unique key in this fixture. */
-  id: string;
-  ref: string;
-  event: string;
-  date: string;
-  qty: number;
-  total: string;
-  status: BookingStatus;
-}
 
 export const bookings: Booking[] = [
   { id: 'HM-2026-04821', ref: 'HM-2026-04821', event: 'Beneath the Lanthorn Fields', date: '12 Aug 2026', qty: 2, total: '£24.00', status: 'Confirmed' },

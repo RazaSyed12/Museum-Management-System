@@ -13,8 +13,7 @@ import { SkeletonCard } from '@/components/feedback/Skeleton';
 import { Container } from '@/components/layout/Container';
 import { Grid } from '@/components/layout/Grid';
 import { CollectionCard } from '@/components/cards/CollectionCard';
-import { listCollections, listCategories } from '@/lib/api/collections';
-import type { Collection } from '@/lib/sample-data';
+import { listCollections, listCategories, type Collection } from '@/lib/api/collections';
 
 /* Three simplifications here, all because there's no real backend yet:
    - Only the Category filter is wired up. The source also renders a Period
@@ -22,7 +21,7 @@ import type { Collection } from '@/lib/sample-data';
      cleanly onto the real `collection.period` values ("Pleistocene",
      "Roman–Georgian", ...) — inventing an era-bucketing scheme felt more
      like fabricating data than porting a design.
-   - Sort is "Most popular" (the curated order in sample-data.ts) and "A–Z"
+   - Sort is "Most popular" (the curated order in mocks/data.ts) and "A–Z"
      only, since "Recently added" / "Oldest first" need an added-date field
      that doesn't exist. The source's second Select next to the search bar
      duplicated the sidebar's sort control — dropped as an oversight, not a

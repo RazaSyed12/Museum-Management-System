@@ -7,7 +7,8 @@ import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { CollectionCard } from '@/components/cards/CollectionCard';
-import type { Collection, Item, MuseumEvent } from '@/lib/sample-data';
+import type { Collection, Item } from '@/lib/api/collections';
+import type { MuseumEvent } from '@/lib/api/events';
 
 /* Works for any collection using only fields the data model actually has —
    no bespoke per-collection copy or invented visit-time estimates. A server

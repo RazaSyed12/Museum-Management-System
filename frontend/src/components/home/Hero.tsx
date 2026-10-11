@@ -2,7 +2,7 @@ import { Button } from '@/components/forms/Button';
 import { Icon } from '@/components/foundation/Icon';
 import { Media } from '@/components/foundation/Media';
 import { Container } from '@/components/layout/Container';
-import type { MuseumEvent } from '@/lib/sample-data';
+import type { MuseumEvent } from '@/lib/api/events';
 
 /* Ported from the Hero section in design-system/ui_kits/visitor_site/HomeScreen.jsx. */
 export interface HeroProps {

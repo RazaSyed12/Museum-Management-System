@@ -11,7 +11,9 @@ import { CollectionCard } from '@/components/cards/CollectionCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { useSiteNav } from '@/lib/nav';
-import { recommendedForYou, popularRightNow, hrefForRecommendation, type Collection, type MuseumEvent } from '@/lib/sample-data';
+import { recommendedForYou, popularRightNow, hrefForRecommendation } from '@/lib/content';
+import type { Collection } from '@/lib/api/collections';
+import type { MuseumEvent } from '@/lib/api/events';
 
 /* Ported from HomeScreen in design-system/ui_kits/visitor_site/HomeScreen.jsx.
    The preview harness's own `<Page>` wrapper (header/footer/mobile nav) is

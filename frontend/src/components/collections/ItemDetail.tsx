@@ -10,7 +10,7 @@ import { Section } from '@/components/layout/Section';
 import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
-import type { Collection, Item } from '@/lib/sample-data';
+import type { Collection, Item } from '@/lib/api/collections';
 import { cn } from '@/lib/cn';
 
 /* The facts list only shows fields the data model actually has — no

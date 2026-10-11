@@ -1,5 +1,32 @@
-import { collections as ALL_COLLECTIONS, items as ALL_ITEMS, categories as ALL_CATEGORIES, type Collection, type Item } from '@/lib/sample-data';
-import { mockResolve } from './client';
+import { apiFetch, apiFetchOptional, shouldMockDirectly } from './client';
+import { resolveCollections, resolveCollection, resolveCollectionItems, resolveCollectionItem, resolveCategories } from '@/mocks/resolve';
+
+export type Tone = 'olive' | 'green' | 'sand' | 'stone';
+
+export interface Collection {
+  id: string;
+  name: string;
+  category: string;
+  period: string;
+  items: number;
+  tone: Tone;
+  description: string;
+  location: string;
+}
+
+export interface Item {
+  id: string;
+  name: string;
+  period: string;
+  /** Approximate date, e.g. "c. 300 BCE". */
+  date: string;
+  origin: string;
+  description: string;
+  /** The owning collection's `name` (matching the design system's own data
+   *  shape) — resolve to a `Collection` with `collections.find(c => c.name === item.collection)`. */
+  collection: string;
+  location: string;
+}
 
 /** Matches GET /collections's query params (backend/API-REQUIREMENTS.md).
  *  `pageSize` is left high by callers that want "everything matching the
@@ -19,34 +46,41 @@ export interface ListCollectionsResult {
   pageSize: number;
 }
 
+function queryString(query: Record<string, string | number | string[] | undefined>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) for (const v of value) params.append(key, v);
+    else params.set(key, String(value));
+  }
+  const s = params.toString();
+  return s ? `?${s}` : '';
+}
+
 export async function listCollections(query: ListCollectionsQuery = {}): Promise<ListCollectionsResult> {
-  const { q, category, sort = 'popular', page = 1, pageSize = 24 } = query;
-  let results = ALL_COLLECTIONS;
-  if (q) results = results.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
-  if (category?.length) results = results.filter((c) => category.includes(c.category));
-  if (sort === 'az') results = [...results].sort((a, b) => a.name.localeCompare(b.name));
-  const total = results.length;
-  const start = (page - 1) * pageSize;
-  return mockResolve({ items: results.slice(start, start + pageSize), total, page, pageSize });
+  if (shouldMockDirectly()) return resolveCollections(query);
+  const qs = queryString({ q: query.q, category: query.category, sort: query.sort, page: query.page, pageSize: query.pageSize });
+  return apiFetch<ListCollectionsResult>(`/api/collections${qs}`);
 }
 
 export async function getCollection(id: string): Promise<Collection | undefined> {
-  return mockResolve(ALL_COLLECTIONS.find((c) => c.id === id));
+  if (shouldMockDirectly()) return resolveCollection(id);
+  return apiFetchOptional<Collection>(`/api/collections/${id}`);
 }
 
 export async function listCollectionItems(collectionId: string): Promise<Item[]> {
-  const collection = ALL_COLLECTIONS.find((c) => c.id === collectionId);
-  return mockResolve(collection ? ALL_ITEMS.filter((i) => i.collection === collection.name) : []);
+  if (shouldMockDirectly()) return resolveCollectionItems(collectionId);
+  return (await apiFetchOptional<Item[]>(`/api/collections/${collectionId}/items`)) ?? [];
 }
 
-export async function getCollectionItem(collectionId: string, itemId: string): Promise<{ collection: Collection; item: Item } | undefined> {
-  const collection = ALL_COLLECTIONS.find((c) => c.id === collectionId);
-  const item = collection && ALL_ITEMS.find((i) => i.id === itemId && i.collection === collection.name);
-  return mockResolve(collection && item ? { collection, item } : undefined);
+export async function getCollectionItem(collectionId: string, itemId: string): Promise<Item | undefined> {
+  if (shouldMockDirectly()) return resolveCollectionItem(collectionId, itemId);
+  return apiFetchOptional<Item>(`/api/collections/${collectionId}/items/${itemId}`);
 }
 
 /** GET /categories — staff-managed in the real API; never hard-code this
  *  list at a call site. */
 export async function listCategories(): Promise<string[]> {
-  return mockResolve(ALL_CATEGORIES);
+  if (shouldMockDirectly()) return resolveCategories();
+  return apiFetch<string[]>('/api/categories');
 }

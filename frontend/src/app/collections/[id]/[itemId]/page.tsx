@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ItemDetail } from '@/components/collections/ItemDetail';
-import { listCollections, getCollectionItem, listCollectionItems } from '@/lib/api/collections';
+import { listCollections, getCollection, getCollectionItem, listCollectionItems } from '@/lib/api/collections';
 
 interface Props {
   params: Promise<{ id: string; itemId: string }>;
@@ -18,15 +18,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id, itemId } = await params;
-  const found = await getCollectionItem(id, itemId);
-  return found ? { title: found.item.name, description: found.item.description } : {};
+  const item = await getCollectionItem(id, itemId);
+  return item ? { title: item.name, description: item.description } : {};
 }
 
 export default async function ItemDetailPage({ params }: Props) {
   const { id, itemId } = await params;
-  const found = await getCollectionItem(id, itemId);
-  if (!found) notFound();
-  const { collection, item } = found;
+  const [collection, item] = await Promise.all([getCollection(id), getCollectionItem(id, itemId)]);
+  if (!collection || !item) notFound();
 
   const [allItems, { items: allCollections }] = await Promise.all([
     listCollectionItems(id),

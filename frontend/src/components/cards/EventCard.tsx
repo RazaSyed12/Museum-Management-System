@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
+import Link from 'next/link';
 import { Card } from './Card';
 import { Media } from '@/components/foundation/Media';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
@@ -23,8 +24,12 @@ export interface EventCardProps extends HTMLAttributes<HTMLElement> {
   image?: string;
   /** horizontal is the events-listing row on desktop; vertical is the home grid. */
   layout?: 'vertical' | 'horizontal';
+  /** The CTA button's target — direct ticket purchase, not the detail page. */
   href?: string;
   onBook?: () => void;
+  /** When given, the title links to the event's own detail page — a
+   *  separate action from the CTA button's "book now". */
+  detailHref?: string;
 }
 
 const AVAIL: Record<Availability, { tone: 'success' | 'warning' | 'danger'; label: string }> = {
@@ -43,15 +48,15 @@ function Meta({ icon, children }: { icon: string; children: ReactNode }) {
   );
 }
 
-export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, className, ...rest }: EventCardProps) {
+export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, detailHref, className, ...rest }: EventCardProps) {
   const a = AVAIL[availability];
   const blocked = availability === 'soldout' || availability === 'cancelled';
   const row = layout === 'horizontal';
   return (
-    <Card interactive={!blocked} className={cn('p-0', row ? 'grid grid-cols-[260px_minmax(0,1fr)]' : 'block', className)} {...rest}>
+    <Card interactive={!blocked} className={cn('p-0', row ? 'grid sm:grid-cols-[260px_minmax(0,1fr)]' : 'block', className)} {...rest}>
       {row ? (
         <div className="min-w-0 overflow-hidden">
-          <Media src={image} ratio="auto" tone="green" caption={title} className="h-full min-h-50 w-full rounded-none" />
+          <Media src={image} ratio="16 / 9" tone="green" caption={title} className="w-full rounded-none" />
         </div>
       ) : (
         <Media src={image} ratio="16 / 9" tone="green" caption={title} className="rounded-none" />
@@ -61,7 +66,7 @@ export function EventCard({ title, description, date, time, location, price, fre
           <StatusBadge tone={a.tone} size="sm">{a.label}</StatusBadge>
           {free && <StatusBadge tone="info" size="sm" icon="gift">Free</StatusBadge>}
         </div>
-        <h3 className="type-h3">{title}</h3>
+        <h3 className="type-h3">{detailHref ? <Link href={detailHref} className="hover:underline">{title}</Link> : title}</h3>
         {description && <p className="type-body-sm text-muted">{description}</p>}
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           {date && <Meta icon="calendar-days">{date}</Meta>}

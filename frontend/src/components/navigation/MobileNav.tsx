@@ -10,19 +10,27 @@ export interface MobileNavProps {
   open: boolean;
   onClose: () => void;
   onNavigate: (item: string) => void;
+  /** Opens the site search; focusing the menu's search field hands over to it. */
+  onSearch?: () => void;
   user?: SiteHeaderUser;
   isMember?: boolean;
 }
 
 const ITEMS = ['Home', 'Collections', 'Events', 'Visit', 'Tickets', 'Membership'];
 
-export function MobileNav({ open, onClose, onNavigate, user, isMember }: MobileNavProps) {
+export function MobileNav({ open, onClose, onNavigate, onSearch, user, isMember }: MobileNavProps) {
   return (
     <Drawer open={open} side="left" title="Menu" onClose={onClose} size={300}
       footer={user ? <Button fullWidth variant="secondary" onClick={() => { onNavigate('Profile'); onClose(); }}>Your account</Button>
                    : <Button fullWidth onClick={() => { onNavigate('SignIn'); onClose(); }}>Sign in</Button>}>
       <div className="grid gap-2">
-        <SearchField id="m-search" size="sm" placeholder="Search the museum" className="mb-3" />
+        <SearchField
+          id="m-search"
+          size="sm"
+          placeholder="Search the museum"
+          className="mb-3"
+          onFocus={() => { onSearch?.(); onClose(); }}
+        />
         {ITEMS.map((i) => (
           <button
             key={i}

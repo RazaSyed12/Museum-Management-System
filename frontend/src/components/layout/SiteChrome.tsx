@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { SiteHeader } from '@/components/navigation/SiteHeader';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { MobileNav } from '@/components/navigation/MobileNav';
+import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteNav } from '@/lib/nav';
 
 /* Mounted once in app/layout.tsx so every route gets the same header,
@@ -11,6 +12,7 @@ import { useSiteNav } from '@/lib/nav';
 export function SiteChrome({ children }: { children: ReactNode }) {
   const nav = useSiteNav();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <div className="relative min-h-screen bg-surface-page">
@@ -21,11 +23,20 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         onNavigate={nav.go}
         onSignIn={() => nav.go('SignIn')}
         onMenu={() => setMenuOpen(true)}
-        onSearch={() => nav.go('Collections')}
+        onSearch={() => setSearchOpen(true)}
       />
       <main>{children}</main>
       <SiteFooter />
-      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={nav.go} user={nav.user} isMember={nav.isMember} />
+      <MobileNav
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={nav.go}
+        onSearch={() => setSearchOpen(true)}
+        user={nav.user}
+        isMember={nav.isMember}
+      />
+      {/* Mounted only while open, so each search starts clean. Swap variant="modal" for a centred card. */}
+      {searchOpen && <SearchOverlay variant="overlay" onNavigate={nav.go} onClose={() => setSearchOpen(false)} />}
     </div>
   );
 }

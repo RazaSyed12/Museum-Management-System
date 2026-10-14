@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+/*
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -9,7 +10,21 @@ if (!SUPABASE_URL) {
 }
 if (!SUPABASE_ANON_KEY) {
   throw new Error('Missing SUPABASE_ANON_KEY environment variable');
+}*/
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing ${name} environment variable`);
+  }
+  return value;
 }
+
+const SUPABASE_URL: string = requireEnv('SUPABASE_URL');
+const SUPABASE_ANON_KEY: string = requireEnv('SUPABASE_ANON_KEY');
+
+/** Plain values for the few calls that go to Supabase Auth over HTTP directly. */
+export const supabaseEnv = { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY };
 
 /**
  * Server-side clients must not persist or auto-refresh sessions.
@@ -50,4 +65,15 @@ export function userClient(accessToken: string): SupabaseClient {
     ...SERVER_AUTH_OPTIONS,
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
+}
+
+/**
+ * Fresh, throwaway client for auth calls (signUp, signInWithPassword,
+ * resetPasswordForEmail, getUser). Those calls store the resulting
+ * session inside the client in memory, so running them on the shared
+ * anonClient() would make every later "anonymous" request carry the
+ * last person's token. Always use authClient() for auth calls.
+ */
+export function authClient(): SupabaseClient {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SERVER_AUTH_OPTIONS);
 }

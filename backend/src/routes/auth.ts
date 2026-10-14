@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { anonClient } from '../lib/supabaseClients';
+import { authClient } from '../lib/supabaseClients';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ router.post('/sign-up', async (req: Request, res: Response) => {
   // (password hashed by GoTrue, not by us), which fires
   // handle_new_user() and creates the matching profiles row with
   // full_name already set — we never insert into profiles ourselves.
-  const { data, error } = await anonClient().auth.signUp({
+  const { data, error } = await authClient().auth.signUp({
     email,
     password,
     options: { data: { full_name } },

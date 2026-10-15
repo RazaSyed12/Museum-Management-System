@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { anonClient, authClient, userClient } from '../lib/supabaseClients';
+import { userClient } from '../lib/supabaseClients';
+import { readerClient } from '../lib/readerClient';
 import { requireAuth, requireStaff } from '../middleware/auth';
 
 const router = Router();
@@ -31,26 +32,6 @@ function shape(row: any) {
       .map((link: any) => link.categories)
       .filter(Boolean),
   };
-}
-
-// Picks which database identity a read runs as.
-//  - No Authorization header  -> anonymous visitor (sees published only).
-//  - Valid Bearer token       -> that person; the database's own rules then
-//                                decide what they see (staff also see drafts).
-//  - Bad/expired token        -> 401 is sent and null is returned.
-async function readerClient(req: Request, res: Response) {
-  const header = req.header('authorization');
-  if (!header) return anonClient();
-
-  const token = /^Bearer\s+(.+)$/i.exec(header)?.[1]?.trim();
-  const { data, error } = token ? await authClient().auth.getUser(token) : { data: null, error: true };
-  if (error || !data?.user || !token) {
-    res.status(401).json({
-      error: { message: 'Your session is invalid or has expired. Please sign in again.', code: 'unauthorized' },
-    });
-    return null;
-  }
-  return userClient(token);
 }
 
 const listQuerySchema = z.object({

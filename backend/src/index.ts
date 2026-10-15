@@ -5,6 +5,7 @@ import { anonClient } from './lib/supabaseClients';
 import authRouter from './routes/auth';
 import sessionRouter from './routes/session';
 import collectionsRouter from './routes/collections';
+import categoriesRouter from './routes/categories';
 
 const app = express();
 app.use(cors());
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/auth', sessionRouter);
 app.use('/collections', collectionsRouter);
+app.use('/categories', categoriesRouter);
 
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses

@@ -228,6 +228,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /categories:
+    get:
+      summary: List categories
+      description: >-
+        Public. Feeds the onboarding interest picker, category filters and
+        staff forms. Without a token (or with a non-staff token) only active
+        categories are returned. With a staff token, deactivated categories
+        are included too. Always the full list, sorted by name (no paging).
+      operationId: listCategories
+      tags: [Categories]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: top_level
+          in: query
+          description: >-
+            true = only categories with no parent (what the onboarding page
+            shows); false = only sub-categories; omit for all.
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: Categories, ordered by name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /collections:
     get:
       summary: List collections
@@ -509,6 +556,35 @@ components:
           format: uuid
         name:
           type: string
+    Category:
+      type: object
+      required: [category_id, name, description, parent_category_id, active]
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mining & Industry
+        description:
+          type: string
+          nullable: true
+        parent_category_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: null for a top-level category
+        active:
+          type: boolean
+          description: Always true for non-staff callers
+    CategoryListResponse:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
     LocationRef:
       type: object
       nullable: true

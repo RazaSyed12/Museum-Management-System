@@ -9,7 +9,7 @@ const router = Router();
 // follow the foreign keys: locations(...) is the collection's location,
 // collection_categories -> categories(...) is its category list.
 const COLLECTION_SELECT =
-  'collection_id, name, description, status, price, featured, location_id, created_at, updated_at, ' +
+  'collection_id, name, description, status, featured, location_id, created_at, updated_at, ' +
   'locations(name, city), collection_categories(categories(category_id, name))';
 
 function badRequest(res: Response, message: string) {
@@ -122,7 +122,6 @@ const createSchema = z.object({
   description: z.string().trim().max(5000).nullish(),
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
   location_id: z.guid().nullish(),
-  price: z.number().min(0, 'Price cannot be negative').max(99999999.99).nullish(),
   featured: z.boolean().default(false),
   category_ids: z.array(z.guid()).max(20).default([]),
 });
@@ -188,7 +187,6 @@ const updateSchema = z
     description: z.string().trim().max(5000).nullish(),
     status: z.enum(['draft', 'published', 'archived']).optional(),
     location_id: z.guid().nullish(),
-    price: z.number().min(0, 'Price cannot be negative').max(99999999.99).nullish(),
     featured: z.boolean().optional(),
     category_ids: z.array(z.guid()).max(20).optional(),
   })

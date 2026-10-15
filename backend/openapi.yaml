@@ -534,9 +534,6 @@ components:
         status:
           type: string
           enum: [draft, published, archived]
-        price:
-          type: number
-          nullable: true
         featured:
           type: boolean
         location_id:
@@ -598,10 +595,6 @@ components:
           type: string
           format: uuid
           nullable: true
-        price:
-          type: number
-          minimum: 0
-          nullable: true
         featured:
           type: boolean
           default: false
@@ -631,10 +624,6 @@ components:
         location_id:
           type: string
           format: uuid
-          nullable: true
-        price:
-          type: number
-          minimum: 0
           nullable: true
         featured:
           type: boolean

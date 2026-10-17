@@ -128,3 +128,22 @@ on conflict do nothing;
 insert into event_collections (event_id, collection_id) values
   ('66666666-6666-6666-6666-666666666601', '33333333-3333-3333-3333-333333333333')
 on conflict do nothing;
+
+
+-- 7b. Two more published collections, so collection recommendations
+--     have something to rank (the fossils one is featured; these aren't).
+insert into collections (collection_id, name, description, status, location_id, featured, created_by) values
+  ('33333333-3333-3333-3333-333333333301', 'Goldfields Tools',
+   'Pans, cradles and picks used on the South Australian goldfields.',
+   'published', '11111111-1111-1111-1111-111111111111', false,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('33333333-3333-3333-3333-333333333302', 'Colonial Kitchen',
+   'Cookware, recipes and household objects from early settler homes.',
+   'published', '11111111-1111-1111-1111-111111111111', false,
+   (select id from auth.users where email = 'staff-test@museum.local'))
+on conflict (collection_id) do nothing;
+
+insert into collection_categories (collection_id, category_id) values
+  ('33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222212'), -- Gold Rush
+  ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222202')  -- Colonial History
+on conflict do nothing;

@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 //import { authClient, userClient } from '../lib/supabaseClients';
 import { authClient, userClient, supabaseEnv } from '../lib/supabaseClients';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, Role } from '../middleware/auth';
+import { isOnboardingCompleted } from '../lib/preferences';
 
 const router = Router();
 
@@ -44,12 +45,26 @@ router.post('/sign-in', async (req: Request, res: Response) => {
     });
   }
 
+  // Tells the frontend whether to send the user to the preferences page
+  // (e.g. they signed up but closed the tab before picking interests).
+  let onboardingCompleted: boolean;
+  try {
+    onboardingCompleted = await isOnboardingCompleted(
+      userClient(data.session.access_token), data.user.id, profile.role as Role,
+    );
+  } catch {
+    return res.status(500).json({
+      error: { message: 'Signed in, but your interests could not be loaded.', code: 'server_error' },
+    });
+  }
+
   return res.status(200).json({
     user: {
       id: data.user.id,
       email: data.user.email,
       full_name: profile.full_name,
       role: profile.role,
+      onboarding_completed: onboardingCompleted,
     },
     session: {
       access_token: data.session.access_token,
@@ -59,10 +74,23 @@ router.post('/sign-in', async (req: Request, res: Response) => {
   });
 });
 
-router.get('/me', requireAuth, (req: Request, res: Response) => {
+// Computed here rather than in requireAuth, so the many routes that use
+// requireAuth don't pay for an extra query they don't need.
+router.get('/me', requireAuth, async (req: Request, res: Response) => {
   const a = req.auth!;
+  let onboardingCompleted: boolean;
+  try {
+    onboardingCompleted = await isOnboardingCompleted(userClient(a.token), a.userId, a.role);
+  } catch {
+    return res.status(500).json({
+      error: { message: 'Could not load your interests.', code: 'server_error' },
+    });
+  }
   return res.status(200).json({
-    user: { id: a.userId, email: a.email, full_name: a.fullName, role: a.role },
+    user: {
+      id: a.userId, email: a.email, full_name: a.fullName, role: a.role,
+      onboarding_completed: onboardingCompleted,
+    },
   });
 });
 

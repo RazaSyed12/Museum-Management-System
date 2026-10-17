@@ -13,7 +13,7 @@ const router = Router();
 // tags, event_collections -> collections(...) the collections it showcases.
 // RLS also applies to the embedded rows, so a guest never receives an
 // inactive category or a draft collection here.
-const EVENT_SELECT =
+export const EVENT_SELECT =
   'event_id, name, description, start_at, end_at, status, ticket_price, capacity, location_id, created_at, updated_at, ' +
   'locations(name, city), event_categories(categories(category_id, name)), ' +
   'event_collections(collections(collection_id, name))';
@@ -32,7 +32,7 @@ function notFound(res: Response) {
 
 // Turns the database row into the shape the frontend wants:
 // one "location" object and flat "categories" / "collections" lists.
-function shape(row: any) {
+export function shape(row: any) {
   const { locations, event_categories, event_collections, ...rest } = row;
   return {
     ...rest,

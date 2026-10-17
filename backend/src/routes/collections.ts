@@ -9,7 +9,7 @@ const router = Router();
 // What the public site needs about a collection. The embedded bits
 // follow the foreign keys: locations(...) is the collection's location,
 // collection_categories -> categories(...) is its category list.
-const COLLECTION_SELECT =
+export const COLLECTION_SELECT =
   'collection_id, name, description, status, featured, location_id, created_at, updated_at, ' +
   'locations(name, city), collection_categories(categories(category_id, name))';
 
@@ -23,7 +23,7 @@ function serverError(res: Response, message: string) {
 
 // Turns the database row into the shape the frontend wants:
 // one "location" object and a flat "categories" list.
-function shape(row: any) {
+export function shape(row: any) {
   const { locations, collection_categories, ...rest } = row;
   return {
     ...rest,

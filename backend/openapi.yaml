@@ -887,6 +887,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /recommendations:
+    get:
+      summary: Recommended events and collections
+      description: >-
+        Public. Feeds the "Recommended for you" row on the Home page; it does
+        not restrict browsing (GET /events and GET /collections still list
+        everything). Signed in with interest picks: items matching the picks
+        (including their sub-categories) come first, most matches first, then
+        the list is topped up with other items. Guests and users without
+        picks get the same list without the personal part. Only scheduled,
+        not-yet-ended events and published collections are recommended.
+      operationId: getRecommendations
+      tags: [Recommendations]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of events, and separately of collections
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+      responses:
+        '200':
+          description: Recommended events and collections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -1153,6 +1203,59 @@ components:
           items:
             type: string
             format: uuid
+    Recommendation:
+      type: object
+      required: [source, reasons]
+      properties:
+        source:
+          type: string
+          enum: [interest, upcoming, featured, other]
+          description: >-
+            interest = matches the user's picks; upcoming = soonest events;
+            featured = featured collection; other = remaining collections
+        reasons:
+          type: array
+          description: >-
+            The user's picks this item matches (empty unless source is
+            interest), e.g. for "Because you like Mining & Industry"
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+    RecommendedEvent:
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          required: [recommendation]
+          properties:
+            recommendation:
+              $ref: '#/components/schemas/Recommendation'
+    RecommendedCollection:
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          required: [recommendation]
+          properties:
+            recommendation:
+              $ref: '#/components/schemas/Recommendation'
+    RecommendationsResponse:
+      type: object
+      required: [personalised, interests, events, collections]
+      properties:
+        personalised:
+          type: boolean
+          description: true when the caller has interest picks the lists were ranked by
+        interests:
+          type: array
+          description: The caller's picks (empty for guests)
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedEvent'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedCollection'
     LocationRef:
       type: object
       nullable: true

@@ -625,6 +625,268 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /events:
+    get:
+      summary: List events
+      description: >-
+        Public. Without a token, draft events are hidden (scheduled and
+        cancelled ones are shown). With a staff token, drafts are included.
+      operationId: listEvents
+      tags: [Events]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: when
+          in: query
+          description: >-
+            upcoming = hasn't ended yet, soonest first (default);
+            past = already ended, most recent first; all = everything, soonest first
+          schema:
+            type: string
+            enum: [upcoming, past, all]
+            default: upcoming
+        - name: q
+          in: query
+          description: Only events whose name contains this text (case-insensitive)
+          schema:
+            type: string
+            maxLength: 100
+        - name: category_id
+          in: query
+          description: Only events in this category or one of its sub-categories
+          schema:
+            type: string
+            format: uuid
+        - name: collection_id
+          in: query
+          description: Only events that showcase this collection
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Only events with this status (draft is only visible to staff)
+          schema:
+            type: string
+            enum: [draft, scheduled, cancelled]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create an event
+      description: >-
+        Staff only. At least one category is required (recommendations match
+        users' interests against event categories). New events default to
+        draft, which is hidden from the public.
+      operationId: createEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: >-
+            validation_error (bad field, end not after start, unknown location
+            or collection) or invalid_category (unknown or deactivated category)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get one event
+      description: Public. A draft event returns 404 to anyone who isn't staff.
+      operationId: getEvent
+      tags: [Events]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event, or it is a draft and the caller isn't staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update an event
+      description: >-
+        Staff only. Changes only the fields sent. category_ids and
+        collection_ids, if sent, replace the whole list (category_ids still
+        needs at least one).
+      operationId: updateEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: validation_error or invalid_category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Cancel an event
+      description: >-
+        Staff only. Sets status to cancelled; the event stays visible to the
+        public, marked cancelled. Repeating it is harmless.
+      operationId: cancelEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Event cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -713,6 +975,184 @@ components:
           example:
             - 22222222-2222-2222-2222-222222222201
             - 22222222-2222-2222-2222-222222222203
+    CollectionRef:
+      type: object
+      required: [collection_id, name]
+      properties:
+        collection_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    Event:
+      type: object
+      required: [event_id, name, start_at, end_at, status, ticket_price, capacity, created_at, updated_at, location, categories, collections]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, scheduled, cancelled]
+        ticket_price:
+          type: number
+          description: 0 means a free event
+        capacity:
+          type: integer
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        location:
+          $ref: '#/components/schemas/LocationRef'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+        collections:
+          type: array
+          description: Collections the event showcases (only those the caller may see)
+          items:
+            $ref: '#/components/schemas/CollectionRef'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EventResponse:
+      type: object
+      required: [event]
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+    EventListResponse:
+      type: object
+      required: [events, total, limit, offset]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+          description: How many events match, ignoring limit and offset
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateEventRequest:
+      type: object
+      required: [name, start_at, end_at, capacity, category_ids]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Gold Rush Weekend
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+          description: ISO 8601 with a timezone offset
+          example: '2026-11-14T10:00:00+10:30'
+        end_at:
+          type: string
+          format: date-time
+          description: Must be after start_at
+          example: '2026-11-14T16:00:00+10:30'
+        status:
+          type: string
+          enum: [draft, scheduled]
+          default: draft
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        ticket_price:
+          type: number
+          minimum: 0
+          default: 0
+        capacity:
+          type: integer
+          minimum: 0
+        category_ids:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        collection_ids:
+          type: array
+          maxItems: 20
+          default: []
+          items:
+            type: string
+            format: uuid
+    UpdateEventRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Send only the fields to change.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, scheduled, cancelled]
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        ticket_price:
+          type: number
+          minimum: 0
+        capacity:
+          type: integer
+          minimum: 0
+        category_ids:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Replaces the whole category list
+          items:
+            type: string
+            format: uuid
+        collection_ids:
+          type: array
+          maxItems: 20
+          description: Replaces the whole collection list
+          items:
+            type: string
+            format: uuid
     LocationRef:
       type: object
       nullable: true

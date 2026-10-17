@@ -73,3 +73,58 @@ on conflict do nothing;
 -- 6. A membership plan
 insert into membership_plans (plan_id, name, price, duration_months, active)
 values ('55555555-5555-5555-5555-555555555555', 'Standard Membership', 49.00, 12, true);
+
+
+-- 7. Sample events, one of each kind the site has to handle. Dates
+--    are relative to today, so after any reset there are always
+--    upcoming events (and one past one) to show and recommend.
+--    Every event has at least one category — the events API requires
+--    it, because recommendations match onboarding picks to categories.
+insert into events (event_id, name, description, start_at, end_at, status, location_id, ticket_price, capacity, created_by) values
+  ('66666666-6666-6666-6666-666666666601', 'Fossil Hunters Family Day',
+   'Dig, sieve and identify real fossils with our curators. Free for all ages.',
+   date_trunc('day', now()) + interval '7 days 10 hours', date_trunc('day', now()) + interval '7 days 15 hours',
+   'scheduled', '11111111-1111-1111-1111-111111111111', 0, 120,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('66666666-6666-6666-6666-666666666602', 'Gold Rush Weekend',
+   'Panning demonstrations, period costume and stories from the 1850s goldfields.',
+   date_trunc('day', now()) + interval '14 days 10 hours', date_trunc('day', now()) + interval '15 days 16 hours',
+   'scheduled', '11111111-1111-1111-1111-111111111111', 14, 200,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('66666666-6666-6666-6666-666666666603', 'Talk: Women of the Mines',
+   'An evening talk on the women who ran households, stores and claims on the mining fields.',
+   date_trunc('day', now()) + interval '21 days 18 hours 30 minutes', date_trunc('day', now()) + interval '21 days 20 hours',
+   'scheduled', '11111111-1111-1111-1111-111111111111', 8, 40,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('66666666-6666-6666-6666-666666666604', 'Wartime Letters Reading',
+   'Readings from letters sent home by local servicemen and women.',
+   date_trunc('day', now()) + interval '10 days 14 hours', date_trunc('day', now()) + interval '10 days 15 hours 30 minutes',
+   'cancelled', '11111111-1111-1111-1111-111111111111', 5, 60,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('66666666-6666-6666-6666-666666666605', 'Kaurna Language Workshop',
+   'Still being planned with community partners (draft: hidden from visitors).',
+   date_trunc('day', now()) + interval '30 days 10 hours', date_trunc('day', now()) + interval '30 days 12 hours',
+   'draft', '11111111-1111-1111-1111-111111111111', 0, 25,
+   (select id from auth.users where email = 'staff-test@museum.local')),
+  ('66666666-6666-6666-6666-666666666606', 'Murray River Stories Night',
+   'Paddle-steamer tales and river photographs (already happened).',
+   date_trunc('day', now()) - interval '10 days' + interval '18 hours', date_trunc('day', now()) - interval '10 days' + interval '20 hours',
+   'scheduled', '11111111-1111-1111-1111-111111111111', 12, 80,
+   (select id from auth.users where email = 'staff-test@museum.local'))
+on conflict (event_id) do nothing;
+
+insert into event_categories (event_id, category_id) values
+  ('66666666-6666-6666-6666-666666666601', '22222222-2222-2222-2222-222222222222'), -- Natural History
+  ('66666666-6666-6666-6666-666666666601', '22222222-2222-2222-2222-222222222209'), -- Family & Kids
+  ('66666666-6666-6666-6666-666666666602', '22222222-2222-2222-2222-222222222212'), -- Gold Rush (child of Mining & Industry)
+  ('66666666-6666-6666-6666-666666666602', '22222222-2222-2222-2222-222222222202'), -- Colonial History
+  ('66666666-6666-6666-6666-666666666603', '22222222-2222-2222-2222-222222222203'), -- Mining & Industry
+  ('66666666-6666-6666-6666-666666666604', '22222222-2222-2222-2222-222222222207'), -- Military History
+  ('66666666-6666-6666-6666-666666666605', '22222222-2222-2222-2222-222222222201'), -- Aboriginal Heritage
+  ('66666666-6666-6666-6666-666666666606', '22222222-2222-2222-2222-222222222205')  -- Maritime & Rivers
+on conflict do nothing;
+
+-- The family day showcases the published fossils collection.
+insert into event_collections (event_id, collection_id) values
+  ('66666666-6666-6666-6666-666666666601', '33333333-3333-3333-3333-333333333333')
+on conflict do nothing;

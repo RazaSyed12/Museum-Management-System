@@ -65,11 +65,15 @@ router.post('/sign-up', async (req: Request, res: Response) => {
   // 5. Success. session is null when email confirmation is
   // required — the frontend should treat that as "check your
   // email" rather than redirecting somewhere logged-in.
+  // A brand-new account has no interest picks yet, so onboarding is
+  // never complete here: the frontend goes straight to the
+  // preferences page.
   return res.status(201).json({
     user: {
       id: data.user?.id,
       email: data.user?.email,
       full_name,
+      onboarding_completed: false,
     },
     session: data.session
       ? {

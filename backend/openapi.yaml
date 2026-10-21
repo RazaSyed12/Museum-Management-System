@@ -1,0 +1,1548 @@
+openapi: 3.0.3
+info:
+  title: Museum Visitor Experience Platform API
+  version: "1.0"
+servers:
+  - url: http://127.0.0.1:4000
+    description: Local development
+security: []
+paths:
+  /auth/sign-up:
+    post:
+      summary: Create a new visitor account
+      operationId: signUp
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignUpResponse'
+        '400':
+          description: Validation failed, or Supabase rejected the sign-up
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: An account with that email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/sign-in:
+    post:
+      summary: Sign in with email and password
+      operationId: signIn
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Incorrect email or password (same answer for unknown email and wrong password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/forgot-password:
+    post:
+      summary: Email a password reset link
+      description: >-
+        Always answers 200 with the same message, whether or not the
+        email has an account, so it can't be used to discover who is registered.
+      operationId: forgotPassword
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many reset emails requested; wait and retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/reset-password:
+    post:
+      summary: Set a new password using the token from the reset email
+      description: >-
+        The reset email link opens the frontend with
+        `#access_token=...&type=recovery`. The frontend sends that
+        access_token here together with the new password.
+      operationId: resetPassword
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation failed, or the new password was rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Reset token is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/me:
+    get:
+      summary: Get the signed-in user's profile
+      operationId: getMe
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The caller's profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh:
+    post:
+      summary: Swap a refresh token for a new session
+      description: >-
+        Call this when the access token expires. The response contains a new
+        access token AND a new refresh token; the old refresh token stops
+        working, so the frontend must save the new one every time.
+      operationId: refreshSession
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: New session issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Refresh token is invalid, expired or already signed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/sign-out:
+    post:
+      summary: End the current session
+      description: >-
+        Revokes this session on the server so its refresh token stops working.
+        Needs a still-valid access token; if it has expired, call
+        /auth/refresh first.
+      operationId: signOut
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/preferences:
+    get:
+      summary: Get the signed-in user's interest picks
+      description: >-
+        The categories the user picked on the onboarding page (or edited
+        later). Picks whose category has since been deactivated are left out.
+      operationId: getMyPreferences
+      tags: [Preferences]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The user's active picks, sorted by name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Save the signed-in user's interest picks
+      description: >-
+        Called by the onboarding page's Continue button and by the Account
+        page's interests editor. The list sent replaces the user's whole set.
+        At least one category is required (onboarding can't be skipped);
+        every id must be an active category. Duplicate ids are ignored.
+      operationId: updateMyPreferences
+      tags: [Preferences]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferencesRequest'
+      responses:
+        '200':
+          description: Saved. Same shape as GET; onboarding_completed is true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+        '400':
+          description: >-
+            validation_error (empty list, bad UUID, more than 20) or
+            invalid_category (unknown or deactivated category)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /categories:
+    get:
+      summary: List categories
+      description: >-
+        Public. Feeds the onboarding interest picker, category filters and
+        staff forms. Without a token (or with a non-staff token) only active
+        categories are returned. With a staff token, deactivated categories
+        are included too. Always the full list, sorted by name (no paging).
+      operationId: listCategories
+      tags: [Categories]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: top_level
+          in: query
+          description: >-
+            true = only categories with no parent (what the onboarding page
+            shows); false = only sub-categories; omit for all.
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: Categories, ordered by name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /collections:
+    get:
+      summary: List collections
+      description: >-
+        Public. Without a token only published collections are returned.
+        With a staff token, drafts and archived collections are included too.
+      operationId: listCollections
+      tags: [Collections]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Only collections whose name contains this text (case-insensitive)
+          schema:
+            type: string
+            maxLength: 100
+        - name: featured
+          in: query
+          description: Only featured (true) or non-featured (false) collections
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - name: limit
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: How many collections to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of collections, ordered by name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a collection
+      description: Staff only. New collections default to the draft status.
+      operationId: createCollection
+      tags: [Collections]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectionRequest'
+      responses:
+        '201':
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '400':
+          description: Validation failed, or an unknown location or category was given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /collections/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The collection's id
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get one collection
+      description: >-
+        Public for published collections. A draft or archived collection
+        looks like a missing one (404) unless the caller is staff.
+      operationId: getCollection
+      tags: [Collections]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit a collection
+      description: >-
+        Staff only. Only the fields that are sent are changed. If
+        category_ids is sent, it replaces the collection's category list.
+      operationId: updateCollection
+      tags: [Collections]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCollectionRequest'
+      responses:
+        '200':
+          description: The updated collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '400':
+          description: Validation failed, or an unknown location or category was given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /collections/{id}/archive:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The collection's id
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Archive a collection
+      description: >-
+        Staff only. Hides the collection from the public site but keeps it in
+        the database. Calling it again on an archived collection changes nothing.
+      operationId: archiveCollection
+      tags: [Collections]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The archived collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events:
+    get:
+      summary: List events
+      description: >-
+        Public. Without a token, draft events are hidden (scheduled and
+        cancelled ones are shown). With a staff token, drafts are included.
+      operationId: listEvents
+      tags: [Events]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: when
+          in: query
+          description: >-
+            upcoming = hasn't ended yet, soonest first (default);
+            past = already ended, most recent first; all = everything, soonest first
+          schema:
+            type: string
+            enum: [upcoming, past, all]
+            default: upcoming
+        - name: q
+          in: query
+          description: Only events whose name contains this text (case-insensitive)
+          schema:
+            type: string
+            maxLength: 100
+        - name: category_id
+          in: query
+          description: Only events in this category or one of its sub-categories
+          schema:
+            type: string
+            format: uuid
+        - name: collection_id
+          in: query
+          description: Only events that showcase this collection
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Only events with this status (draft is only visible to staff)
+          schema:
+            type: string
+            enum: [draft, scheduled, cancelled]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create an event
+      description: >-
+        Staff only. At least one category is required (recommendations match
+        users' interests against event categories). New events default to
+        draft, which is hidden from the public.
+      operationId: createEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: >-
+            validation_error (bad field, end not after start, unknown location
+            or collection) or invalid_category (unknown or deactivated category)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get one event
+      description: Public. A draft event returns 404 to anyone who isn't staff.
+      operationId: getEvent
+      tags: [Events]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event, or it is a draft and the caller isn't staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update an event
+      description: >-
+        Staff only. Changes only the fields sent. category_ids and
+        collection_ids, if sent, replace the whole list (category_ids still
+        needs at least one).
+      operationId: updateEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: validation_error or invalid_category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Cancel an event
+      description: >-
+        Staff only. Sets status to cancelled; the event stays visible to the
+        public, marked cancelled. Repeating it is harmless.
+      operationId: cancelEvent
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Event cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not a staff account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /recommendations:
+    get:
+      summary: Recommended events and collections
+      description: >-
+        Public. Feeds the "Recommended for you" row on the Home page; it does
+        not restrict browsing (GET /events and GET /collections still list
+        everything). Signed in with interest picks: items matching the picks
+        (including their sub-categories) come first, most matches first, then
+        the list is topped up with other items. Guests and users without
+        picks get the same list without the personal part. Only scheduled,
+        not-yet-ended events and published collections are recommended.
+      operationId: getRecommendations
+      tags: [Recommendations]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of events, and separately of collections
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+      responses:
+        '200':
+          description: Recommended events and collections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: The access_token returned by sign-in or sign-up
+  schemas:
+    CategoryRef:
+      type: object
+      required: [category_id, name]
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    Category:
+      type: object
+      required: [category_id, name, description, parent_category_id, active]
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mining & Industry
+        description:
+          type: string
+          nullable: true
+        parent_category_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: null for a top-level category
+        active:
+          type: boolean
+          description: Always true for non-staff callers
+    CategoryListResponse:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    PickedCategory:
+      type: object
+      required: [category_id, name, description, parent_category_id]
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mining & Industry
+        description:
+          type: string
+          nullable: true
+        parent_category_id:
+          type: string
+          format: uuid
+          nullable: true
+    PreferencesResponse:
+      type: object
+      required: [categories, onboarding_completed]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PickedCategory'
+        onboarding_completed:
+          type: boolean
+    UpdatePreferencesRequest:
+      type: object
+      required: [category_ids]
+      additionalProperties: false
+      properties:
+        category_ids:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Replaces the user's whole set of picks
+          items:
+            type: string
+            format: uuid
+          example:
+            - 22222222-2222-2222-2222-222222222201
+            - 22222222-2222-2222-2222-222222222203
+    CollectionRef:
+      type: object
+      required: [collection_id, name]
+      properties:
+        collection_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    Event:
+      type: object
+      required: [event_id, name, start_at, end_at, status, ticket_price, capacity, created_at, updated_at, location, categories, collections]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, scheduled, cancelled]
+        ticket_price:
+          type: number
+          description: 0 means a free event
+        capacity:
+          type: integer
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        location:
+          $ref: '#/components/schemas/LocationRef'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+        collections:
+          type: array
+          description: Collections the event showcases (only those the caller may see)
+          items:
+            $ref: '#/components/schemas/CollectionRef'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EventResponse:
+      type: object
+      required: [event]
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+    EventListResponse:
+      type: object
+      required: [events, total, limit, offset]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+          description: How many events match, ignoring limit and offset
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateEventRequest:
+      type: object
+      required: [name, start_at, end_at, capacity, category_ids]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Gold Rush Weekend
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+          description: ISO 8601 with a timezone offset
+          example: '2026-11-14T10:00:00+10:30'
+        end_at:
+          type: string
+          format: date-time
+          description: Must be after start_at
+          example: '2026-11-14T16:00:00+10:30'
+        status:
+          type: string
+          enum: [draft, scheduled]
+          default: draft
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        ticket_price:
+          type: number
+          minimum: 0
+          default: 0
+        capacity:
+          type: integer
+          minimum: 0
+        category_ids:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        collection_ids:
+          type: array
+          maxItems: 20
+          default: []
+          items:
+            type: string
+            format: uuid
+    UpdateEventRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Send only the fields to change.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, scheduled, cancelled]
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        ticket_price:
+          type: number
+          minimum: 0
+        capacity:
+          type: integer
+          minimum: 0
+        category_ids:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Replaces the whole category list
+          items:
+            type: string
+            format: uuid
+        collection_ids:
+          type: array
+          maxItems: 20
+          description: Replaces the whole collection list
+          items:
+            type: string
+            format: uuid
+    Recommendation:
+      type: object
+      required: [source, reasons]
+      properties:
+        source:
+          type: string
+          enum: [interest, upcoming, featured, other]
+          description: >-
+            interest = matches the user's picks; upcoming = soonest events;
+            featured = featured collection; other = remaining collections
+        reasons:
+          type: array
+          description: >-
+            The user's picks this item matches (empty unless source is
+            interest), e.g. for "Because you like Mining & Industry"
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+    RecommendedEvent:
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          required: [recommendation]
+          properties:
+            recommendation:
+              $ref: '#/components/schemas/Recommendation'
+    RecommendedCollection:
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          required: [recommendation]
+          properties:
+            recommendation:
+              $ref: '#/components/schemas/Recommendation'
+    RecommendationsResponse:
+      type: object
+      required: [personalised, interests, events, collections]
+      properties:
+        personalised:
+          type: boolean
+          description: true when the caller has interest picks the lists were ranked by
+        interests:
+          type: array
+          description: The caller's picks (empty for guests)
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedEvent'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedCollection'
+    LocationRef:
+      type: object
+      nullable: true
+      required: [name, city]
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+          nullable: true
+    Collection:
+      type: object
+      required: [collection_id, name, status, featured, created_at, updated_at, location, categories]
+      properties:
+        collection_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
+        featured:
+          type: boolean
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        location:
+          $ref: '#/components/schemas/LocationRef'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRef'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CollectionResponse:
+      type: object
+      required: [collection]
+      properties:
+        collection:
+          $ref: '#/components/schemas/Collection'
+    CollectionListResponse:
+      type: object
+      required: [collections, total, limit, offset]
+      properties:
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        total:
+          type: integer
+          description: How many collections match, ignoring limit and offset
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateCollectionRequest:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Roman Coins
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
+          default: draft
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        featured:
+          type: boolean
+          default: false
+        category_ids:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+    UpdateCollectionRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Send only the fields to change.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        featured:
+          type: boolean
+        category_ids:
+          type: array
+          maxItems: 20
+          description: Replaces the whole category list
+          items:
+            type: string
+            format: uuid
+    AuthUser:
+      type: object
+      required: [id, email, full_name, role, onboarding_completed]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [registered, member, staff]
+        onboarding_completed:
+          type: boolean
+          description: >-
+            false = send the user to the preferences page before anything else.
+            True once they have at least one active interest pick; always true
+            for staff.
+    SignInRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          example: amara@example.com
+        password:
+          type: string
+          format: password
+    SignInResponse:
+      type: object
+      required: [user, session]
+      properties:
+        user:
+          $ref: '#/components/schemas/AuthUser'
+        session:
+          $ref: '#/components/schemas/Session'
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+    ResetPasswordRequest:
+      type: object
+      required: [access_token, new_password]
+      additionalProperties: false
+      properties:
+        access_token:
+          type: string
+          description: The access_token from the password-reset email link
+        new_password:
+          type: string
+          minLength: 10
+          format: password
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    SignUpRequest:
+      type: object
+      required: [full_name, email, password]
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Amara Okafor
+        email:
+          type: string
+          format: email
+          example: amara@example.com
+        password:
+          type: string
+          minLength: 10
+          format: password
+          description: Must match supabase/config.toml's auth.minimum_password_length
+    SignUpResponse:
+      type: object
+      required: [user, session]
+      properties:
+        user:
+          type: object
+          required: [id, email, full_name, onboarding_completed]
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            full_name:
+              type: string
+            onboarding_completed:
+              type: boolean
+              description: Always false for a new account — go to the preferences page next.
+        session:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Session'
+          description: >-
+            null when email confirmation is required and the account
+            isn't usable yet
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token:
+          type: string
+          description: The refresh_token from the latest sign-in or refresh
+    RefreshResponse:
+      type: object
+      required: [session]
+      properties:
+        session:
+          $ref: '#/components/schemas/Session'
+    Session:
+      type: object
+      required: [access_token, refresh_token, expires_at]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_at:
+          type: integer
+          description: Unix timestamp (seconds) the access token expires at
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message:
+              type: string
+            code:
+              type: string
+              enum:
+                - validation_error
+                - sign_up_failed
+                - email_exists
+                - invalid_credentials
+                - account_inactive
+                - profile_missing
+                - rate_limited
+                - invalid_reset_token
+                - invalid_refresh_token
+                - reset_failed
+                - unauthorized
+                - forbidden
+                - not_found
+                - server_error

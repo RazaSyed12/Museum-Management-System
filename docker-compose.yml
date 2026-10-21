@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Overrides the .env value specifically for the containerized run —
+      # 127.0.0.1 inside a container means "this container," not your
+      # Windows machine, so Docker's special hostname is needed instead.
+      SUPABASE_URL: http://host.docker.internal:54321
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

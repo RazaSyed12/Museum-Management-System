@@ -4,7 +4,6 @@ import { useState, type ReactNode } from 'react';
 import { SiteHeader } from '@/components/navigation/SiteHeader';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { MobileNav } from '@/components/navigation/MobileNav';
-import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteNav } from '@/lib/nav';
 
 /* Ported from the Page helper in design-system/ui_kits/visitor_site/Shell.jsx.
@@ -14,7 +13,6 @@ import { useSiteNav } from '@/lib/nav';
 export function SiteChrome({ children }: { children: ReactNode }) {
   const nav = useSiteNav();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <div className="relative min-h-screen bg-surface-page">
@@ -25,7 +23,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         onNavigate={nav.go}
         onSignIn={() => nav.go('SignIn')}
         onMenu={() => setMenuOpen(true)}
-        onSearch={() => setSearchOpen(true)}
+        onSearch={() => nav.go('Collections')}
       />
       <main>{children}</main>
       <SiteFooter />
@@ -33,12 +31,9 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onNavigate={nav.go}
-        onSearch={() => setSearchOpen(true)}
         user={nav.user}
         isMember={nav.isMember}
       />
-      {/* Mounted only while open, so each search starts clean. Swap variant="modal" for a centred card. */}
-      {searchOpen && <SearchOverlay variant="overlay" onClose={() => setSearchOpen(false)} />}
     </div>
   );
 }

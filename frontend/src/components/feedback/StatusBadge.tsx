@@ -24,7 +24,14 @@ const TONES: Record<Tone, { classes: string; icon: string }> = {
   olive: { classes: 'bg-olive-100 text-olive-700', icon: 'tag' },
 };
 
-export function StatusBadge({ children, tone = 'neutral', icon, size = 'md', className, ...rest }: StatusBadgeProps) {
+export function StatusBadge({
+  children,
+  tone = 'neutral',
+  icon,
+  size = 'md',
+  className,
+  ...rest
+}: StatusBadgeProps) {
   const t = TONES[tone];
   const sm = size === 'sm';
   return (

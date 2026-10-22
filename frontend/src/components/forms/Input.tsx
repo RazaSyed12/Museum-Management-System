@@ -11,7 +11,14 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   iconLeft?: string;
 }
 
-export function Input({ invalid, size = 'md', iconLeft, disabled, className, ...rest }: InputProps) {
+export function Input({
+  invalid,
+  size = 'md',
+  iconLeft,
+  disabled,
+  className,
+  ...rest
+}: InputProps) {
   const input = (
     <input
       disabled={disabled}
@@ -19,7 +26,9 @@ export function Input({ invalid, size = 'md', iconLeft, disabled, className, ...
       className={cn(
         'type-body w-full rounded-md border bg-surface-card text-heading outline-none transition-control focus:shadow-focus',
         size === 'sm' ? 'min-h-9 px-2.5 py-[7px]' : 'min-h-11 px-3.5 py-2.5',
-        invalid ? 'border-danger-600 focus:border-danger-600 focus:shadow-danger-ring' : 'border-line-default focus:border-olive-500',
+        invalid
+          ? 'border-danger-600 focus:border-danger-600 focus:shadow-danger-ring'
+          : 'border-line-default focus:border-olive-500',
         disabled && 'cursor-not-allowed bg-surface-sunken text-action-disabled-text',
         iconLeft && 'pl-10.5',
         className,

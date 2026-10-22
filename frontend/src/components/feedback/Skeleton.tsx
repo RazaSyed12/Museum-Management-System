@@ -9,7 +9,13 @@ export interface SkeletonProps extends HTMLAttributes<HTMLSpanElement> {
   height?: number | string;
 }
 
-export function Skeleton({ width = '100%', height = 16, className, style, ...rest }: SkeletonProps) {
+export function Skeleton({
+  width = '100%',
+  height = 16,
+  className,
+  style,
+  ...rest
+}: SkeletonProps) {
   return (
     <span
       aria-hidden="true"
@@ -27,7 +33,14 @@ export function Skeleton({ width = '100%', height = 16, className, style, ...res
 /** Card-shaped loading placeholder matching CollectionCard / EventCard geometry. */
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div aria-busy="true" aria-label="Loading" className={cn('grid gap-3 rounded-lg border border-line-subtle bg-surface-card p-4', className)}>
+    <div
+      aria-busy="true"
+      aria-label="Loading"
+      className={cn(
+        'grid gap-3 rounded-lg border border-line-subtle bg-surface-card p-4',
+        className,
+      )}
+    >
       <Skeleton height={150} className="rounded-md" />
       <Skeleton width="45%" height={12} />
       <Skeleton width="85%" height={18} />

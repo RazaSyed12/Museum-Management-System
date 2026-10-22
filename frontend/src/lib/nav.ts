@@ -78,6 +78,8 @@ export function useSiteNav(): SiteNav {
 }
 
 function activeFromPath(pathname: string): ScreenName {
-  const entry = (Object.entries(ROUTES) as [ScreenName, string][]).find(([, path]) => path === pathname);
+  const entry = (Object.entries(ROUTES) as [ScreenName, string][]).find(
+    ([, path]) => path === pathname,
+  );
   return entry ? entry[0] : 'Home';
 }

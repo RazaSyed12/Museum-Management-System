@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Cormorant_Garamond, Source_Sans_3 } from 'next/font/google';
-import { SiteChrome } from '@/components/layout/SiteChrome';
-import { AuthProvider } from '@/lib/auth';
 import './globals.css';
 
 /* Self-hosted at build time by next/font (no runtime request to Google Fonts,
@@ -33,11 +31,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${cormorantGaramond.variable} ${sourceSans3.variable}`}>
-      <body>
-        <AuthProvider>
-          <SiteChrome>{children}</SiteChrome>
-        </AuthProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

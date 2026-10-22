@@ -7,7 +7,14 @@ import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
 import type { MuseumEvent } from '@/lib/api/events';
-import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, money, type TicketQty } from '@/lib/ticketing';
+import {
+  ticketTypesFor,
+  computeOrder,
+  ticketTypeLines,
+  orderBreakdownLines,
+  money,
+  type TicketQty,
+} from '@/lib/ticketing';
 
 export interface ConfirmationScreenProps {
   event: MuseumEvent;
@@ -33,8 +40,12 @@ export function ConfirmationScreen({ event, qty, contact, bookingRef }: Confirma
           note="A receipt has been emailed to you."
           footer={
             <div className="grid gap-3">
-              <Button fullWidth as="a" href="/account">View my tickets</Button>
-              <Button fullWidth variant="secondary" as="a" href="/events">Back to events</Button>
+              <Button fullWidth as="a" href="/account">
+                View my tickets
+              </Button>
+              <Button fullWidth variant="secondary" as="a" href="/events">
+                Back to events
+              </Button>
             </div>
           }
         />
@@ -45,24 +56,31 @@ export function ConfirmationScreen({ event, qty, contact, bookingRef }: Confirma
         <div className="grid gap-1.5">
           <h2 className="type-h3 text-success-700">Booking confirmed</h2>
           <p className="type-body text-body">
-            We have emailed your tickets to {contact.email || 'you'}. Show the QR code on your phone at the entrance.
+            We have emailed your tickets to {contact.email || 'you'}. Show the QR code on your phone
+            at the entrance.
           </p>
         </div>
       </div>
 
       <div className="grid items-center gap-6 rounded-lg border border-line-subtle bg-surface-card p-6 md:grid-cols-[1fr_180px]">
         <div className="grid gap-3">
-          <span className="type-eyebrow tracking-wider text-muted uppercase">Booking reference</span>
-          <span className="font-display text-2xl/none tracking-wide text-heading">{bookingRef}</span>
+          <span className="type-eyebrow tracking-wider text-muted uppercase">
+            Booking reference
+          </span>
+          <span className="font-display text-2xl/none tracking-wide text-heading">
+            {bookingRef}
+          </span>
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 type-body-sm">
-            {([
-              ['Event', event.title],
-              ['Date', `${event.date} · ${event.time}`],
-              ['Location', event.location],
-              ['Tickets', `${order.count} × ${ticketLine?.name ?? 'ticket'}`],
-              ['Total paid', money(order.total)],
-              ['Booked by', contact.name || 'Guest'],
-            ] as const).map(([k, v]) => (
+            {(
+              [
+                ['Event', event.title],
+                ['Date', `${event.date} · ${event.time}`],
+                ['Location', event.location],
+                ['Tickets', `${order.count} × ${ticketLine?.name ?? 'ticket'}`],
+                ['Total paid', money(order.total)],
+                ['Booked by', contact.name || 'Guest'],
+              ] as const
+            ).map(([k, v]) => (
               <Fragment key={k}>
                 <dt className="text-muted">{k}</dt>
                 <dd className="m-0 text-heading">{v}</dd>

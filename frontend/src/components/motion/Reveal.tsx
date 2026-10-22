@@ -1,6 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState, createElement, type CSSProperties, type ElementType, type ReactNode, type RefObject } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  createElement,
+  type CSSProperties,
+  type ElementType,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { cn } from '@/lib/cn';
 
 /* Ported from design-system/ui_kits/visitor_site/Motion.jsx.
@@ -18,10 +27,19 @@ function useInView(): [RefObject<HTMLElement | null>, boolean] {
   useEffect(() => {
     const el = ref.current;
     if (!el || seen) return;
-    if (!('IntersectionObserver' in window)) { setSeen(true); return; }
-    const io = new IntersectionObserver(([e]) => {
-      if (e?.isIntersecting) { setSeen(true); io.disconnect(); }
-    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    if (!('IntersectionObserver' in window)) {
+      setSeen(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.08 },
+    );
     io.observe(el);
     // Anything already on screen at mount reveals immediately.
     const r = el.getBoundingClientRect();
@@ -42,14 +60,18 @@ export interface RevealProps {
 /** Wraps children in a rise-and-fade block that plays once when scrolled into view. */
 export function Reveal({ delay = 0, as = 'div', style, className, children }: RevealProps) {
   const [ref, seen] = useInView();
-  return createElement(as, {
-    ref,
-    className: cn(
-      'opacity-0 will-change-[opacity,transform] motion-reduce:opacity-100',
-      seen && 'is-in animate-rise motion-reduce:animate-none',
-      className,
-    ),
-    // The stagger delay differs per instance, so it travels as a variable that animate-rise reads.
-    style: { '--d': `${delay}ms`, ...style } as CSSProperties,
-  }, children);
+  return createElement(
+    as,
+    {
+      ref,
+      className: cn(
+        'opacity-0 will-change-[opacity,transform] motion-reduce:opacity-100',
+        seen && 'is-in animate-rise motion-reduce:animate-none',
+        className,
+      ),
+      // The stagger delay differs per instance, so it travels as a variable that animate-rise reads.
+      style: { '--d': `${delay}ms`, ...style } as CSSProperties,
+    },
+    children,
+  );
 }

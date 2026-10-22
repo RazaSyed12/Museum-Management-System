@@ -24,26 +24,55 @@ export interface CollectionDetailProps {
   relatedEvents: MuseumEvent[];
 }
 
-export function CollectionDetail({ collection, relatedItems, relatedCollections, relatedEvents }: CollectionDetailProps) {
+export function CollectionDetail({
+  collection,
+  relatedItems,
+  relatedCollections,
+  relatedEvents,
+}: CollectionDetailProps) {
   return (
     <>
       <DetailHero
-        crumbs={[{ label: 'Home', href: '/' }, { label: 'Collections', href: '/collections' }, { label: collection.name }]}
+        crumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Collections', href: '/collections' },
+          { label: collection.name },
+        ]}
         title={collection.name}
         eyebrow={
           <div className="flex gap-2">
-            <StatusBadge tone="olive" size="sm">{collection.category}</StatusBadge>
-            <StatusBadge tone="neutral" size="sm" icon="hourglass">{collection.period}</StatusBadge>
+            <StatusBadge tone="olive" size="sm">
+              {collection.category}
+            </StatusBadge>
+            <StatusBadge tone="neutral" size="sm" icon="hourglass">
+              {collection.period}
+            </StatusBadge>
           </div>
         }
         description={collection.description}
-        meta={<><MetaItem icon="map-pin">{collection.location}</MetaItem><MetaItem icon="gem">{collection.items} objects</MetaItem></>}
+        meta={
+          <>
+            <MetaItem icon="map-pin">{collection.location}</MetaItem>
+            <MetaItem icon="gem">{collection.items} objects</MetaItem>
+          </>
+        }
         actions={
           <>
             {relatedItems[0] && (
-              <Button variant="accent" as="a" href={`/collections/${collection.id}/${relatedItems[0].id}`}>Start with the highlights</Button>
+              <Button
+                variant="accent"
+                as="a"
+                href={`/collections/${collection.id}/${relatedItems[0].id}`}
+              >
+                Start with the highlights
+              </Button>
             )}
-            <Button variant="secondary" as="a" href="/tickets" className="border-sand-300/50 text-paper-50 hover:bg-white/10 active:bg-white/15">
+            <Button
+              variant="secondary"
+              as="a"
+              href="/tickets"
+              className="border-sand-300/50 text-paper-50 hover:bg-white/10 active:bg-white/15"
+            >
               Plan your visit
             </Button>
           </>
@@ -54,20 +83,41 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
         {relatedItems.length ? (
           <Grid cols={3} className="lg:grid-cols-4">
             {relatedItems.map((i) => (
-              <ItemCard key={i.id} name={i.name} period={i.period} date={i.date} description={i.description} href={`/collections/${collection.id}/${i.id}`} />
+              <ItemCard
+                key={i.id}
+                name={i.name}
+                period={i.period}
+                date={i.date}
+                description={i.description}
+                href={`/collections/${collection.id}/${i.id}`}
+              />
             ))}
           </Grid>
         ) : (
-          <EmptyState compact title="No objects catalogued yet" description="Individual artefacts from this collection haven't been added to the site yet." />
+          <EmptyState
+            compact
+            title="No objects catalogued yet"
+            description="Individual artefacts from this collection haven't been added to the site yet."
+          />
         )}
       </Section>
 
       <Section tone="muted" title="Events about this collection">
         <Grid cols={2}>
           {relatedEvents.map((e) => (
-            <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
-              location={e.location} price={e.price} free={e.free} availability={e.availability}
-              detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
+            <EventCard
+              key={e.id}
+              title={e.title}
+              description={e.description}
+              date={e.date}
+              time={e.time}
+              location={e.location}
+              price={e.price}
+              free={e.free}
+              availability={e.availability}
+              detailHref={`/events/${e.id}`}
+              href={`/tickets/${e.id}`}
+            />
           ))}
         </Grid>
       </Section>
@@ -75,8 +125,16 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
       <Section title="Related collections">
         <Grid cols={3}>
           {relatedCollections.map((c) => (
-            <CollectionCard key={c.id} name={c.name} category={c.category} period={c.period} description={c.description}
-              itemCount={c.items} tone={c.tone} href={`/collections/${c.id}`} />
+            <CollectionCard
+              key={c.id}
+              name={c.name}
+              category={c.category}
+              period={c.period}
+              description={c.description}
+              itemCount={c.items}
+              tone={c.tone}
+              href={`/collections/${c.id}`}
+            />
           ))}
         </Grid>
       </Section>

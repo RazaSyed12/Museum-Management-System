@@ -13,7 +13,14 @@ import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
 import type { MuseumEvent } from '@/lib/api/events';
-import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, money, type TicketQty } from '@/lib/ticketing';
+import {
+  ticketTypesFor,
+  computeOrder,
+  ticketTypeLines,
+  orderBreakdownLines,
+  money,
+  type TicketQty,
+} from '@/lib/ticketing';
 
 export interface CheckoutScreenProps {
   event: MuseumEvent;
@@ -21,7 +28,11 @@ export interface CheckoutScreenProps {
 }
 
 const HEARD_OPTIONS = ['Friend or family', 'Social media', 'Newsletter', 'Walked past'];
-const ACCESS_OPTIONS = [{ value: 'none', label: 'No requirements' }, { value: 'wheel', label: 'Wheelchair space needed' }, { value: 'bsl', label: 'BSL interpretation' }];
+const ACCESS_OPTIONS = [
+  { value: 'none', label: 'No requirements' },
+  { value: 'wheel', label: 'Wheelchair space needed' },
+  { value: 'bsl', label: 'BSL interpretation' },
+];
 
 export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
   const router = useRouter();
@@ -39,7 +50,8 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
     const params = new URLSearchParams(window.location.search);
     params.set('name', name);
     params.set('email', email);
-    if (phone) params.set('phone', phone); else params.delete('phone');
+    if (phone) params.set('phone', phone);
+    else params.delete('phone');
     params.set('access', access);
     router.push(`/tickets/${event.id}/payment?${params}`);
   }
@@ -53,7 +65,11 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
           lines={[...ticketTypeLines(qty, types), ...orderBreakdownLines(order)]}
           total={money(order.total)}
           note="You will not be charged until the next step."
-          footer={<Button fullWidth size="lg" type="submit" form="checkout-form">Continue to payment</Button>}
+          footer={
+            <Button fullWidth size="lg" type="submit" form="checkout-form">
+              Continue to payment
+            </Button>
+          }
         />
       }
     >
@@ -62,10 +78,22 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
           <h2 className="type-h3">Your details</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Full name" htmlFor="cn" required>
-              <Input id="cn" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Amara Okafor" />
+              <Input
+                id="cn"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Amara Okafor"
+              />
             </Field>
             <Field label="Email address" htmlFor="ce" required hint="Your tickets are sent here.">
-              <Input id="ce" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                id="ce"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </Field>
             <Field label="Phone" htmlFor="cp" optional>
               <Input id="cp" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -81,7 +109,9 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
           <RadioGroup name="access" value={access} onChange={setAccess} options={ACCESS_OPTIONS} />
         </div>
         {isMember && order.discount > 0 && (
-          <Alert tone="success" title="Member discount applied">£{order.discount.toFixed(2)} has been taken off this order.</Alert>
+          <Alert tone="success" title="Member discount applied">
+            £{order.discount.toFixed(2)} has been taken off this order.
+          </Alert>
         )}
       </form>
     </FlowFrame>

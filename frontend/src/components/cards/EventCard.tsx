@@ -48,25 +48,65 @@ function Meta({ icon, children }: { icon: string; children: ReactNode }) {
   );
 }
 
-export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, detailHref, className, ...rest }: EventCardProps) {
+export function EventCard({
+  title,
+  description,
+  date,
+  time,
+  location,
+  price,
+  free,
+  availability = 'available',
+  image,
+  layout = 'vertical',
+  href = '#',
+  onBook,
+  detailHref,
+  className,
+  ...rest
+}: EventCardProps) {
   const a = AVAIL[availability];
   const blocked = availability === 'soldout' || availability === 'cancelled';
   const row = layout === 'horizontal';
   return (
-    <Card interactive={!blocked} className={cn('p-0', row ? 'grid sm:grid-cols-[260px_minmax(0,1fr)]' : 'block', className)} {...rest}>
+    <Card
+      interactive={!blocked}
+      className={cn('p-0', row ? 'grid sm:grid-cols-[260px_minmax(0,1fr)]' : 'block', className)}
+      {...rest}
+    >
       {row ? (
         <div className="min-w-0 overflow-hidden">
-          <Media src={image} ratio="16 / 9" tone="green" caption={title} className="w-full rounded-none" />
+          <Media
+            src={image}
+            ratio="16 / 9"
+            tone="green"
+            caption={title}
+            className="w-full rounded-none"
+          />
         </div>
       ) : (
         <Media src={image} ratio="16 / 9" tone="green" caption={title} className="rounded-none" />
       )}
       <div className="grid content-start gap-3 p-5">
         <div className="flex flex-wrap gap-2">
-          <StatusBadge tone={a.tone} size="sm">{a.label}</StatusBadge>
-          {free && <StatusBadge tone="info" size="sm" icon="gift">Free</StatusBadge>}
+          <StatusBadge tone={a.tone} size="sm">
+            {a.label}
+          </StatusBadge>
+          {free && (
+            <StatusBadge tone="info" size="sm" icon="gift">
+              Free
+            </StatusBadge>
+          )}
         </div>
-        <h3 className="type-h3">{detailHref ? <Link href={detailHref} className="hover:underline">{title}</Link> : title}</h3>
+        <h3 className="type-h3">
+          {detailHref ? (
+            <Link href={detailHref} className="hover:underline">
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </h3>
         {description && <p className="type-body-sm text-muted">{description}</p>}
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           {date && <Meta icon="calendar-days">{date}</Meta>}
@@ -77,8 +117,21 @@ export function EventCard({ title, description, date, time, location, price, fre
           <span className="font-body text-md leading-none font-semibold text-heading">
             {free ? 'Free entry' : price}
           </span>
-          <Button variant={blocked ? 'secondary' : 'primary'} size="sm" disabled={blocked} onClick={onBook} as={blocked ? 'button' : 'a'} href={blocked ? undefined : href}>
-            {availability === 'cancelled' ? 'Event cancelled' : availability === 'soldout' ? 'Join waiting list' : free ? 'Reserve a place' : 'Book tickets'}
+          <Button
+            variant={blocked ? 'secondary' : 'primary'}
+            size="sm"
+            disabled={blocked}
+            onClick={onBook}
+            as={blocked ? 'button' : 'a'}
+            href={blocked ? undefined : href}
+          >
+            {availability === 'cancelled'
+              ? 'Event cancelled'
+              : availability === 'soldout'
+                ? 'Join waiting list'
+                : free
+                  ? 'Reserve a place'
+                  : 'Book tickets'}
           </Button>
         </div>
       </div>

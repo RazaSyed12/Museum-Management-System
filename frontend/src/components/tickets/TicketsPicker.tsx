@@ -22,15 +22,27 @@ export function TicketsPicker() {
     <Container className="py-10 md:py-16">
       <div className="mb-8 grid gap-3">
         <h1 className="text-3xl/[1.1] md:type-h1">Book tickets</h1>
-        <p className="type-body max-w-140 text-muted">Choose which event you&rsquo;d like to book, or browse everything that&rsquo;s on.</p>
+        <p className="type-body max-w-140 text-muted">
+          Choose which event you&rsquo;d like to book, or browse everything that&rsquo;s on.
+        </p>
       </div>
       <Grid cols={3}>
         {!events
           ? Array.from({ length: 3 }, (_, i) => <SkeletonCard key={i} />)
           : events.map((e) => (
-              <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
-                location={e.location} price={e.price} free={e.free} availability={e.availability}
-                detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
+              <EventCard
+                key={e.id}
+                title={e.title}
+                description={e.description}
+                date={e.date}
+                time={e.time}
+                location={e.location}
+                price={e.price}
+                free={e.free}
+                availability={e.availability}
+                detailHref={`/events/${e.id}`}
+                href={`/tickets/${e.id}`}
+              />
             ))}
       </Grid>
     </Container>

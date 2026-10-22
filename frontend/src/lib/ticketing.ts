@@ -26,9 +26,25 @@ export interface TicketType {
 
 export function ticketTypesFor(event: MuseumEvent): TicketType[] {
   return [
-    { key: 'general', name: 'General admission', description: 'Adult, 18 and over', price: event.priceValue },
-    { key: 'member', name: 'Member admission', description: 'Requires an active membership', price: event.memberPrice ?? event.priceValue, memberOnly: true },
-    { key: 'child', name: 'Child or student', description: 'Under 18, or with a valid student card', price: event.childPrice ?? event.priceValue },
+    {
+      key: 'general',
+      name: 'General admission',
+      description: 'Adult, 18 and over',
+      price: event.priceValue,
+    },
+    {
+      key: 'member',
+      name: 'Member admission',
+      description: 'Requires an active membership',
+      price: event.memberPrice ?? event.priceValue,
+      memberOnly: true,
+    },
+    {
+      key: 'child',
+      name: 'Child or student',
+      description: 'Under 18, or with a valid student card',
+      price: event.childPrice ?? event.priceValue,
+    },
   ];
 }
 
@@ -47,7 +63,10 @@ export interface Order {
  *  per-event negotiated rate the fixture has no field for. */
 export function computeOrder(qty: TicketQty, types: TicketType[], isMember: boolean): Order {
   const priceOf = (key: keyof TicketQty) => types.find((t) => t.key === key)!.price;
-  const sub = qty.general * priceOf('general') + qty.member * priceOf('member') + qty.child * priceOf('child');
+  const sub =
+    qty.general * priceOf('general') +
+    qty.member * priceOf('member') +
+    qty.child * priceOf('child');
   const fee = sub ? 1.5 : 0;
   const vat = Math.round(sub * 0.05 * 100) / 100;
   const discount = isMember && qty.general ? Math.round(qty.general * 2 * 100) / 100 : 0;
@@ -64,7 +83,7 @@ export type SearchParamsLike = URLSearchParams | Record<string, string | string[
 
 function paramValue(params: SearchParamsLike, key: string): string | undefined {
   const raw = params instanceof URLSearchParams ? params.get(key) : params[key];
-  return Array.isArray(raw) ? raw[0] : raw ?? undefined;
+  return Array.isArray(raw) ? raw[0] : (raw ?? undefined);
 }
 
 export function qtyFromParams(params: SearchParamsLike): TicketQty {
@@ -82,7 +101,11 @@ export interface Contact {
 }
 
 export function contactFromParams(params: SearchParamsLike): Contact {
-  return { name: paramValue(params, 'name') ?? '', email: paramValue(params, 'email') ?? '', phone: paramValue(params, 'phone') };
+  return {
+    name: paramValue(params, 'name') ?? '',
+    email: paramValue(params, 'email') ?? '',
+    phone: paramValue(params, 'phone'),
+  };
 }
 
 export function qtyToSearchParams(qty: TicketQty): URLSearchParams {
@@ -97,16 +120,32 @@ export function qtyToSearchParams(qty: TicketQty): URLSearchParams {
  *  duck-typed here rather than importing that type, so this file (plain
  *  order math) doesn't depend on a component. */
 export function ticketTypeLines(qty: TicketQty, types: TicketType[]) {
-  return types.map((t) => ({ label: `${t.name} × ${qty[t.key]}`, value: money(qty[t.key] * t.price), muted: !qty[t.key] }));
+  return types.map((t) => ({
+    label: `${t.name} × ${qty[t.key]}`,
+    value: money(qty[t.key] * t.price),
+    muted: !qty[t.key],
+  }));
 }
 
 export function orderBreakdownLines(order: Order) {
-  const lines: Array<{ label: string; value: string; strong?: boolean; tone?: 'discount'; icon?: string }> = [
+  const lines: Array<{
+    label: string;
+    value: string;
+    strong?: boolean;
+    tone?: 'discount';
+    icon?: string;
+  }> = [
     { label: 'Subtotal', value: money(order.sub), strong: true },
     { label: 'Service charge', value: money(order.fee) },
     { label: 'VAT (5%)', value: money(order.vat) },
   ];
-  if (order.discount) lines.push({ label: 'Member discount', value: `−${money(order.discount)}`, tone: 'discount', icon: 'award' });
+  if (order.discount)
+    lines.push({
+      label: 'Member discount',
+      value: `−${money(order.discount)}`,
+      tone: 'discount',
+      icon: 'award',
+    });
   return lines;
 }
 

@@ -45,9 +45,14 @@ export function shape(row: any) {
 // Postgres error codes worth explaining instead of a blanket 500:
 // 23503 = foreign key (unknown location or collection), 23514 = CHECK
 // constraint (in practice: end_at not after start_at).
-function badWriteMessage(error: { code?: string }): string | null {
+function badWriteMessage(error: { code?: string; message?: string }): string | null {
   if (error.code === '23503') return 'The location or one of the collections does not exist.';
-  if (error.code === '23514') return 'The event must end after it starts, and price and capacity cannot be negative.';
+  if (error.code === '23514') {
+    if (error.message?.includes('capacity_below_allocations')) {
+      return 'The capacity cannot be lower than the tickets already allocated to this event. Reduce the allocations first.';
+    }
+    return 'The event must end after it starts, and price and capacity cannot be negative.';
+  }
   return null;
 }
 

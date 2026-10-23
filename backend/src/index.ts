@@ -8,6 +8,7 @@ import collectionsRouter from './routes/collections';
 import categoriesRouter from './routes/categories';
 import meRouter from './routes/me';
 import eventsRouter from './routes/events';
+import locationsRouter from './routes/locations';
 import recommendationsRouter from './routes/recommendations';
 
 const app = express();
@@ -18,9 +19,11 @@ app.use('/auth', authRouter);
 app.use('/auth', sessionRouter);
 app.use('/collections', collectionsRouter);
 app.use('/categories', categoriesRouter);
+app.use('/locations', locationsRouter);
 app.use('/me', meRouter);
 app.use('/events', eventsRouter);
 app.use('/recommendations', recommendationsRouter);
+
 
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses

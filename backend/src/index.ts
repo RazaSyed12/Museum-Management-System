@@ -15,6 +15,7 @@ import mediaRouter from './routes/media';
 import membershipRouter from './routes/membership';
 import allocationsRouter from './routes/allocations';
 import bookingsRouter from './routes/bookings';
+import interactionsRouter from './routes/interactions';
 
 const app = express();
 app.use(cors());
@@ -33,6 +34,7 @@ app.use(mediaRouter);
 app.use(membershipRouter);
 app.use(allocationsRouter);
 app.use(bookingsRouter);
+app.use(interactionsRouter);
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses
 // anonClient() rather than the secret key, so this also proves RLS

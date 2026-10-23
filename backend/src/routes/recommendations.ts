@@ -13,6 +13,14 @@ const router = Router();
 // practice; the cap only keeps one request from ever loading thousands.
 const CANDIDATE_LIMIT = 200;
 
+// One onboarding pick is worth PICK_POINTS. Browsing history (views, category
+// browses, searches, bookings) can add at most HISTORY_CAP to one item, which
+// is lower than a single pick, so an explicit pick always beats behaviour.
+// The weights of each kind of history live in the database function
+// my_category_affinity().
+const PICK_POINTS = 10;
+const HISTORY_CAP = 9;
+
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).default(6),
 });
@@ -20,6 +28,17 @@ const querySchema = z.object({
 interface Interest {
   category_id: string;
   name: string;
+}
+
+interface Affinity {
+  name: string;
+  weight: number;
+}
+
+interface Signals<T> {
+  history: Map<string, Affinity>;
+  popularity: Map<string, number>;
+  idOf: (item: T) => string;
 }
 
 /**
@@ -53,37 +72,89 @@ async function loadInterests(db: SupabaseClient, userId: string | null) {
 }
 
 /**
+ * The signed-in user's category scores from their own history (last 90 days).
+ * Empty for guests: guests are never tracked.
+ */
+async function loadHistory(db: SupabaseClient, userId: string | null) {
+  const history = new Map<string, Affinity>();
+  if (!userId) return history;
+  const { data, error } = await db.rpc('my_category_affinity');
+  if (error) throw error;
+  for (const row of data ?? []) {
+    history.set(row.category_id, { name: row.name, weight: Number(row.weight) });
+  }
+  return history;
+}
+
+/**
+ * "Most popular" totals for everyone, guests included: tickets booked per
+ * event, and views per collection. Totals only, nothing personal.
+ */
+async function loadPopularity(db: SupabaseClient) {
+  const events = new Map<string, number>();
+  const collections = new Map<string, number>();
+  const { data, error } = await db.rpc('popularity_scores');
+  if (error) throw error;
+  for (const row of data ?? []) {
+    (row.kind === 'event' ? events : collections).set(row.id, Number(row.score));
+  }
+  return { events, collections };
+}
+
+/**
  * Puts the items that match the user's interests first — the more of the
  * user's picks an item matches, the higher it goes; ties keep the incoming
  * order (soonest event / featured collection first). Then fills the rest
  * of the list with the other items in their incoming order, so the row is
  * never empty. Each item gets a "recommendation" saying why it is there.
+ *
+ * With "signals" (history and popularity) the score is
+ *   10 x picks matched + history points (at most 9),
+ * ties go to the more popular item, then to the incoming order. The reason
+ * is "interest" (a pick matched), else "history", else "popular", else the
+ * fallback. Without signals it behaves exactly as before.
  */
 function rank<T extends { categories: { category_id: string }[] }>(
   items: T[],
   interests: Map<string, Interest>,
   limit: number,
   fallbackSource: (item: T) => string,
+  signals?: Signals<T>,
 ) {
   const scored = items.map((item, index) => {
     const reasons = new Map<string, Interest>();
+    const seen = new Map<string, Interest>();
+    let historyPoints = 0;
     for (const c of item.categories) {
       const interest = interests.get(c.category_id);
       if (interest) reasons.set(interest.category_id, interest);
+      const past = signals?.history.get(c.category_id);
+      if (past) {
+        seen.set(c.category_id, { category_id: c.category_id, name: past.name });
+        historyPoints += past.weight;
+      }
     }
-    return { item, index, reasons: [...reasons.values()].sort((a, b) => a.name.localeCompare(b.name)) };
+    const pickReasons = [...reasons.values()].sort((a, b) => a.name.localeCompare(b.name));
+    const historyReasons = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+    const score = pickReasons.length * PICK_POINTS + Math.min(historyPoints, HISTORY_CAP);
+    const popular = signals ? signals.popularity.get(signals.idOf(item)) ?? 0 : 0;
+    return { item, index, pickReasons, historyReasons, score, popular };
   });
 
-  const matched = scored
-    .filter((s) => s.reasons.length > 0)
-    .sort((a, b) => b.reasons.length - a.reasons.length || a.index - b.index);
-  const others = scored.filter((s) => s.reasons.length === 0);
+  const ranked = [...scored].sort(
+    (a, b) => b.score - a.score || b.popular - a.popular || a.index - b.index,
+  );
 
-  return [...matched, ...others].slice(0, limit).map(({ item, reasons }) => ({
+  return ranked.slice(0, limit).map(({ item, pickReasons, historyReasons, popular }) => ({
     ...item,
-    recommendation: reasons.length > 0
-      ? { source: 'interest', reasons }
-      : { source: fallbackSource(item), reasons: [] as Interest[] },
+    recommendation:
+      pickReasons.length > 0
+        ? { source: 'interest', reasons: pickReasons }
+        : historyReasons.length > 0
+          ? { source: 'history', reasons: historyReasons }
+          : popular > 0
+            ? { source: 'popular', reasons: [] as Interest[] }
+            : { source: fallbackSource(item), reasons: [] as Interest[] },
   }));
 }
 
@@ -93,8 +164,11 @@ function rank<T extends { categories: { category_id: string }[] }>(
 //  - Signed in with interest picks -> matching upcoming events and published
 //    collections first ("source": "interest", with the picks as reasons),
 //    topped up with other upcoming events / featured collections.
-//  - Guest, or no picks (e.g. staff) -> the same list without the
-//    personal part: soonest upcoming events and featured collections.
+//  - Signed in with browsing history (views, category browses, searches,
+//    bookings) -> items in those categories rank next ("source": "history").
+//  - Guest, or nothing personal -> the most popular items first
+//    ("source": "popular", booked events / viewed collections), then the
+//    soonest upcoming events and featured collections.
 // Only bookable events (status "scheduled", not yet ended) are recommended;
 // drafts and cancelled events never are, even for staff.
 router.get('/', async (req: Request, res: Response) => {
@@ -112,6 +186,8 @@ router.get('/', async (req: Request, res: Response) => {
 
   try {
     const { picks, interests } = await loadInterests(db, userId);
+    const history = await loadHistory(db, userId);
+    const popularity = await loadPopularity(db);
 
     const [events, collections] = await Promise.all([
       db.from('events')
@@ -131,11 +207,19 @@ router.get('/', async (req: Request, res: Response) => {
     if (collections.error) throw collections.error;
 
     return res.status(200).json({
-      personalised: interests.size > 0,
+      personalised: interests.size > 0 || history.size > 0,
       interests: picks.map((p) => ({ category_id: p.category_id, name: p.name })),
-      events: rank((events.data ?? []).map(shapeEvent), interests, limit, () => 'upcoming'),
+      events: rank((events.data ?? []).map(shapeEvent), interests, limit, () => 'upcoming', {
+        history,
+        popularity: popularity.events,
+        idOf: (e: any) => e.event_id,
+      }),
       collections: rank((collections.data ?? []).map(shapeCollection), interests, limit,
-        (c: any) => (c.featured ? 'featured' : 'other')),
+        (c: any) => (c.featured ? 'featured' : 'other'), {
+          history,
+          popularity: popularity.collections,
+          idOf: (c: any) => c.collection_id,
+        }),
     });
   } catch {
     return res.status(500).json({

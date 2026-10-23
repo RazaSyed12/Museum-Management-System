@@ -10,6 +10,7 @@ import meRouter from './routes/me';
 import eventsRouter from './routes/events';
 import locationsRouter from './routes/locations';
 import recommendationsRouter from './routes/recommendations';
+import collectionItemsRouter from './routes/collectionItems';
 
 const app = express();
 app.use(cors());
@@ -23,7 +24,7 @@ app.use('/locations', locationsRouter);
 app.use('/me', meRouter);
 app.use('/events', eventsRouter);
 app.use('/recommendations', recommendationsRouter);
-
+app.use(collectionItemsRouter);
 
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses

@@ -17,7 +17,15 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   size?: 'sm' | 'md';
 }
 
-export function Select({ options = [], invalid, size = 'md', disabled, placeholder, className, ...rest }: SelectProps) {
+export function Select({
+  options = [],
+  invalid,
+  size = 'md',
+  disabled,
+  placeholder,
+  className,
+  ...rest
+}: SelectProps) {
   return (
     <span className="relative block">
       <select
@@ -26,8 +34,12 @@ export function Select({ options = [], invalid, size = 'md', disabled, placehold
         className={cn(
           'type-body w-full appearance-none rounded-md border bg-surface-card pr-10 text-heading outline-none transition-control focus:shadow-focus',
           size === 'sm' ? 'min-h-9 px-2.5 py-[7px]' : 'min-h-11 px-3.5 py-2.5',
-          invalid ? 'border-danger-600 focus:border-danger-600 focus:shadow-danger-ring' : 'border-line-default focus:border-olive-500',
-          disabled ? 'cursor-not-allowed bg-surface-sunken text-action-disabled-text' : 'cursor-pointer',
+          invalid
+            ? 'border-danger-600 focus:border-danger-600 focus:shadow-danger-ring'
+            : 'border-line-default focus:border-olive-500',
+          disabled
+            ? 'cursor-not-allowed bg-surface-sunken text-action-disabled-text'
+            : 'cursor-pointer',
           className,
         )}
         {...rest}

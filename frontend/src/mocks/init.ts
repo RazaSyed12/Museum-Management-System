@@ -12,7 +12,9 @@ export function ensureMockingStarted(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
   if (process.env.NEXT_PUBLIC_API_MOCKING === 'disabled') return Promise.resolve();
   if (!ready) {
-    ready = import('./browser').then(({ worker }) => worker.start({ onUnhandledFrame: 'bypass' })).then(() => undefined);
+    ready = import('./browser')
+      .then(({ worker }) => worker.start({ onUnhandledFrame: 'bypass' }))
+      .then(() => undefined);
   }
   return ready;
 }

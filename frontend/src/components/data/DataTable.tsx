@@ -12,7 +12,9 @@ export interface Column<T> {
   render?: (row: T) => ReactNode;
 }
 
-export interface DataTableProps<T extends { id?: string | number }> extends HTMLAttributes<HTMLDivElement> {
+export interface DataTableProps<
+  T extends { id?: string | number },
+> extends HTMLAttributes<HTMLDivElement> {
   columns: Column<T>[];
   rows: T[];
   caption?: string;
@@ -33,12 +35,33 @@ const ALIGN: Record<NonNullable<Column<unknown>['align']>, string> = {
   center: 'text-center',
 };
 
-export function DataTable<T extends { id?: string | number }>({ columns, rows, caption, sortKey, sortDir = 'asc', onSort, empty, dense, className, ...rest }: DataTableProps<T>) {
+export function DataTable<T extends { id?: string | number }>({
+  columns,
+  rows,
+  caption,
+  sortKey,
+  sortDir = 'asc',
+  onSort,
+  empty,
+  dense,
+  className,
+  ...rest
+}: DataTableProps<T>) {
   if (!rows.length && empty) return empty;
   return (
-    <div className={cn('overflow-x-auto rounded-lg border border-line-subtle bg-surface-card', className)} {...rest}>
+    <div
+      className={cn(
+        'overflow-x-auto rounded-lg border border-line-subtle bg-surface-card',
+        className,
+      )}
+      {...rest}
+    >
       <table className="type-body-sm w-full border-collapse">
-        {caption && <caption className="type-label caption-top px-5 py-4 text-left text-muted">{caption}</caption>}
+        {caption && (
+          <caption className="type-label caption-top px-5 py-4 text-left text-muted">
+            {caption}
+          </caption>
+        )}
         <thead>
           <tr>
             {columns.map((c) => {
@@ -59,10 +82,18 @@ export function DataTable<T extends { id?: string | number }>({ columns, rows, c
                     <button
                       type="button"
                       onClick={() => onSort?.(c.key)}
-                      className={cn('inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-inherit tracking-inherit uppercase', on && 'text-heading')}
+                      className={cn(
+                        'inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-inherit tracking-inherit uppercase',
+                        on && 'text-heading',
+                      )}
                     >
                       {c.header}
-                      <Icon name={on ? (sortDir === 'asc' ? 'arrow-up' : 'arrow-down') : 'chevrons-up-down'} size={13} />
+                      <Icon
+                        name={
+                          on ? (sortDir === 'asc' ? 'arrow-up' : 'arrow-down') : 'chevrons-up-down'
+                        }
+                        size={13}
+                      />
                     </button>
                   ) : (
                     c.header
@@ -74,9 +105,19 @@ export function DataTable<T extends { id?: string | number }>({ columns, rows, c
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.id ?? i} className={i === rows.length - 1 ? '' : 'border-b border-line-subtle'}>
+            <tr
+              key={r.id ?? i}
+              className={i === rows.length - 1 ? '' : 'border-b border-line-subtle'}
+            >
               {columns.map((c) => (
-                <td key={c.key} className={cn('align-middle text-body', dense ? 'px-3.5 py-2.5' : 'px-4.5 py-3.5', ALIGN[c.align ?? 'left'])}>
+                <td
+                  key={c.key}
+                  className={cn(
+                    'align-middle text-body',
+                    dense ? 'px-3.5 py-2.5' : 'px-4.5 py-3.5',
+                    ALIGN[c.align ?? 'left'],
+                  )}
+                >
                   {c.render ? c.render(r) : String((r as Record<string, unknown>)[c.key] ?? '')}
                 </td>
               ))}

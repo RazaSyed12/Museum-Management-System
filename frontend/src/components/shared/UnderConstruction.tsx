@@ -25,7 +25,11 @@ export function UnderConstruction({ title, description }: UnderConstructionProps
         icon="construction"
         title={title}
         description={description ?? 'This page is still being built. Check back soon.'}
-        action={<Button variant="secondary" onClick={() => nav.go('Home')}>Back to home</Button>}
+        action={
+          <Button variant="secondary" onClick={() => nav.go('Home')}>
+            Back to home
+          </Button>
+        }
       />
     </Section>
   );

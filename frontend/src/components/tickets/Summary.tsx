@@ -24,12 +24,25 @@ export function Summary({ lines, total, footer, note }: SummaryProps) {
       <h2 className="type-h3">Order summary</h2>
       <div className="grid gap-3">
         {lines.map((l, i) => (
-          <div key={i} className={cn('type-body-sm flex items-baseline justify-between gap-4', l.muted ? 'text-muted' : 'text-body')}>
+          <div
+            key={i}
+            className={cn(
+              'type-body-sm flex items-baseline justify-between gap-4',
+              l.muted ? 'text-muted' : 'text-body',
+            )}
+          >
             <span className="flex items-center gap-1.5">
               {l.icon && <Icon name={l.icon} size={14} className="text-gold-700" />}
               {l.label}
             </span>
-            <span className={cn(l.tone === 'discount' && 'text-success-600', l.strong && 'font-semibold')}>{l.value}</span>
+            <span
+              className={cn(
+                l.tone === 'discount' && 'text-success-600',
+                l.strong && 'font-semibold',
+              )}
+            >
+              {l.value}
+            </span>
           </div>
         ))}
       </div>

@@ -16,11 +16,26 @@ export interface QuantityStepperProps extends Omit<HTMLAttributes<HTMLDivElement
   disabled?: boolean;
 }
 
-export function QuantityStepper({ value = 0, min = 0, max = 10, onChange, label = 'Quantity', disabled, className, ...rest }: QuantityStepperProps) {
+export function QuantityStepper({
+  value = 0,
+  min = 0,
+  max = 10,
+  onChange,
+  label = 'Quantity',
+  disabled,
+  className,
+  ...rest
+}: QuantityStepperProps) {
   const set = (v: number) => onChange?.(Math.max(min, Math.min(max, v)));
   return (
     <div className={cn('inline-flex items-center gap-2', className)} {...rest}>
-      <IconButton icon="minus" label={`Remove one ${label}`} variant="outline" onClick={() => set(value - 1)} disabled={disabled || value <= min} />
+      <IconButton
+        icon="minus"
+        label={`Remove one ${label}`}
+        variant="outline"
+        onClick={() => set(value - 1)}
+        disabled={disabled || value <= min}
+      />
       <input
         aria-label={label}
         value={value}
@@ -28,7 +43,13 @@ export function QuantityStepper({ value = 0, min = 0, max = 10, onChange, label 
         inputMode="numeric"
         className="type-body h-11 w-13 rounded-md border border-line-default bg-surface-card text-center font-semibold text-heading"
       />
-      <IconButton icon="plus" label={`Add one ${label}`} variant="outline" onClick={() => set(value + 1)} disabled={disabled || value >= max} />
+      <IconButton
+        icon="plus"
+        label={`Add one ${label}`}
+        variant="outline"
+        onClick={() => set(value + 1)}
+        disabled={disabled || value >= max}
+      />
     </div>
   );
 }

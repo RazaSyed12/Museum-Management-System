@@ -17,7 +17,8 @@ export function Card({ interactive, as: Tag = 'div', children, className, ...res
     <Tag
       className={cn(
         'group/card block overflow-hidden rounded-lg border border-line-subtle bg-surface-card p-5 no-underline shadow-xs transition-surface',
-        interactive && 'cursor-pointer hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md',
+        interactive &&
+          'cursor-pointer hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md',
         className,
       )}
       {...rest}

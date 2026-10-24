@@ -21,10 +21,19 @@ export function ResetPasswordScreen({ email: initialEmail }: { email: string }) 
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) { setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`); return; }
-    if (password !== confirmPassword) { setError("Passwords don't match."); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     const result = auth.resetPassword(email, password);
-    if (!result.ok) { setError(result.error); return; }
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     setDone(true);
   }
 
@@ -40,21 +49,54 @@ export function ResetPasswordScreen({ email: initialEmail }: { email: string }) 
     >
       {done ? (
         <Alert tone="success" title="Password updated">
-          Your password has been changed. <Link href="/sign-in">Sign in</Link> with your new password.
+          Your password has been changed. <Link href="/sign-in">Sign in</Link> with your new
+          password.
         </Alert>
       ) : (
         <form className="grid gap-5" onSubmit={handleSubmit}>
-          {error && <Alert tone="danger" title="Couldn't reset your password">{error}</Alert>}
+          {error && (
+            <Alert tone="danger" title="Couldn't reset your password">
+              {error}
+            </Alert>
+          )}
           <Field label="Email address" htmlFor="rp-e" required>
-            <Input id="rp-e" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="rp-e"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Field>
-          <Field label="New password" htmlFor="rp-p" required hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}>
-            <Input id="rp-p" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Field
+            label="New password"
+            htmlFor="rp-p"
+            required
+            hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+          >
+            <Input
+              id="rp-p"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </Field>
           <Field label="Confirm new password" htmlFor="rp-p2" required>
-            <Input id="rp-p2" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <Input
+              id="rp-p2"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
           </Field>
-          <Button type="submit" size="lg" fullWidth>Update password</Button>
+          <Button type="submit" size="lg" fullWidth>
+            Update password
+          </Button>
         </form>
       )}
     </AuthLayout>

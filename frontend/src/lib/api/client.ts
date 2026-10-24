@@ -34,7 +34,10 @@ export function shouldMockDirectly(): boolean {
  *  resolve against and throws on a bare path, so it needs an absolute URL. */
 function apiUrl(path: string): string {
   if (typeof window !== 'undefined') return path;
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    'http://localhost:3000';
   return new URL(path, base).toString();
 }
 

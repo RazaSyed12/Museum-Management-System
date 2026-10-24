@@ -199,37 +199,77 @@
   --animate-shimmer: hm-shimmer 1.4s ease-in-out infinite;
 
   @keyframes hm-rise {
-    from { opacity: 0; transform: translateY(22px); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes hm-kenburns {
-    from { transform: scale(1.04) translate3d(0, 0, 0); }
-    to { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
+    from {
+      transform: scale(1.04) translate3d(0, 0, 0);
+    }
+    to {
+      transform: scale(1.16) translate3d(-1.5%, -1.5%, 0);
+    }
   }
   @keyframes hm-cue {
-    0%, 100% { transform: translateY(0); opacity: 0.55; }
-    50% { transform: translateY(7px); opacity: 1; }
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translateY(7px);
+      opacity: 1;
+    }
   }
   @keyframes hm-pulse {
-    0% { box-shadow: 0 0 0 0 rgb(160 190 120 / 0.55); }
-    70% { box-shadow: 0 0 0 9px rgb(160 190 120 / 0); }
-    100% { box-shadow: 0 0 0 0 rgb(160 190 120 / 0); }
+    0% {
+      box-shadow: 0 0 0 0 rgb(160 190 120 / 0.55);
+    }
+    70% {
+      box-shadow: 0 0 0 9px rgb(160 190 120 / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(160 190 120 / 0);
+    }
   }
   @keyframes hm-marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
   }
   @keyframes hm-rule {
-    from { transform: scaleX(0); }
-    to { transform: scaleX(1); }
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
   }
   @keyframes hm-sheen {
-    0% { transform: translateX(-120%) skewX(-18deg); }
-    60%, 100% { transform: translateX(320%) skewX(-18deg); }
+    0% {
+      transform: translateX(-120%) skewX(-18deg);
+    }
+    60%,
+    100% {
+      transform: translateX(320%) skewX(-18deg);
+    }
   }
   @keyframes hm-shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 }
 

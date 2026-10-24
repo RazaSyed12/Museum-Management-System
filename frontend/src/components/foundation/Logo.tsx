@@ -22,7 +22,15 @@ export interface LogoProps extends ImgHTMLAttributes<HTMLImageElement> {
   href?: string;
 }
 
-export function Logo({ variant = 'horizontal', height, assetBase = '/assets/', href, className, style, ...rest }: LogoProps) {
+export function Logo({
+  variant = 'horizontal',
+  height,
+  assetBase = '/assets/',
+  href,
+  className,
+  style,
+  ...rest
+}: LogoProps) {
   const h = height ?? (variant === 'primary' ? 140 : variant === 'mark' ? 40 : 44);
   const img = (
     // eslint-disable-next-line @next/next/no-img-element -- fixed brand asset, ported as-is from the design system
@@ -34,5 +42,11 @@ export function Logo({ variant = 'horizontal', height, assetBase = '/assets/', h
       {...rest}
     />
   );
-  return href ? <a href={href} className="inline-flex no-underline">{img}</a> : img;
+  return href ? (
+    <a href={href} className="inline-flex no-underline">
+      {img}
+    </a>
+  ) : (
+    img
+  );
 }

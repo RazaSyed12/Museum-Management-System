@@ -41,8 +41,20 @@ interface MockAccount {
 }
 
 const SEED_ACCOUNTS: MockAccount[] = [
-  { name: 'Amara Okafor', email: 'amara@example.com', password: 'password123', isMember: false, interests: ['Prehistory', 'Archaeology'] },
-  { name: 'Judith Clarke', email: 'judith@example.com', password: 'password123', isMember: true, interests: ['Medieval', 'Renaissance'] },
+  {
+    name: 'Amara Okafor',
+    email: 'amara@example.com',
+    password: 'password123',
+    isMember: false,
+    interests: ['Prehistory', 'Archaeology'],
+  },
+  {
+    name: 'Judith Clarke',
+    email: 'judith@example.com',
+    password: 'password123',
+    isMember: true,
+    interests: ['Medieval', 'Renaissance'],
+  },
 ];
 
 const SESSION_KEY = 'hm-session'; // sessionStorage: dies with the tab, like an unremembered session cookie would
@@ -114,7 +126,10 @@ function writeStoredSession(email: string, rememberMe: boolean) {
   try {
     window.sessionStorage.removeItem(SESSION_KEY);
     window.localStorage.removeItem(REMEMBER_KEY);
-    const session: StoredSession = { email, expiresAt: Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000 };
+    const session: StoredSession = {
+      email,
+      expiresAt: Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000,
+    };
     if (rememberMe) window.localStorage.setItem(REMEMBER_KEY, JSON.stringify(session));
     else window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch {
@@ -174,12 +189,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // (via upsertAccount) in the same step, so a change survives a reload
   // instead of reverting to whatever was last persisted.
   const value: AuthContextValue = {
-    user: account && { name: account.name, email: account.email, initials: initials(account.name), interests: account.interests },
+    user: account && {
+      name: account.name,
+      email: account.email,
+      initials: initials(account.name),
+      interests: account.interests,
+    },
     isMember: account?.isMember ?? false,
     ready,
     signIn(email, password, rememberMe) {
-      const match = readAccounts().find((a) => a.email.toLowerCase() === email.toLowerCase() && a.password === password);
-      if (!match) return { ok: false, error: "We couldn't sign you in. Check your email and password." };
+      const match = readAccounts().find(
+        (a) => a.email.toLowerCase() === email.toLowerCase() && a.password === password,
+      );
+      if (!match)
+        return { ok: false, error: "We couldn't sign you in. Check your email and password." };
       writeStoredSession(match.email, rememberMe);
       setAccount(match);
       return { ok: true };

@@ -32,9 +32,13 @@ export function ForgotPasswordScreen() {
     >
       {sent ? (
         <Alert tone="success" title="Check your email">
-          If an account exists for <strong>{email}</strong>, we&rsquo;ve sent a link to reset your password.
+          If an account exists for <strong>{email}</strong>, we&rsquo;ve sent a link to reset your
+          password.
           <div className="mt-4">
-            <Link href={`/reset-password?email=${encodeURIComponent(email)}`} className="type-body-sm">
+            <Link
+              href={`/reset-password?email=${encodeURIComponent(email)}`}
+              className="type-body-sm"
+            >
               Demo shortcut: open the reset link directly
             </Link>
           </div>
@@ -42,9 +46,18 @@ export function ForgotPasswordScreen() {
       ) : (
         <form className="grid gap-5" onSubmit={handleSubmit}>
           <Field label="Email address" htmlFor="fp-e" required>
-            <Input id="fp-e" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="fp-e"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Field>
-          <Button type="submit" size="lg" fullWidth>Send reset link</Button>
+          <Button type="submit" size="lg" fullWidth>
+            Send reset link
+          </Button>
         </form>
       )}
     </AuthLayout>

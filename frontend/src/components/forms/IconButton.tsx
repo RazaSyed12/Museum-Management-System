@@ -22,12 +22,26 @@ const SIZES: Record<Size, string> = { sm: 'size-9', md: 'size-11', lg: 'size-13'
 // drop it (a disabled control shouldn't react to the pointer).
 const VARIANTS: Record<Variant, { rest: string; hover: string }> = {
   ghost: { rest: 'border-transparent bg-transparent text-heading', hover: 'hover:bg-paper-100' },
-  outline: { rest: 'border-line-default bg-surface-card text-olive-700', hover: 'hover:bg-olive-50' },
-  solid: { rest: 'border-transparent bg-action-primary text-inverse', hover: 'hover:bg-action-primary-hover' },
+  outline: {
+    rest: 'border-line-default bg-surface-card text-olive-700',
+    hover: 'hover:bg-olive-50',
+  },
+  solid: {
+    rest: 'border-transparent bg-action-primary text-inverse',
+    hover: 'hover:bg-action-primary-hover',
+  },
   inverse: { rest: 'border-line-inverse bg-white/10 text-paper-50', hover: 'hover:bg-white/18' },
 };
 
-export function IconButton({ icon, label, variant = 'ghost', size = 'md', disabled, className, ...rest }: IconButtonProps) {
+export function IconButton({
+  icon,
+  label,
+  variant = 'ghost',
+  size = 'md',
+  disabled,
+  className,
+  ...rest
+}: IconButtonProps) {
   const v = VARIANTS[variant];
   return (
     <button
@@ -38,7 +52,9 @@ export function IconButton({ icon, label, variant = 'ghost', size = 'md', disabl
         'inline-grid place-items-center rounded-md border transition-control',
         SIZES[size],
         v.rest,
-        disabled ? 'cursor-not-allowed bg-action-disabled-bg text-action-disabled-text' : ['cursor-pointer', v.hover],
+        disabled
+          ? 'cursor-not-allowed bg-action-disabled-bg text-action-disabled-text'
+          : ['cursor-pointer', v.hover],
         className,
       )}
       {...rest}

@@ -15,13 +15,27 @@ export interface FieldProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-export function Field({ label, htmlFor, hint, error, required, optional, children, className, ...rest }: FieldProps) {
+export function Field({
+  label,
+  htmlFor,
+  hint,
+  error,
+  required,
+  optional,
+  children,
+  className,
+  ...rest
+}: FieldProps) {
   return (
     <div className={cn('grid gap-2', className)} {...rest}>
       {label && (
         <label htmlFor={htmlFor} className="type-label flex items-baseline gap-1.5 text-heading">
           {label}
-          {required && <span aria-hidden="true" className="text-danger-600">*</span>}
+          {required && (
+            <span aria-hidden="true" className="text-danger-600">
+              *
+            </span>
+          )}
           {optional && <span className="type-body-sm text-muted">Optional</span>}
         </label>
       )}
@@ -29,7 +43,8 @@ export function Field({ label, htmlFor, hint, error, required, optional, childre
       {hint && !error && <p className="type-body-sm text-muted">{hint}</p>}
       {error && (
         <p role="alert" className="type-body-sm flex items-center gap-1.5 text-danger-600">
-          <span aria-hidden="true">⚠</span>{error}
+          <span aria-hidden="true">⚠</span>
+          {error}
         </p>
       )}
     </div>

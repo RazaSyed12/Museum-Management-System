@@ -1,5 +1,11 @@
 import { apiFetch, apiFetchOptional, shouldMockDirectly } from './client';
-import { resolveCollections, resolveCollection, resolveCollectionItems, resolveCollectionItem, resolveCategories } from '@/mocks/resolve';
+import {
+  resolveCollections,
+  resolveCollection,
+  resolveCollectionItems,
+  resolveCollectionItem,
+  resolveCategories,
+} from '@/mocks/resolve';
 
 export type Tone = 'olive' | 'green' | 'sand' | 'stone';
 
@@ -57,9 +63,17 @@ function queryString(query: Record<string, string | number | string[] | undefine
   return s ? `?${s}` : '';
 }
 
-export async function listCollections(query: ListCollectionsQuery = {}): Promise<ListCollectionsResult> {
+export async function listCollections(
+  query: ListCollectionsQuery = {},
+): Promise<ListCollectionsResult> {
   if (shouldMockDirectly()) return resolveCollections(query);
-  const qs = queryString({ q: query.q, category: query.category, sort: query.sort, page: query.page, pageSize: query.pageSize });
+  const qs = queryString({
+    q: query.q,
+    category: query.category,
+    sort: query.sort,
+    page: query.page,
+    pageSize: query.pageSize,
+  });
   return apiFetch<ListCollectionsResult>(`/api/collections${qs}`);
 }
 
@@ -73,7 +87,10 @@ export async function listCollectionItems(collectionId: string): Promise<Item[]>
   return (await apiFetchOptional<Item[]>(`/api/collections/${collectionId}/items`)) ?? [];
 }
 
-export async function getCollectionItem(collectionId: string, itemId: string): Promise<Item | undefined> {
+export async function getCollectionItem(
+  collectionId: string,
+  itemId: string,
+): Promise<Item | undefined> {
   if (shouldMockDirectly()) return resolveCollectionItem(collectionId, itemId);
   return apiFetchOptional<Item>(`/api/collections/${collectionId}/items/${itemId}`);
 }

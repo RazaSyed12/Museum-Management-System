@@ -17,14 +17,39 @@ export interface Recommendation {
 }
 
 export const recommendedForYou: Recommendation[] = [
-  { title: 'Ice Age Britain', kind: 'Collection', reason: 'Because you explored Prehistory', tone: 'olive' },
-  { title: 'Age of Dinosaurs', kind: 'Collection', reason: 'Similar to the fossils you viewed', tone: 'green' },
-  { title: 'Curator talk: Reading the Lanthorn Hoard', kind: 'Event', reason: 'Archaeology, near you this month', tone: 'stone' },
-  { title: 'Coin & Currency', kind: 'Collection', reason: 'Often viewed with The Lanthorn Hoard', tone: 'sand' },
+  {
+    title: 'Ice Age Britain',
+    kind: 'Collection',
+    reason: 'Because you explored Prehistory',
+    tone: 'olive',
+  },
+  {
+    title: 'Age of Dinosaurs',
+    kind: 'Collection',
+    reason: 'Similar to the fossils you viewed',
+    tone: 'green',
+  },
+  {
+    title: 'Curator talk: Reading the Lanthorn Hoard',
+    kind: 'Event',
+    reason: 'Archaeology, near you this month',
+    tone: 'stone',
+  },
+  {
+    title: 'Coin & Currency',
+    kind: 'Collection',
+    reason: 'Often viewed with The Lanthorn Hoard',
+    tone: 'sand',
+  },
 ];
 
 export const popularRightNow: Recommendation[] = [
-  { title: 'The Lanthorn Hoard', kind: 'Collection', reason: 'Most visited this month', tone: 'stone' },
+  {
+    title: 'The Lanthorn Hoard',
+    kind: 'Collection',
+    reason: 'Most visited this month',
+    tone: 'stone',
+  },
   { title: 'Age of Dinosaurs', kind: 'Collection', reason: 'Popular with families', tone: 'green' },
   { title: 'Twilight at the Museum', kind: 'Event', reason: 'Selling quickly', tone: 'olive' },
   { title: 'Medieval Armoury', kind: 'Collection', reason: 'Trending this week', tone: 'sand' },
@@ -47,4 +72,13 @@ export function hrefForRecommendation(r: Recommendation): string | undefined {
  *  kept separate because the two pickers serve different purposes. Static
  *  copy, not staff-managed, so it doesn't go through lib/api/collections'
  *  listCategories(). */
-export const interests = ['Dinosaurs', 'Prehistory', 'Ancient History', 'Archaeology', 'Medieval', 'Renaissance', 'Art', 'Natural History'];
+export const interests = [
+  'Dinosaurs',
+  'Prehistory',
+  'Ancient History',
+  'Archaeology',
+  'Medieval',
+  'Renaissance',
+  'Art',
+  'Natural History',
+];

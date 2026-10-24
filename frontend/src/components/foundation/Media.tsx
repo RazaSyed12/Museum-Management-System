@@ -25,7 +25,18 @@ export interface MediaProps extends HTMLAttributes<HTMLDivElement> {
   scrim?: boolean;
 }
 
-export function Media({ src, alt = '', ratio = '4 / 3', tone = 'olive', caption, scrim = false, children, className, style, ...rest }: MediaProps) {
+export function Media({
+  src,
+  alt = '',
+  ratio = '4 / 3',
+  tone = 'olive',
+  caption,
+  scrim = false,
+  children,
+  className,
+  style,
+  ...rest
+}: MediaProps) {
   return (
     <div
       className={cn(

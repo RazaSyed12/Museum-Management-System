@@ -204,6 +204,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: >-
+            The account was suspended or deleted since the user signed in
+            (code account_inactive). No new session is issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/sign-out:
     post:
       summary: End the current session
@@ -350,6 +358,57 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a category
+      description: Staff only.
+      operationId: createCategory
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Validation failed, or the parent category does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A category with that name already exists
           content:
             application/json:
               schema:
@@ -803,7 +862,8 @@ paths:
       description: >-
         Staff only. Changes only the fields sent. category_ids and
         collection_ids, if sent, replace the whole list (category_ids still
-        needs at least one).
+        needs at least one). Lowering the capacity below the tickets already
+        allocated to the event is refused (400).
       operationId: updateEvent
       tags: [Events]
       security:
@@ -857,7 +917,10 @@ paths:
       summary: Cancel an event
       description: >-
         Staff only. Sets status to cancelled; the event stays visible to the
-        public, marked cancelled. Repeating it is harmless.
+        public, marked cancelled. Repeating it is harmless. Every pending or
+        confirmed booking for the event is cancelled at the same time, the seats
+        are released and paid bookings are refunded (the same happens if the
+        status is changed to cancelled with PATCH).
       operationId: cancelEvent
       tags: [Events]
       security:
@@ -898,6 +961,10 @@ paths:
         the list is topped up with other items. Guests and users without
         picks get the same list without the personal part. Only scheduled,
         not-yet-ended events and published collections are recommended.
+        Ranking: each interest pick an item matches counts for 10 points; a
+        signed-in user's history (last 90 days) adds at most 9 more, so a
+        pick always beats behaviour; ties go to the more popular item.
+        Guests are never tracked, but still see the popular items.
       operationId: getRecommendations
       tags: [Recommendations]
       security:
@@ -921,6 +988,3282 @@ paths:
                 $ref: '#/components/schemas/RecommendationsResponse'
         '400':
           description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/change-password:
+    post:
+      summary: Change the signed-in user's password
+      description: Needs the current password. On success every OTHER device is signed out; this one stays signed in.
+      operationId: changePassword
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: validation_error, same_password (new equals current), invalid_current_password, or password_change_failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/resend-confirmation:
+    post:
+      summary: Resend the sign-up confirmation email
+      description: Always answers 200 with the same message, whether or not the address has an account. Email confirmation is off at the moment, so until the museum turns it on this sends nothing.
+      operationId: resendConfirmation
+      tags:
+        - Account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendConfirmationRequest'
+      responses:
+        '200':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests; wait a minute
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/profile:
+    patch:
+      summary: Change the signed-in user's name
+      description: Only full_name can be changed here. Role and status cannot be sent.
+      operationId: updateMyProfile
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: The updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /categories/{id}:
+    get:
+      summary: Get one category
+      description: Public for active categories. An inactive one looks like a missing one (404) unless the caller is staff.
+      operationId: getCategory
+      tags:
+        - Categories
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The category's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such category, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit or retire a category
+      description: 'Staff only. Only the fields that are sent are changed. To retire a category send {"active": false}: it disappears from the public site but stays in the database.'
+      operationId: updateCategory
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The category's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: The updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Validation failed, unknown parent, or the change would put the category under itself
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A category with that name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /locations:
+    get:
+      summary: List locations
+      description: Public. Ordered by name.
+      operationId: listLocations
+      tags:
+        - Locations
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Only locations whose name contains this text (case-insensitive)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of locations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a location
+      description: Staff only.
+      operationId: createLocation
+      tags:
+        - Locations
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
+      responses:
+        '201':
+          description: Location created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /locations/{id}:
+    get:
+      summary: Get one location
+      description: Public.
+      operationId: getLocation
+      tags:
+        - Locations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The location's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '404':
+          description: No such location (an invalid id also answers 404)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit a location
+      description: Staff only. Only the fields that are sent are changed; null clears an optional field.
+      operationId: updateLocation
+      tags:
+        - Locations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The location's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLocationRequest'
+      responses:
+        '200':
+          description: The updated location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a location
+      description: Staff only. Refused while an event or collection still uses it.
+      operationId: deleteLocation
+      tags:
+        - Locations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The location's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Still used by an event or collection (code conflict)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /collections/{collectionId}/items:
+    get:
+      summary: List the items of a collection
+      description: Public for published collections. Staff (with a token) can also see items of draft and archived collections; to everyone else those look like a missing collection.
+      operationId: listCollectionItems
+      tags:
+        - Collection items
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          description: The collection's id
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of items, oldest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Add an item to a collection
+      description: Staff only.
+      operationId: createCollectionItem
+      tags:
+        - Collection items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          description: The collection's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+        '400':
+          description: Validation failed, or the location does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /items/{id}:
+    get:
+      summary: Get one item
+      description: Public if the item's collection is published; staff can see all.
+      operationId: getCollectionItem
+      tags:
+        - Collection items
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The item's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit an item
+      description: Staff only. Only the fields that are sent are changed; null clears an optional field.
+      operationId: updateCollectionItem
+      tags:
+        - Collection items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The item's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      responses:
+        '200':
+          description: The updated item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+        '400':
+          description: Validation failed, or the location does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete an item
+      description: Staff only. Nothing else depends on an item, so it is removed outright.
+      operationId: deleteCollectionItem
+      tags:
+        - Collection items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The item's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /media:
+    post:
+      summary: Upload an image
+      description: Staff only. Send the image file itself as the request body, with its type as the Content-Type (JPEG, PNG, WebP or GIF, at most 5 MB). The first bytes are checked, so a text file labelled as an image is refused.
+      operationId: uploadMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: alt_text
+          in: query
+          schema:
+            type: string
+            maxLength: 300
+          description: A short description of the image
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+          image/gif:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Image stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResponse'
+        '400':
+          description: Missing body, unsupported type, or the file is not a valid image of that type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: The image is larger than 5 MB (code payload_too_large)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List the media library
+      description: Staff only. Newest first.
+      operationId: listMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /media/{id}:
+    patch:
+      summary: Change an image's description
+      description: Staff only. Only the description (alt text) can change.
+      operationId: updateMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The image's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMediaRequest'
+      responses:
+        '200':
+          description: The updated image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete an image
+      description: Staff only. Removes the file and its record; it also disappears from every collection and event it was attached to.
+      operationId: deleteMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The image's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /collections/{id}/media:
+    get:
+      summary: List the images of a collection
+      description: Public for published collections; a hidden collection looks like a missing one. In display order (first = main image).
+      operationId: listCollectionMedia
+      tags:
+        - Media
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The collection's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Set the images of a collection
+      description: Staff only. The list REPLACES the attached images, in the order given. An empty list removes them all.
+      operationId: replaceCollectionMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The collection's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMediaRequest'
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '400':
+          description: Validation failed, or one of the images does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}/media:
+    get:
+      summary: List the images of an event
+      description: Public for non-draft events; a draft looks like a missing one. In display order (first = main image).
+      operationId: listEventMedia
+      tags:
+        - Media
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The event's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Set the images of an event
+      description: Staff only. The list REPLACES the attached images, in the order given. An empty list removes them all.
+      operationId: replaceEventMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The event's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMediaRequest'
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '400':
+          description: Validation failed, or one of the images does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}/allocations:
+    get:
+      summary: List the ticket types of an event
+      description: Public for non-draft events (a draft looks like a missing one). Each allocation is a ticket type, with how many tickets are still available. The sum of all allocations can never exceed the event capacity.
+      operationId: listAllocations
+      tags:
+        - Ticket allocations
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The event's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The allocations and capacity summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationListResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Add a ticket type to an event
+      description: Staff only. The allocations of an event may not add up to more than its capacity.
+      operationId: createAllocation
+      tags:
+        - Ticket allocations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The event's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAllocationRequest'
+      responses:
+        '201':
+          description: Allocation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: capacity_exceeded (adds up to more than the event capacity) or conflict (the name is already used for this event)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /allocations/{id}:
+    patch:
+      summary: Edit a ticket type
+      description: Staff only. Only the fields that are sent are changed. The quantity cannot go below the tickets already reserved.
+      operationId: updateAllocation
+      tags:
+        - Ticket allocations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The allocation's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAllocationRequest'
+      responses:
+        '200':
+          description: The updated allocation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such allocation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: below_reserved, capacity_exceeded or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a ticket type
+      description: Staff only. Refused while tickets are reserved or have already been issued from it.
+      operationId: deleteAllocation
+      tags:
+        - Ticket allocations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The allocation's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such allocation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Tickets are reserved or already issued (code conflict)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership/plans:
+    get:
+      summary: List membership plans
+      description: Public. Visitors see active plans; staff also see inactive ones. Cheapest first.
+      operationId: listMembershipPlans
+      tags:
+        - Membership
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The plans with their benefits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanListResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a membership plan
+      description: Staff only. Can include the plan's benefits. A discount_percent benefit must have a number from 0 to 100 as its value; bookings use it as the member discount.
+      operationId: createMembershipPlan
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      responses:
+        '201':
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership/plans/{id}:
+    get:
+      summary: Get one membership plan
+      description: Public (an inactive plan looks like a missing one to visitors).
+      operationId: getMembershipPlan
+      tags:
+        - Membership
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The plan's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such plan, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit a membership plan
+      description: 'Staff only. {"active": false} stops new sales but keeps existing members'' benefits.'
+      operationId: updateMembershipPlan
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The plan's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlanRequest'
+      responses:
+        '200':
+          description: The updated plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership/plans/{id}/benefits:
+    post:
+      summary: Add a benefit to a plan
+      description: Staff only.
+      operationId: createPlanBenefit
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The plan's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBenefitRequest'
+      responses:
+        '201':
+          description: Benefit created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BenefitResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership/benefits/{id}:
+    patch:
+      summary: Edit a plan benefit
+      description: Staff only.
+      operationId: updatePlanBenefit
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The benefit's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBenefitRequest'
+      responses:
+        '200':
+          description: The updated benefit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BenefitResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such benefit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a plan benefit
+      description: Staff only.
+      operationId: deletePlanBenefit
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The benefit's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such benefit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/membership:
+    get:
+      summary: Get the signed-in user's membership
+      description: 'The current active, unexpired membership with its plan, or {"is_member": false, "membership": null}. A purchase that is not paid yet does not count.'
+      operationId: getMyMembership
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The membership status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentMembershipResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /membership/purchase:
+    post:
+      summary: Buy a membership plan
+      description: 'Starts buying a plan. The membership is created as pending and only becomes active when its payment is settled. With the simulated provider the payment is confirmed straight away (add {"confirm": false} to stop after starting it and finish later with POST /payments/{id}/confirm, and {"simulate": "card_declined"} to simulate a failure). With a real provider the reply carries next_action telling the customer where to go. Safe to repeat: an unfinished purchase of the same plan is reused. A free plan (price 0) is active at once and answers 201.'
+      operationId: purchaseMembership
+      tags:
+        - Membership
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseMembershipRequest'
+      responses:
+        '200':
+          description: Paid; the membership is active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOutcomeResponse'
+        '201':
+          description: 'A free plan: the membership is active at once'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOutcomeResponse'
+        '202':
+          description: The payment was started but is not settled yet; follow next_action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentPendingResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: The payment failed (code card_declined, insufficient_funds, provider_error or payment_failed). The booking or membership stays pending and the customer can try again until the 15 minutes run out.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '403':
+          description: forbidden (account not active) or simulation_disabled (simulated payments are switched off)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such plan, or it is not on sale
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: already_member (an active membership exists) or membership_closed (the 15-minute purchase window ran out before the payment arrived, so the payment is being refunded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: 'provider_unavailable: the payment provider could not be reached; try again'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/quote:
+    post:
+      summary: Price a booking
+      description: Shows the full price breakdown (member discount, 10% tax, 2% service fee). Nothing is reserved.
+      operationId: quoteBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '200':
+          description: The quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          description: Validation failed (quantity must be 1 to 10)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: members_only (the ticket type is for members) or forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such ticket type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: event_not_bookable or sold_out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings:
+    post:
+      summary: Book tickets
+      description: Reserves the seats (1 to 10 tickets of one ticket type). A free event is confirmed at once. Otherwise the booking is pending and holds the seats for 15 minutes; pay it with POST /bookings/{id}/pay or the seats are released.
+      operationId: createBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Validation failed (quantity must be 1 to 10)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: members_only (the ticket type is for members) or forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such ticket type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: event_not_bookable (not scheduled, or already started) or sold_out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/{id}:
+    get:
+      summary: Get one booking
+      description: The owner or staff. Includes the tickets and every payment attempt. Expired holds are released first, so the status is current.
+      operationId: getBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The booking's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such booking, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/{id}/cancel:
+    post:
+      summary: Cancel a booking
+      description: The owner (or staff). Frees the seats and refunds a paid booking. A confirmed booking cannot be cancelled by its owner once the event has started. Repeating it is harmless.
+      operationId: cancelBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The booking's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The cancelled booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such booking, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'cannot_cancel: the event has already started'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/bookings:
+    get:
+      summary: List the signed-in user's bookings
+      description: Newest first.
+      operationId: listMyBookings
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - confirmed
+              - cancelled
+              - expired
+          description: Only bookings with this status
+        - name: event_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Only bookings for this event
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/bookings:
+    get:
+      summary: List all bookings
+      description: Staff only. Newest first.
+      operationId: listAllBookings
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - confirmed
+              - cancelled
+              - expired
+          description: Only bookings with this status
+        - name: event_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Only bookings for this event
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Only this user's bookings
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /events/{id}/bookings:
+    get:
+      summary: List the bookings of an event
+      description: Staff only. Newest first.
+      operationId: listEventBookings
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The event's id
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - confirmed
+              - cancelled
+              - expired
+          description: Only bookings with this status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/{id}/pay:
+    post:
+      summary: Pay for a booking
+      description: 'Starts a payment for the caller''s pending booking. With the simulated provider the payment is confirmed straight away (add {"confirm": false} to stop after starting it and finish later with POST /payments/{id}/confirm; add {"simulate": "card_declined"}, "insufficient_funds" or "provider_error" to simulate a failure). With a real provider such as PayPal the reply carries next_action (for example a redirect to the approval page) and our server settles the payment when the provider answers. Safe to repeat: an unfinished payment attempt is reused. A failed attempt keeps the booking pending, so the customer can retry until the 15-minute hold ends.'
+      operationId: payBooking
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The booking's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayRequest'
+      responses:
+        '200':
+          description: Paid; the booking is confirmed and the tickets have codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOutcomeResponse'
+        '202':
+          description: The payment was started but is not settled yet; follow next_action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentPendingResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: The payment failed (code card_declined, insufficient_funds, provider_error or payment_failed). The booking or membership stays pending and the customer can try again until the 15 minutes run out.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '403':
+          description: forbidden (account not active) or simulation_disabled (simulated payments are switched off)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such booking, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: already_paid; booking_closed (the booking was cancelled or expired, or the hold ran out before the payment arrived, in which case the payment is being refunded); or hold_expired (the hold ran out, the booking was released)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: 'provider_unavailable: the payment provider could not be reached; try again'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/{id}/confirm:
+    post:
+      summary: Finish a payment
+      description: 'The owner. Finishes a payment that was started with {"confirm": false}, or (with a real provider) after the customer comes back from the provider. Confirming a payment that is already settled changes nothing and answers 200 with already_settled: true. If the money arrives after the booking or membership window has closed, the payment is refunded instead.'
+      operationId: confirmPayment
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The payment's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmPaymentRequest'
+      responses:
+        '200':
+          description: Paid, or already settled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOutcomeResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: The payment failed (code card_declined, insufficient_funds, provider_error or payment_failed). The booking or membership stays pending and the customer can try again until the 15 minutes run out.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such payment, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'booking_closed or membership_closed: the window ran out before the payment arrived, so the payment is being refunded'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailureResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: 'provider_unavailable: the payment provider could not be reached; try again'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/{id}:
+    get:
+      summary: Get one payment
+      description: The owner or staff.
+      operationId: getPayment
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The payment's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such payment, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/payments:
+    get:
+      summary: List the signed-in user's payments
+      description: Ticket and membership payments, every attempt, newest first.
+      operationId: listMyPayments
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPaymentListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/payments:
+    get:
+      summary: List all payments
+      description: Staff only. Newest first.
+      operationId: listAllPayments
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - completed
+              - failed
+              - refund_pending
+              - refunded
+          description: Only payments with this status
+        - name: provider
+          in: query
+          schema:
+            type: string
+            maxLength: 30
+          description: Only payments of this provider, e.g. simulated or paypal
+        - name: booking_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Only payments of this booking
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPaymentListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/interactions:
+    post:
+      summary: Record what the user viewed, browsed or searched
+      description: 'Feeds the recommendations. Only signed-in users are recorded; guests are never tracked. The same thing recorded within 10 minutes is not recorded twice (answers 200 with recorded: false).'
+      operationId: logInteraction
+      tags:
+        - History
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogInteractionRequest'
+      responses:
+        '200':
+          description: 'Skipped: the same thing was recorded in the last 10 minutes'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordedResponse'
+        '201':
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordedResponse'
+        '400':
+          description: Validation failed (each type takes exactly its own fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: That event, collection, item or category does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List the user's history
+      description: The caller's own history, newest first.
+      operationId: listMyInteractions
+      tags:
+        - History
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Clear the user's history
+      description: Removes the caller's browsing history. Bookings are separate records and are not touched.
+      operationId: clearMyInteractions
+      tags:
+        - History
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: How many rows were removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedCountResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/users:
+    get:
+      summary: List users
+      description: Staff only. Newest first.
+      operationId: listUsers
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Name or email contains this text
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum:
+              - registered
+              - member
+              - staff
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - suspended
+              - deleted
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/users/{id}:
+    get:
+      summary: Get one user
+      description: Staff only. The user with their current membership and 10 most recent bookings.
+      operationId: getUser
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Change a user's role or status
+      description: Staff only. Send role, status or both. Suspending a user ends all of their sessions. Staff cannot demote or suspend themselves.
+      operationId: updateUser
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
+      responses:
+        '200':
+          description: The updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: cannot_change_self
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/stats:
+    get:
+      summary: Dashboard numbers
+      description: Staff only. Users, events, bookings, revenue and the top 5 events.
+      operationId: getStats
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStatsResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /newsletter/subscribe:
+    post:
+      summary: Subscribe to the newsletter
+      description: Public (guests and signed-in users). A signed-in user subscribing their own account email gets the subscription linked to their account. No confirmation email is sent. Always answers the same way, so it cannot be used to discover who is subscribed.
+      operationId: subscribeNewsletter
+      tags:
+        - Newsletter
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '200':
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Enter a valid email address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/newsletter:
+    get:
+      summary: Newsletter status of the signed-in user
+      operationId: getMyNewsletter
+      tags:
+        - Newsletter
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The account email and whether it is subscribed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsletterStatus'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Unsubscribe the signed-in user
+      description: Unsubscribes the caller's own address.
+      operationId: unsubscribeNewsletter
+      tags:
+        - Newsletter
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unsubscribed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsubscribedResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is suspended or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/newsletter:
+    get:
+      summary: List newsletter subscribers
+      description: Staff only. Newest first.
+      operationId: listSubscribers
+      tags:
+        - Newsletter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Email contains this text
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - subscribed
+              - unsubscribed
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: How many rows to skip
+      responses:
+        '200':
+          description: A page of subscribers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsletterListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search:
+    get:
+      summary: Search the catalogue
+      description: Public. Events, collections, collection items, locations and categories whose name or description contain the text (up to limit of each kind, best matches first). Guests never see drafts. A signed-in user's search is also saved to their history, which feeds the recommendations.
+      operationId: searchCatalogue
+      tags:
+        - Search
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The text to search for
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+          description: Maximum results of each kind
+      responses:
+        '200':
+          description: Matches grouped by kind
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Search text must be 2 to 100 characters
           content:
             application/json:
               schema:
@@ -1209,10 +4552,12 @@ components:
       properties:
         source:
           type: string
-          enum: [interest, upcoming, featured, other]
+          enum: [interest, history, popular, upcoming, featured, other]
           description: >-
-            interest = matches the user's picks; upcoming = soonest events;
-            featured = featured collection; other = remaining collections
+            interest = matches the user's picks; history = matches what the user
+            viewed, browsed, searched or booked recently; popular = booked most
+            (events) or viewed most (collections), shown to everyone; upcoming =
+            soonest events; featured = featured collection; other = remaining collections
         reasons:
           type: array
           description: >-
@@ -1546,3 +4891,1930 @@ components:
                 - forbidden
                 - not_found
                 - server_error
+                - invalid_category
+                - conflict
+                - capacity_exceeded
+                - below_reserved
+                - payload_too_large
+                - same_password
+                - invalid_current_password
+                - password_change_failed
+                - cannot_change_self
+                - event_not_bookable
+                - sold_out
+                - members_only
+                - cannot_cancel
+                - already_paid
+                - booking_closed
+                - hold_expired
+                - payment_closed
+                - already_member
+                - membership_closed
+                - simulation_disabled
+                - payment_failed
+                - card_declined
+                - insufficient_funds
+                - provider_error
+                - provider_unavailable
+    Location:
+      type: object
+      required:
+        - location_id
+        - name
+        - address
+        - city
+        - country
+        - capacity
+      properties:
+        location_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        capacity:
+          type: integer
+          description: How many people the venue holds
+          nullable: true
+    LocationResponse:
+      type: object
+      required:
+        - location
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+    LocationListResponse:
+      type: object
+      required:
+        - locations
+        - total
+        - limit
+        - offset
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        total:
+          type: integer
+          description: How many locations match, ignoring limit and offset
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Burra Mine Museum
+        address:
+          type: string
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country:
+          type: string
+          minLength: 1
+          maxLength: 100
+        capacity:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+      additionalProperties: false
+    UpdateLocationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        address:
+          type: string
+          maxLength: 300
+          nullable: true
+        city:
+          type: string
+          maxLength: 100
+          nullable: true
+        country:
+          type: string
+          maxLength: 100
+          nullable: true
+        capacity:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+          nullable: true
+      minProperties: 1
+      description: Send only the fields to change. null clears an optional field.
+    CategoryResponse:
+      type: object
+      required:
+        - category
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+    CreateCategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Geology
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        parent_category_id:
+          type: string
+          format: uuid
+          nullable: true
+        active:
+          type: boolean
+          default: true
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        parent_category_id:
+          type: string
+          format: uuid
+          description: Cannot be the category itself or one of its own sub-categories
+          nullable: true
+        active:
+          type: boolean
+          description: 'false retires the category: hidden from the public site but kept in the database'
+      minProperties: 1
+      description: Send only the fields to change.
+    CollectionItem:
+      type: object
+      required:
+        - item_id
+        - collection_id
+        - name
+        - description
+        - historical_period
+        - year_label
+        - origin
+        - creator
+        - location_id
+        - created_at
+      properties:
+        item_id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        historical_period:
+          type: string
+          nullable: true
+        year_label:
+          type: string
+          nullable: true
+        origin:
+          type: string
+          nullable: true
+        creator:
+          type: string
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    ItemResponse:
+      type: object
+      required:
+        - item
+      properties:
+        item:
+          $ref: '#/components/schemas/CollectionItem'
+    ItemListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - limit
+        - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionItem'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateItemRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: 1861 gold nugget
+        description:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        historical_period:
+          type: string
+          minLength: 1
+          maxLength: 150
+        year_label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        origin:
+          type: string
+          minLength: 1
+          maxLength: 150
+        creator:
+          type: string
+          minLength: 1
+          maxLength: 150
+        location_id:
+          type: string
+          format: uuid
+      additionalProperties: false
+    UpdateItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        historical_period:
+          type: string
+          maxLength: 150
+          nullable: true
+        year_label:
+          type: string
+          maxLength: 100
+          nullable: true
+        origin:
+          type: string
+          maxLength: 150
+          nullable: true
+        creator:
+          type: string
+          maxLength: 150
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+      minProperties: 1
+      description: Send only the fields to change. null clears an optional field.
+    Media:
+      type: object
+      required:
+        - media_id
+        - url
+        - media_type
+        - alt_text
+        - created_at
+      properties:
+        media_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+          description: Public address of the image
+        media_type:
+          type: string
+          example: image/png
+        alt_text:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    MediaResponse:
+      type: object
+      required:
+        - media
+      properties:
+        media:
+          $ref: '#/components/schemas/Media'
+    MediaListResponse:
+      type: object
+      required:
+        - media
+        - total
+        - limit
+        - offset
+      properties:
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    UpdateMediaRequest:
+      type: object
+      required:
+        - alt_text
+      properties:
+        alt_text:
+          type: string
+          maxLength: 300
+          nullable: true
+      additionalProperties: false
+    AttachedMedia:
+      type: object
+      required:
+        - media_id
+        - url
+        - media_type
+        - alt_text
+        - sort_order
+      properties:
+        media_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        media_type:
+          type: string
+        alt_text:
+          type: string
+          nullable: true
+        sort_order:
+          type: integer
+          description: 0 is the main image
+    AttachedMediaResponse:
+      type: object
+      required:
+        - media
+      properties:
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachedMedia'
+    ReplaceMediaRequest:
+      type: object
+      required:
+        - media_ids
+      properties:
+        media_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+          description: Replaces the attached images, in this order (first = main image). An empty list removes them all.
+    Allocation:
+      type: object
+      required:
+        - allocation_id
+        - event_id
+        - allocation_name
+        - membership_required
+        - quantity
+        - reserved_quantity
+        - available
+      properties:
+        allocation_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        allocation_name:
+          type: string
+          example: General
+        membership_required:
+          type: boolean
+          description: true = only active members can book this ticket type
+        quantity:
+          type: integer
+          description: Tickets in this allocation
+        reserved_quantity:
+          type: integer
+          description: Tickets currently held (unpaid) or sold
+        available:
+          type: integer
+          description: quantity minus reserved_quantity
+    AllocationResponse:
+      type: object
+      required:
+        - allocation
+      properties:
+        allocation:
+          $ref: '#/components/schemas/Allocation'
+    AllocationListResponse:
+      type: object
+      required:
+        - allocations
+        - capacity
+        - allocated_total
+        - unallocated
+      properties:
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Allocation'
+        capacity:
+          type: integer
+          description: The event's capacity
+        allocated_total:
+          type: integer
+          description: Sum of all allocation quantities
+        unallocated:
+          type: integer
+          description: capacity minus allocated_total
+    CreateAllocationRequest:
+      type: object
+      required:
+        - allocation_name
+        - quantity
+      properties:
+        allocation_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Members
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 1000000
+        membership_required:
+          type: boolean
+          default: false
+    UpdateAllocationRequest:
+      type: object
+      properties:
+        allocation_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        quantity:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        membership_required:
+          type: boolean
+      minProperties: 1
+      description: Send only the fields to change.
+    MembershipBenefit:
+      type: object
+      required:
+        - benefit_id
+        - benefit_type
+        - benefit_value
+        - configuration
+      properties:
+        benefit_id:
+          type: string
+          format: uuid
+        benefit_type:
+          type: string
+          example: discount_percent
+        benefit_value:
+          type: string
+          example: '10'
+          nullable: true
+        configuration:
+          type: object
+          nullable: true
+          additionalProperties: true
+    MembershipPlan:
+      type: object
+      required:
+        - plan_id
+        - name
+        - description
+        - price
+        - duration_months
+        - active
+        - benefits
+      properties:
+        plan_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          description: 0 = a free plan
+        duration_months:
+          type: integer
+        active:
+          type: boolean
+          description: false = no longer on sale; existing members keep their benefits
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipBenefit'
+    PlanResponse:
+      type: object
+      required:
+        - plan
+      properties:
+        plan:
+          $ref: '#/components/schemas/MembershipPlan'
+    PlanListResponse:
+      type: object
+      required:
+        - plans
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipPlan'
+    CreateBenefitRequest:
+      type: object
+      required:
+        - benefit_type
+      properties:
+        benefit_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: discount_percent
+          description: 'discount_percent is the one bookings use: its value must be a number from 0 to 100'
+        benefit_value:
+          type: string
+          maxLength: 100
+          example: '10'
+          nullable: true
+        configuration:
+          type: object
+          nullable: true
+          additionalProperties: true
+    UpdateBenefitRequest:
+      type: object
+      properties:
+        benefit_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+        benefit_value:
+          type: string
+          maxLength: 100
+          nullable: true
+        configuration:
+          type: object
+          nullable: true
+          additionalProperties: true
+      minProperties: 1
+    BenefitResponse:
+      type: object
+      required:
+        - benefit
+      properties:
+        benefit:
+          $ref: '#/components/schemas/MembershipBenefit'
+    CreatePlanRequest:
+      type: object
+      required:
+        - name
+        - price
+        - duration_months
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Friends of the Museum
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        price:
+          type: number
+          minimum: 0
+          maximum: 100000
+          description: At most 2 decimal places
+        duration_months:
+          type: integer
+          minimum: 1
+          maximum: 120
+        active:
+          type: boolean
+          default: true
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateBenefitRequest'
+          maxItems: 20
+          default: []
+    UpdatePlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        price:
+          type: number
+          minimum: 0
+          maximum: 100000
+        duration_months:
+          type: integer
+          minimum: 1
+          maximum: 120
+        active:
+          type: boolean
+      minProperties: 1
+      description: Send only the fields to change.
+    CurrentMembershipResponse:
+      type: object
+      required:
+        - is_member
+        - membership
+      properties:
+        is_member:
+          type: boolean
+        membership:
+          type: object
+          nullable: true
+          required:
+            - membership_id
+            - status
+            - starts_at
+            - ends_at
+            - plan
+          properties:
+            membership_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - active
+            starts_at:
+              type: string
+              format: date-time
+            ends_at:
+              type: string
+              format: date-time
+              nullable: true
+            plan:
+              $ref: '#/components/schemas/MembershipPlan'
+    Membership:
+      type: object
+      required:
+        - membership_id
+        - user_id
+        - plan_id
+        - status
+        - starts_at
+        - ends_at
+        - plan
+        - expires_at
+      properties:
+        membership_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - expired
+            - cancelled
+          description: pending = bought but not paid yet; only active memberships give benefits
+        starts_at:
+          type: string
+          format: date-time
+          description: 'For a pending membership: when the purchase was started. Set to the payment time once active.'
+        ends_at:
+          type: string
+          format: date-time
+          description: null until the payment is settled
+          nullable: true
+        plan:
+          type: object
+          required:
+            - plan_id
+            - name
+            - price
+            - duration_months
+          properties:
+            plan_id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            price:
+              type: number
+            duration_months:
+              type: integer
+        expires_at:
+          type: string
+          format: date-time
+          description: 'While pending: when the 15-minute purchase window ends. null otherwise.'
+          nullable: true
+    Ticket:
+      type: object
+      required:
+        - ticket_id
+        - allocation_id
+        - ticket_status
+        - price
+        - ticket_code
+      properties:
+        ticket_id:
+          type: string
+          format: uuid
+        allocation_id:
+          type: string
+          format: uuid
+        ticket_status:
+          type: string
+          enum:
+            - held
+            - valid
+            - cancelled
+          description: held = reserved while unpaid; valid = paid and usable
+        price:
+          type: number
+        ticket_code:
+          type: string
+          example: MUS-94E8E372C2
+          description: Set once the booking is paid
+          nullable: true
+      additionalProperties: true
+    Payment:
+      type: object
+      required:
+        - payment_id
+        - booking_id
+        - membership_id
+        - provider
+        - method
+        - payment_status
+        - amount
+        - currency
+        - transaction_reference
+        - failure_code
+        - failure_message
+        - paid_at
+        - refunded_at
+        - created_at
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        booking_id:
+          type: string
+          format: uuid
+          nullable: true
+        membership_id:
+          type: string
+          format: uuid
+          nullable: true
+        provider:
+          type: string
+          example: simulated
+          description: simulated today; paypal (or another provider) when connected
+        method:
+          type: string
+          nullable: true
+        payment_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+            - refund_pending
+            - refunded
+          description: refund_pending = waiting for a real provider to return the money
+        amount:
+          type: number
+        currency:
+          type: string
+          example: AUD
+        transaction_reference:
+          type: string
+          example: SIM-583552754C99
+          nullable: true
+        failure_code:
+          type: string
+          example: card_declined
+          nullable: true
+        failure_message:
+          type: string
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        refunded_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    Booking:
+      type: object
+      required:
+        - booking_id
+        - user_id
+        - event_id
+        - booking_status
+        - quantity
+        - subtotal
+        - discount_amount
+        - tax_amount
+        - service_fee
+        - total_amount
+        - booked_at
+        - event
+        - tickets
+        - payments
+        - expires_at
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        booking_status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - cancelled
+            - expired
+          description: pending = seats held for 15 minutes until paid
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+        discount_amount:
+          type: number
+        tax_amount:
+          type: number
+        service_fee:
+          type: number
+        total_amount:
+          type: number
+        booked_at:
+          type: string
+          format: date-time
+        event:
+          type: object
+          required:
+            - event_id
+            - name
+            - start_at
+            - end_at
+          properties:
+            event_id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            start_at:
+              type: string
+              format: date-time
+            end_at:
+              type: string
+              format: date-time
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+          description: Every payment attempt, oldest first
+        expires_at:
+          type: string
+          format: date-time
+          description: 'While pending: when the seat hold ends. null otherwise.'
+          nullable: true
+      additionalProperties: true
+    BookingResponse:
+      type: object
+      required:
+        - booking
+      properties:
+        booking:
+          $ref: '#/components/schemas/Booking'
+    BookingListResponse:
+      type: object
+      required:
+        - bookings
+        - total
+        - limit
+        - offset
+      properties:
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateBookingRequest:
+      type: object
+      required:
+        - allocation_id
+        - quantity
+      properties:
+        allocation_id:
+          type: string
+          format: uuid
+          description: The ticket type (allocation) to book
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 10
+    Quote:
+      type: object
+      required:
+        - allocation_id
+        - allocation_name
+        - event_id
+        - event_name
+        - event_start_at
+        - unit_price
+        - quantity
+        - subtotal
+        - discount_percent
+        - discount_amount
+        - tax_amount
+        - service_fee
+        - total_amount
+        - is_member
+        - available
+        - hold_minutes
+      properties:
+        allocation_id:
+          type: string
+          format: uuid
+        allocation_name:
+          type: string
+        event_id:
+          type: string
+          format: uuid
+        event_name:
+          type: string
+        event_start_at:
+          type: string
+          format: date-time
+        unit_price:
+          type: number
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+        discount_percent:
+          type: number
+          description: Member discount applied (0 for non-members)
+        discount_amount:
+          type: number
+        tax_amount:
+          type: number
+          description: 10% of the discounted amount
+        service_fee:
+          type: number
+          description: 2% of the discounted amount
+        total_amount:
+          type: number
+        is_member:
+          type: boolean
+        available:
+          type: integer
+          description: Tickets still available in this allocation
+        hold_minutes:
+          type: integer
+          example: 15
+          description: How long a booking holds the seats before payment
+    QuoteResponse:
+      type: object
+      required:
+        - quote
+      properties:
+        quote:
+          $ref: '#/components/schemas/Quote'
+    NextAction:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - none
+            - confirm
+            - redirect
+          description: none = finished; confirm = call POST /payments/{id}/confirm (the simulation); redirect = send the customer to url (e.g. the PayPal approval page), then confirm
+        confirm_url:
+          type: string
+          description: Present when type is confirm
+        url:
+          type: string
+          description: Present when type is redirect
+    PayRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          minLength: 1
+          maxLength: 30
+          description: Payment method label, e.g. card
+        simulate:
+          type: string
+          enum:
+            - success
+            - card_declined
+            - insufficient_funds
+            - provider_error
+          description: 'Simulated provider only: which outcome to simulate (default success)'
+        confirm:
+          type: boolean
+          description: 'Simulated provider only: false = start the payment but confirm later with POST /payments/{id}/confirm'
+      additionalProperties: false
+    PurchaseMembershipRequest:
+      type: object
+      required:
+        - plan_id
+      properties:
+        plan_id:
+          type: string
+          format: uuid
+          description: The plan to buy
+        method:
+          type: string
+          minLength: 1
+          maxLength: 30
+          description: Payment method label, e.g. card
+        simulate:
+          type: string
+          enum:
+            - success
+            - card_declined
+            - insufficient_funds
+            - provider_error
+          description: 'Simulated provider only: which outcome to simulate (default success)'
+        confirm:
+          type: boolean
+          description: 'Simulated provider only: false = start the payment but confirm later with POST /payments/{id}/confirm'
+      additionalProperties: false
+    ConfirmPaymentRequest:
+      type: object
+      properties:
+        simulate:
+          type: string
+          enum:
+            - success
+            - card_declined
+            - insufficient_funds
+            - provider_error
+          description: 'Simulated provider only: which outcome to simulate (default success)'
+      additionalProperties: false
+    PaymentOutcomeResponse:
+      type: object
+      required:
+        - payment
+        - next_action
+      properties:
+        payment:
+          $ref: '#/components/schemas/Payment'
+        booking:
+          $ref: '#/components/schemas/Booking'
+        membership:
+          $ref: '#/components/schemas/Membership'
+        next_action:
+          $ref: '#/components/schemas/NextAction'
+        already_settled:
+          type: boolean
+          description: true when this payment had already been settled and nothing changed
+      description: A booking payment carries "booking"; a membership payment carries "membership".
+    PaymentPendingResponse:
+      type: object
+      required:
+        - payment
+        - next_action
+      properties:
+        payment:
+          $ref: '#/components/schemas/Payment'
+        membership:
+          $ref: '#/components/schemas/Membership'
+        next_action:
+          $ref: '#/components/schemas/NextAction'
+      description: The payment was started but is not settled yet. Follow next_action.
+    PaymentFailureResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            payment:
+              $ref: '#/components/schemas/Payment'
+            booking:
+              $ref: '#/components/schemas/Booking'
+            membership:
+              $ref: '#/components/schemas/Membership'
+      description: An error that also carries the payment (and the booking or membership) as it now stands
+    PaymentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Payment'
+        - type: object
+          properties:
+            bookings:
+              type: object
+              nullable: true
+              properties:
+                booking_id:
+                  type: string
+                  format: uuid
+                events:
+                  type: object
+                  nullable: true
+                  properties:
+                    name:
+                      type: string
+    PaymentResponse:
+      type: object
+      required:
+        - payment
+      properties:
+        payment:
+          $ref: '#/components/schemas/PaymentDetail'
+    MyPayment:
+      allOf:
+        - $ref: '#/components/schemas/Payment'
+        - type: object
+          properties:
+            event_name:
+              type: string
+              description: The event, for ticket payments; null for memberships
+              nullable: true
+    MyPaymentListResponse:
+      type: object
+      required:
+        - payments
+        - total
+        - limit
+        - offset
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyPayment'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    AdminPayment:
+      allOf:
+        - $ref: '#/components/schemas/Payment'
+        - type: object
+          properties:
+            bookings:
+              type: object
+              nullable: true
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                events:
+                  type: object
+                  nullable: true
+                  properties:
+                    name:
+                      type: string
+    AdminPaymentListResponse:
+      type: object
+      required:
+        - payments
+        - total
+        - limit
+        - offset
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminPayment'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    LogInteractionRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - view
+            - category_browse
+            - search
+        event_id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        item_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        query:
+          type: string
+          minLength: 3
+          maxLength: 100
+      additionalProperties: false
+      description: view needs exactly one of event_id, collection_id, item_id. category_browse needs only category_id. search needs only query.
+    RecordedResponse:
+      type: object
+      required:
+        - recorded
+      properties:
+        recorded:
+          type: boolean
+          description: false when the same thing was recorded in the last 10 minutes
+    Interaction:
+      type: object
+      required:
+        - interaction_id
+        - interaction_type
+        - event_id
+        - collection_id
+        - item_id
+        - category_id
+        - search_query
+        - occurred_at
+      properties:
+        interaction_id:
+          type: string
+          format: uuid
+        interaction_type:
+          type: string
+          enum:
+            - view
+            - category_browse
+            - search
+            - booking
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        collection_id:
+          type: string
+          format: uuid
+          nullable: true
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        search_query:
+          type: string
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+      additionalProperties: true
+    InteractionListResponse:
+      type: object
+      required:
+        - interactions
+        - total
+        - limit
+        - offset
+      properties:
+        interactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interaction'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    DeletedCountResponse:
+      type: object
+      required:
+        - deleted
+      properties:
+        deleted:
+          type: integer
+          description: How many history rows were removed
+    AdminUserSummary:
+      type: object
+      required:
+        - id
+        - email
+        - full_name
+        - role
+        - account_status
+        - created_at
+        - last_sign_in_at
+        - is_member
+        - bookings_count
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum:
+            - registered
+            - member
+            - staff
+        account_status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - deleted
+        created_at:
+          type: string
+          format: date-time
+        last_sign_in_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_member:
+          type: boolean
+        bookings_count:
+          type: integer
+    AdminUserListResponse:
+      type: object
+      required:
+        - users
+        - total
+        - limit
+        - offset
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserSummary'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    AdminUserDetail:
+      type: object
+      required:
+        - id
+        - email
+        - full_name
+        - role
+        - account_status
+        - created_at
+        - last_sign_in_at
+        - is_member
+        - bookings_count
+        - updated_at
+        - membership
+        - recent_bookings
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum:
+            - registered
+            - member
+            - staff
+        account_status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - deleted
+        created_at:
+          type: string
+          format: date-time
+        last_sign_in_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_member:
+          type: boolean
+        bookings_count:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+        membership:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: The current active membership with its plan, or null
+        recent_bookings:
+          type: array
+          items:
+            type: object
+            required:
+              - booking_id
+              - booking_status
+              - quantity
+              - total_amount
+              - booked_at
+              - event_name
+            properties:
+              booking_id:
+                type: string
+                format: uuid
+              booking_status:
+                type: string
+              quantity:
+                type: integer
+              total_amount:
+                type: number
+              booked_at:
+                type: string
+                format: date-time
+              event_name:
+                type: string
+          description: The 10 most recent bookings
+    AdminUserResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          $ref: '#/components/schemas/AdminUserDetail'
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+            - registered
+            - staff
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+          description: suspended also ends all of the user's sessions
+      minProperties: 1
+      additionalProperties: false
+    AdminStats:
+      type: object
+      required:
+        - users
+        - events
+        - bookings
+        - revenue
+        - popular_events
+      properties:
+        users:
+          type: object
+          required:
+            - total
+            - active
+            - suspended
+            - staff
+            - new_last_30_days
+            - active_members
+          properties:
+            total:
+              type: integer
+            active:
+              type: integer
+            suspended:
+              type: integer
+            staff:
+              type: integer
+            new_last_30_days:
+              type: integer
+            active_members:
+              type: integer
+        events:
+          type: object
+          required:
+            - total
+            - draft
+            - scheduled
+            - cancelled
+            - upcoming
+          properties:
+            total:
+              type: integer
+            draft:
+              type: integer
+            scheduled:
+              type: integer
+            cancelled:
+              type: integer
+            upcoming:
+              type: integer
+        bookings:
+          type: object
+          required:
+            - total
+            - pending
+            - confirmed
+            - cancelled
+            - expired
+            - tickets_confirmed
+          properties:
+            total:
+              type: integer
+            pending:
+              type: integer
+            confirmed:
+              type: integer
+            cancelled:
+              type: integer
+            expired:
+              type: integer
+            tickets_confirmed:
+              type: integer
+        revenue:
+          type: object
+          required:
+            - collected
+            - tickets
+            - memberships
+            - refunded
+            - failed_payments
+          properties:
+            collected:
+              type: number
+            tickets:
+              type: number
+            memberships:
+              type: number
+            refunded:
+              type: number
+            failed_payments:
+              type: integer
+        popular_events:
+          type: array
+          items:
+            type: object
+            required:
+              - event_id
+              - name
+              - tickets
+              - revenue
+            properties:
+              event_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              tickets:
+                type: integer
+              revenue:
+                type: number
+          description: Top 5 events by confirmed tickets
+    AdminStatsResponse:
+      type: object
+      required:
+        - stats
+      properties:
+        stats:
+          $ref: '#/components/schemas/AdminStats'
+    ChangePasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+          minLength: 1
+          format: password
+        new_password:
+          type: string
+          minLength: 10
+          maxLength: 72
+          format: password
+    ResendConfirmationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+      additionalProperties: false
+    UpdateProfileRequest:
+      type: object
+      required:
+        - full_name
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+      additionalProperties: false
+    ProfileResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          type: object
+          required:
+            - id
+            - email
+            - full_name
+            - role
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            full_name:
+              type: string
+            role:
+              type: string
+              enum:
+                - registered
+                - member
+                - staff
+    SubscribeRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+      additionalProperties: false
+    NewsletterStatus:
+      type: object
+      required:
+        - email
+        - subscribed
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        subscribed:
+          type: boolean
+    UnsubscribedResponse:
+      type: object
+      required:
+        - subscribed
+      properties:
+        subscribed:
+          type: boolean
+    NewsletterSubscriber:
+      type: object
+      required:
+        - subscription_id
+        - user_id
+        - email
+        - status
+        - subscribed_at
+      properties:
+        subscription_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum:
+            - subscribed
+            - unsubscribed
+        subscribed_at:
+          type: string
+          format: date-time
+    NewsletterListResponse:
+      type: object
+      required:
+        - subscribers
+        - total
+        - limit
+        - offset
+      properties:
+        subscribers:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsletterSubscriber'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    SearchResponse:
+      type: object
+      required:
+        - query
+        - events
+        - collections
+        - items
+        - locations
+        - categories
+      properties:
+        query:
+          type: string
+        events:
+          type: array
+          items:
+            type: object
+            required:
+              - event_id
+              - name
+              - description
+              - start_at
+              - status
+            properties:
+              event_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              description:
+                type: string
+                nullable: true
+              start_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+        collections:
+          type: array
+          items:
+            type: object
+            required:
+              - collection_id
+              - name
+              - description
+              - status
+            properties:
+              collection_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              description:
+                type: string
+                nullable: true
+              status:
+                type: string
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - item_id
+              - name
+              - description
+              - detail
+              - collection_id
+              - collection_name
+            properties:
+              item_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              description:
+                type: string
+                nullable: true
+              detail:
+                type: string
+                nullable: true
+              collection_id:
+                type: string
+                format: uuid
+              collection_name:
+                type: string
+        locations:
+          type: array
+          items:
+            type: object
+            required:
+              - location_id
+              - name
+              - address
+              - place
+            properties:
+              location_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              address:
+                type: string
+                nullable: true
+              place:
+                type: string
+                nullable: true
+        categories:
+          type: array
+          items:
+            type: object
+            required:
+              - category_id
+              - name
+              - description
+            properties:
+              category_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              description:
+                type: string
+                nullable: true

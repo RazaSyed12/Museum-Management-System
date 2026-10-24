@@ -5,6 +5,7 @@ import { readerClient } from '../lib/readerClient';
 import { requireAuth, requireStaff } from '../middleware/auth';
 
 // Paths are written in full (/membership/..., /me/membership), so this router is mounted without a prefix.
+// Buying a plan (POST /membership/purchase) lives in routes/payments.ts with the other payments.
 const router = Router();
 
 const BENEFIT_FIELDS = 'benefit_id, benefit_type, benefit_value, configuration';
@@ -246,28 +247,6 @@ router.get('/me/membership', requireAuth, async (req: Request, res: Response) =>
 
   const { membership_plans, ...rest } = current;
   return res.json({ is_member: true, membership: { ...rest, plan: membership_plans ? shapePlan(membership_plans) : null } });
-});
-
-// POST /membership/purchase — signed-in user. Simulated payment: no real money moves.
-// The database function creates the membership and its payment together, or neither.
-router.post('/membership/purchase', requireAuth, async (req: Request, res: Response) => {
-  const parsed = z.object({ plan_id: z.guid() }).safeParse(req.body);
-  if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
-
-  const { data, error } = await userClient(req.auth!.token).rpc('purchase_membership', { p_plan_id: parsed.data.plan_id });
-  if (error) {
-    switch (error.message) {
-      case 'already_member':
-        return res.status(409).json({ error: { message: 'You already have an active membership.', code: 'already_member' } });
-      case 'plan_not_found':
-        return notFound(res, 'Plan');
-      case 'account_not_active':
-        return res.status(403).json({ error: { message: 'Your account cannot buy a membership.', code: 'forbidden' } });
-      default:
-        return serverError(res, 'Could not complete the purchase.');
-    }
-  }
-  return res.status(201).json(data);
 });
 
 export default router;

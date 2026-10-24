@@ -4,7 +4,7 @@ import { userClient } from '../lib/supabaseClients';
 import { requireAuth, requireStaff } from '../middleware/auth';
 
 // Paths are written in full (/bookings/..., /me/bookings, /admin/bookings, /events/:id/bookings),
-// so this router is mounted without a prefix.
+// so this router is mounted without a prefix. Paying lives in routes/payments.ts.
 const router = Router();
 
 const HOLD_MINUTES = 15; // keep in step with the 15 minutes inside the SQL functions
@@ -13,7 +13,7 @@ const BOOKING_SELECT =
   'booking_id, user_id, event_id, booking_status, quantity, subtotal, discount_amount, tax_amount, service_fee, total_amount, booked_at, ' +
   'events(event_id, name, start_at, end_at), ' +
   'tickets(ticket_id, allocation_id, ticket_status, price, ticket_code), ' +
-  'payments(payment_id, provider, payment_status, amount, transaction_reference, paid_at)';
+  'payments(payment_id, provider, method, payment_status, amount, currency, transaction_reference, failure_code, failure_message, paid_at, refunded_at, created_at)';
 
 function send(res: Response, status: number, code: string, message: string) {
   return res.status(status).json({ error: { message, code } });
@@ -39,10 +39,6 @@ function rpcFailure(res: Response, error: { message?: string; details?: string |
     }
     case 'booking_not_found':
       return notFound(res, 'Booking');
-    case 'already_paid':
-      return send(res, 409, 'already_paid', 'This booking is already paid.');
-    case 'booking_closed':
-      return send(res, 409, 'booking_closed', 'This booking is cancelled or expired.');
     case 'cannot_cancel':
       return send(res, 409, 'cannot_cancel', 'This event has already started, so the booking can no longer be cancelled.');
     case 'account_not_active':
@@ -98,35 +94,7 @@ router.post('/bookings', requireAuth, async (req: Request, res: Response) => {
   return res.status(201).json({ booking: data });
 });
 
-// POST /bookings/:id/pay — the owner. Simulated payment; {"simulate_failure": true} records a failed one.
-router.post('/bookings/:id/pay', requireAuth, async (req: Request, res: Response) => {
-  const id = String(req.params.id);
-  if (!idSchema.safeParse(id).success) return notFound(res, 'Booking');
-  const parsed = z.object({ simulate_failure: z.boolean().optional() }).safeParse(req.body ?? {});
-  if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
-
-  const { data, error } = await userClient(req.auth!.token).rpc('pay_booking', {
-    p_booking_id: id,
-    p_fail: parsed.data.simulate_failure ?? false,
-  });
-  if (error) return rpcFailure(res, error, 'Could not process the payment.');
-
-  if (data.result === 'failed') {
-    return res.status(402).json({
-      error: { message: 'The simulated payment failed. You can try again before the hold runs out.', code: 'payment_failed' },
-      booking: data.booking,
-    });
-  }
-  if (data.result === 'expired') {
-    return res.status(409).json({
-      error: { message: 'The seat hold ran out, so the booking was released. Please book again.', code: 'hold_expired' },
-      booking: data.booking,
-    });
-  }
-  return res.json({ booking: data.booking, payment: data.payment });
-});
-
-// POST /bookings/:id/cancel — the owner (or staff). Frees the seats; a paid booking is refunded (simulated).
+// POST /bookings/:id/cancel — the owner (or staff). Frees the seats; a paid booking is refunded.
 router.post('/bookings/:id/cancel', requireAuth, async (req: Request, res: Response) => {
   const id = String(req.params.id);
   if (!idSchema.safeParse(id).success) return notFound(res, 'Booking');

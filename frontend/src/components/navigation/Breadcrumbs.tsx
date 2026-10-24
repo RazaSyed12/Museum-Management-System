@@ -22,9 +22,13 @@ export function Breadcrumbs({ items = [], ...rest }: BreadcrumbsProps) {
           return (
             <li key={label} className="flex items-center gap-2">
               {last ? (
-                <span aria-current="page" className="type-body-sm font-semibold text-heading">{label}</span>
+                <span aria-current="page" className="type-body-sm font-semibold text-heading">
+                  {label}
+                </span>
               ) : (
-                <Link href={href || '#'} className="type-body-sm text-muted no-underline">{label}</Link>
+                <Link href={href || '#'} className="type-body-sm text-muted no-underline">
+                  {label}
+                </Link>
               )}
               {!last && <Icon name="chevron-right" size={14} className="text-neutral-400" />}
             </li>

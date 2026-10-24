@@ -27,7 +27,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const SIZES: Record<Size, { box: string; icon: number }> = {
   sm: { box: 'h-9 min-w-9 gap-1.5 px-3.5 font-body text-xs font-semibold leading-none', icon: 16 },
   md: { box: 'h-11 min-w-11 gap-2 px-5 type-button', icon: 18 },
-  lg: { box: 'h-13 min-w-13 gap-2.5 px-7 font-body text-base font-semibold leading-none', icon: 20 },
+  lg: {
+    box: 'h-13 min-w-13 gap-2.5 px-7 font-body text-base font-semibold leading-none',
+    icon: 20,
+  },
   fluid: {
     box: 'h-11 min-w-11 gap-2 px-5 type-button md:h-13 md:min-w-13 md:gap-2.5 md:px-7 md:text-base',
     icon: 18,
@@ -45,7 +48,8 @@ const VARIANTS: Record<Variant, string> = {
     'border-danger-600 bg-danger-600 text-white hover:border-danger-700 hover:bg-danger-700 active:border-danger-800 active:bg-danger-800',
 };
 
-const DISABLED = 'cursor-not-allowed border-transparent bg-action-disabled-bg text-action-disabled-text';
+const DISABLED =
+  'cursor-not-allowed border-transparent bg-action-disabled-bg text-action-disabled-text';
 
 export function Button({
   variant = 'primary',

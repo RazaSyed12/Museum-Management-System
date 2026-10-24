@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ItemDetail } from '@/components/collections/ItemDetail';
-import { listCollections, getCollection, getCollectionItem, listCollectionItems } from '@/lib/api/collections';
+import {
+  listCollections,
+  getCollection,
+  getCollectionItem,
+  listCollectionItems,
+} from '@/lib/api/collections';
 
 interface Props {
   params: Promise<{ id: string; itemId: string }>;
@@ -11,7 +16,9 @@ interface Props {
 export async function generateStaticParams() {
   const { items: collections } = await listCollections({ pageSize: 999 });
   const perCollection = await Promise.all(
-    collections.map(async (c) => (await listCollectionItems(c.id)).map((item) => ({ id: c.id, itemId: item.id }))),
+    collections.map(async (c) =>
+      (await listCollectionItems(c.id)).map((item) => ({ id: c.id, itemId: item.id })),
+    ),
   );
   return perCollection.flat();
 }
@@ -34,5 +41,12 @@ export default async function ItemDetailPage({ params }: Props) {
   const relatedItems = allItems.filter((i) => i.id !== item.id);
   const suggestions = allCollections.filter((c) => c.id !== collection.id).slice(0, 2);
 
-  return <ItemDetail collection={collection} item={item} relatedItems={relatedItems} suggestions={suggestions} />;
+  return (
+    <ItemDetail
+      collection={collection}
+      item={item}
+      relatedItems={relatedItems}
+      suggestions={suggestions}
+    />
+  );
 }

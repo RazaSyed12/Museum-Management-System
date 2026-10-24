@@ -18,11 +18,32 @@ export interface RecommendationCardProps extends HTMLAttributes<HTMLElement> {
   href?: string;
 }
 
-export function RecommendationCard({ title, kind = 'Collection', reason, image, tone = 'olive', href = '#', className, ...rest }: RecommendationCardProps) {
+export function RecommendationCard({
+  title,
+  kind = 'Collection',
+  reason,
+  image,
+  tone = 'olive',
+  href = '#',
+  className,
+  ...rest
+}: RecommendationCardProps) {
   return (
-    <Card interactive as="a" href={href} className={cn('grid grid-cols-[104px_minmax(0,1fr)] items-stretch p-0', className)} {...rest}>
+    <Card
+      interactive
+      as="a"
+      href={href}
+      className={cn('grid grid-cols-[104px_minmax(0,1fr)] items-stretch p-0', className)}
+      {...rest}
+    >
       <div className="min-w-0 overflow-hidden">
-        <Media src={image} ratio="auto" tone={tone} caption={title} className="h-full min-h-26 w-full rounded-none" />
+        <Media
+          src={image}
+          ratio="auto"
+          tone={tone}
+          caption={title}
+          className="h-full min-h-26 w-full rounded-none"
+        />
       </div>
       <div className="grid content-center gap-1 p-4">
         <span className="type-eyebrow tracking-wider text-muted uppercase">{kind}</span>

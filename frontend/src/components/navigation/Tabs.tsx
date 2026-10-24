@@ -17,12 +17,23 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChang
   variant?: 'underline' | 'pill';
 }
 
-export function Tabs({ items = [], value, onChange, variant = 'underline', className, ...rest }: TabsProps) {
+export function Tabs({
+  items = [],
+  value,
+  onChange,
+  variant = 'underline',
+  className,
+  ...rest
+}: TabsProps) {
   const underline = variant === 'underline';
   return (
     <div
       role="tablist"
-      className={cn('flex overflow-x-auto', underline ? 'gap-6 border-b border-line-subtle' : 'gap-2', className)}
+      className={cn(
+        'flex overflow-x-auto',
+        underline ? 'gap-6 border-b border-line-subtle' : 'gap-2',
+        className,
+      )}
       {...rest}
     >
       {items.map((it) => {
@@ -40,8 +51,14 @@ export function Tabs({ items = [], value, onChange, variant = 'underline', class
             className={cn(
               'inline-flex min-h-11 cursor-pointer items-center gap-2 border-0 font-body text-sm leading-none font-semibold whitespace-nowrap transition-control',
               underline
-                ? cn('-mb-px border-b-2 bg-transparent px-0 pb-3', on ? 'border-olive-500 text-green-900' : 'border-transparent text-muted')
-                : cn('rounded-pill px-4', on ? 'bg-green-900 text-inverse' : 'bg-paper-100 text-body'),
+                ? cn(
+                    '-mb-px border-b-2 bg-transparent px-0 pb-3',
+                    on ? 'border-olive-500 text-green-900' : 'border-transparent text-muted',
+                  )
+                : cn(
+                    'rounded-pill px-4',
+                    on ? 'bg-green-900 text-inverse' : 'bg-paper-100 text-body',
+                  ),
             )}
           >
             {l}

@@ -12,7 +12,15 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   compact?: boolean;
 }
 
-export function EmptyState({ icon = 'search-x', title, description, action, compact, className, ...rest }: EmptyStateProps) {
+export function EmptyState({
+  icon = 'search-x',
+  title,
+  description,
+  action,
+  compact,
+  className,
+  ...rest
+}: EmptyStateProps) {
   return (
     <div
       className={cn(

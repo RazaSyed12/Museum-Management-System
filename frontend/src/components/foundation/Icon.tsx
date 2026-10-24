@@ -18,7 +18,15 @@ export interface IconProps extends HTMLAttributes<HTMLSpanElement> {
   label?: string;
 }
 
-export function Icon({ name, size = 20, strokeWidth, label, className, style, ...rest }: IconProps) {
+export function Icon({
+  name,
+  size = 20,
+  strokeWidth,
+  label,
+  className,
+  style,
+  ...rest
+}: IconProps) {
   const url = `url("${CDN}${name}.svg")`;
   return (
     <span

@@ -17,10 +17,22 @@ export interface DetailHeroProps {
   actions?: ReactNode;
 }
 
-export function DetailHero({ crumbs, title, eyebrow, description, meta, actions }: DetailHeroProps) {
+export function DetailHero({
+  crumbs,
+  title,
+  eyebrow,
+  description,
+  meta,
+  actions,
+}: DetailHeroProps) {
   return (
     <div className="relative bg-green-900">
-      <Media tone="green" ratio="auto" caption="Collection photography" className="absolute inset-0 h-full rounded-none" />
+      <Media
+        tone="green"
+        ratio="auto"
+        caption="Collection photography"
+        className="absolute inset-0 h-full rounded-none"
+      />
       <div className="scrim-hero absolute inset-0" />
       <Container className="relative py-6 md:py-8 md:pb-16">
         {/* invert() turns the design system's dark-text breadcrumb into a legible light one over the photo, without a separate light variant of the component. */}

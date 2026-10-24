@@ -1,5 +1,15 @@
 import { http, HttpResponse, delay } from 'msw';
-import { resolveCollections, resolveCollection, resolveCollectionItems, resolveCollectionItem, resolveCategories, resolveEvents, resolveEvent, resolveBookings } from './resolve';
+import { staffHandlers } from './staff';
+import {
+  resolveCollections,
+  resolveCollection,
+  resolveCollectionItems,
+  resolveCollectionItem,
+  resolveCategories,
+  resolveEvents,
+  resolveEvent,
+  resolveBookings,
+} from './resolve';
 
 /* MSW handlers — the browser-side half of the mock API (see
    lib/api/client.ts for the server-side half, which calls resolve.ts
@@ -16,6 +26,7 @@ function notFound() {
 }
 
 export const handlers = [
+  ...staffHandlers,
   http.get('/api/collections', async ({ request }) => {
     await delay(LATENCY_MS);
     const url = new URL(request.url);

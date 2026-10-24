@@ -39,14 +39,34 @@ const DEFAULT_NAV = ['Home', 'Collections', 'Events', 'Visit', 'Tickets', 'Membe
 /** Items past this index only appear at the desktop breakpoint. */
 const TABLET_ITEM_LIMIT = 4;
 
-export function SiteHeader({ items = DEFAULT_NAV, active = 'Home', user, isMember, assetBase, onNavigate, onSearch, onMenu, onSignIn, className, ...rest }: SiteHeaderProps) {
+export function SiteHeader({
+  items = DEFAULT_NAV,
+  active = 'Home',
+  user,
+  isMember,
+  assetBase,
+  onNavigate,
+  onSearch,
+  onMenu,
+  onSignIn,
+  className,
+  ...rest
+}: SiteHeaderProps) {
   return (
-    <header className={cn('sticky top-0 z-30 border-b border-line-subtle bg-surface-card', className)} {...rest}>
+    <header
+      className={cn('sticky top-0 z-30 border-b border-line-subtle bg-surface-card', className)}
+      {...rest}
+    >
       <Container className="flex h-15 items-center gap-6 md:h-20">
         <IconButton icon="menu" label="Open menu" onClick={onMenu} className="md:hidden" />
         <Link href="/" className="inline-flex no-underline">
           <Logo variant="mark" height={34} assetBase={assetBase} className="md:hidden" />
-          <Logo variant="horizontal" height={42} assetBase={assetBase} className="hidden md:block" />
+          <Logo
+            variant="horizontal"
+            height={42}
+            assetBase={assetBase}
+            className="hidden md:block"
+          />
         </Link>
         <nav aria-label="Main" className="ml-4 hidden flex-1 gap-6 md:flex">
           {items.map((label, i) => {
@@ -55,11 +75,16 @@ export function SiteHeader({ items = DEFAULT_NAV, active = 'Home', user, isMembe
               <a
                 key={label}
                 href="#"
-                onClick={(e) => { e.preventDefault(); onNavigate?.(label); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.(label);
+                }}
                 aria-current={on ? 'page' : undefined}
                 className={cn(
                   'border-b-2 pb-1 font-body text-sm leading-none tracking-wide whitespace-nowrap uppercase no-underline transition-control',
-                  on ? 'border-olive-500 font-semibold text-green-900' : 'border-transparent font-medium text-body',
+                  on
+                    ? 'border-olive-500 font-semibold text-green-900'
+                    : 'border-transparent font-medium text-body',
                   i >= TABLET_ITEM_LIMIT && 'hidden lg:inline',
                 )}
               >
@@ -81,7 +106,12 @@ export function SiteHeader({ items = DEFAULT_NAV, active = 'Home', user, isMembe
               </span>
               <span className="hidden gap-px text-left md:grid">
                 <span className="type-label text-heading">{user.name}</span>
-                <span className={cn('font-body text-2xs leading-none font-semibold tracking-wide uppercase', isMember ? 'text-gold-700' : 'text-muted')}>
+                <span
+                  className={cn(
+                    'font-body text-2xs leading-none font-semibold tracking-wide uppercase',
+                    isMember ? 'text-gold-700' : 'text-muted',
+                  )}
+                >
                   {isMember ? 'Member' : 'Account'}
                 </span>
               </span>
@@ -90,10 +120,24 @@ export function SiteHeader({ items = DEFAULT_NAV, active = 'Home', user, isMembe
           ) : (
             <>
               <IconButton icon="user" label="Sign in" onClick={onSignIn} className="md:hidden" />
-              <Button variant="secondary" size="sm" onClick={onSignIn} className="hidden md:inline-flex">Sign in</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onSignIn}
+                className="hidden md:inline-flex"
+              >
+                Sign in
+              </Button>
             </>
           )}
-          <Button size="sm" iconLeft="ticket" onClick={() => onNavigate?.('Tickets')} className="hidden lg:inline-flex">Book tickets</Button>
+          <Button
+            size="sm"
+            iconLeft="ticket"
+            onClick={() => onNavigate?.('Tickets')}
+            className="hidden lg:inline-flex"
+          >
+            Book tickets
+          </Button>
         </div>
       </Container>
     </header>

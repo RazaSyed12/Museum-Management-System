@@ -26,7 +26,9 @@ export function InterestsScreen() {
   const [picked, setPicked] = useState<string[]>(auth.user?.interests ?? []);
 
   function toggle(interest: string) {
-    setPicked((cur) => (cur.includes(interest) ? cur.filter((i) => i !== interest) : [...cur, interest]));
+    setPicked((cur) =>
+      cur.includes(interest) ? cur.filter((i) => i !== interest) : [...cur, interest],
+    );
   }
 
   function save() {
@@ -50,10 +52,16 @@ export function InterestsScreen() {
               aria-pressed={on}
               className={cn(
                 'flex min-h-14 items-center gap-3 rounded-md border px-4 text-left type-body-sm transition-control',
-                on ? 'border-olive-500 bg-olive-50 font-semibold text-olive-700 shadow-focus' : 'border-default bg-surface-card text-heading',
+                on
+                  ? 'border-olive-500 bg-olive-50 font-semibold text-olive-700 shadow-focus'
+                  : 'border-default bg-surface-card text-heading',
               )}
             >
-              <Icon name={ICONS[interest] ?? 'tag'} size={18} className={on ? 'text-olive-600' : 'text-muted'} />
+              <Icon
+                name={ICONS[interest] ?? 'tag'}
+                size={18}
+                className={on ? 'text-olive-600' : 'text-muted'}
+              />
               <span className="flex-1">{interest}</span>
               {on && <Icon name="check" size={16} />}
             </button>
@@ -64,7 +72,9 @@ export function InterestsScreen() {
         <Button size="lg" fullWidth disabled={!picked.length} onClick={save}>
           Save {picked.length} interest{picked.length === 1 ? '' : 's'}
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => router.push('/account')}>Skip for now</Button>
+        <Button variant="ghost" fullWidth onClick={() => router.push('/account')}>
+          Skip for now
+        </Button>
       </div>
     </AuthLayout>
   );

@@ -32,5 +32,12 @@ export default async function CollectionDetailPage({ params }: Props) {
   const relatedCollections = allCollections.filter((c) => c.id !== collection.id).slice(0, 3);
   const relatedEvents = allEvents.slice(0, 2);
 
-  return <CollectionDetail collection={collection} relatedItems={relatedItems} relatedCollections={relatedCollections} relatedEvents={relatedEvents} />;
+  return (
+    <CollectionDetail
+      collection={collection}
+      relatedItems={relatedItems}
+      relatedCollections={relatedCollections}
+      relatedEvents={relatedEvents}
+    />
+  );
 }

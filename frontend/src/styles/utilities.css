@@ -5,15 +5,33 @@
    The design system's --type-* composites (family + weight + size + leading).
    Add colour, tracking and casing with ordinary utilities:
      type-eyebrow tracking-wider uppercase text-olive-600 */
-@utility type-display { @apply font-display font-normal text-6xl leading-tight; }
-@utility type-h1 { @apply font-display font-normal text-4xl leading-tight; }
-@utility type-h2 { @apply font-display font-normal text-3xl leading-snug; }
-@utility type-h3 { @apply font-display font-medium text-xl leading-snug; }
-@utility type-eyebrow { @apply font-body font-semibold text-xs leading-normal; }
-@utility type-body { @apply font-body font-normal text-base leading-relaxed; }
-@utility type-body-sm { @apply font-body font-normal text-sm leading-normal; }
-@utility type-label { @apply font-body font-semibold text-sm leading-normal; }
-@utility type-button { @apply font-body font-semibold text-sm leading-none; }
+@utility type-display {
+  @apply font-display font-normal text-6xl leading-tight;
+}
+@utility type-h1 {
+  @apply font-display font-normal text-4xl leading-tight;
+}
+@utility type-h2 {
+  @apply font-display font-normal text-3xl leading-snug;
+}
+@utility type-h3 {
+  @apply font-display font-medium text-xl leading-snug;
+}
+@utility type-eyebrow {
+  @apply font-body font-semibold text-xs leading-normal;
+}
+@utility type-body {
+  @apply font-body font-normal text-base leading-relaxed;
+}
+@utility type-body-sm {
+  @apply font-body font-normal text-sm leading-normal;
+}
+@utility type-label {
+  @apply font-body font-semibold text-sm leading-normal;
+}
+@utility type-button {
+  @apply font-body font-semibold text-sm leading-none;
+}
 
 /* ── Transitions (--transition-control / --transition-surface) ───────────── */
 @utility transition-control {
@@ -113,11 +131,21 @@
     opacity: 0;
     animation: var(--animate-hero-in);
   }
-  & > :nth-child(1) { --d: 0.08s; }
-  & > :nth-child(2) { --d: 0.18s; }
-  & > :nth-child(3) { --d: 0.28s; }
-  & > :nth-child(4) { --d: 0.38s; }
-  & > :nth-child(5) { --d: 0.48s; }
+  & > :nth-child(1) {
+    --d: 0.08s;
+  }
+  & > :nth-child(2) {
+    --d: 0.18s;
+  }
+  & > :nth-child(3) {
+    --d: 0.28s;
+  }
+  & > :nth-child(4) {
+    --d: 0.38s;
+  }
+  & > :nth-child(5) {
+    --d: 0.48s;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     & > * {

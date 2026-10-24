@@ -25,10 +25,19 @@ export function RegisterScreen() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) { setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`); return; }
-    if (password !== confirmPassword) { setError("Passwords don't match."); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     const result = auth.register({ name, email, password });
-    if (!result.ok) { setError(result.error); return; }
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     router.push('/interests');
   }
 
@@ -43,24 +52,71 @@ export function RegisterScreen() {
       }
     >
       <Alert tone="info" title="An account is not a membership" className="mb-5">
-        Accounts are free. Membership is a paid supporter scheme with discounts and reserved tickets — you can add it later.
+        Accounts are free. Membership is a paid supporter scheme with discounts and reserved tickets
+        — you can add it later.
       </Alert>
-      {error && <Alert tone="danger" title="Couldn't create your account" className="mb-5">{error}</Alert>}
+      {error && (
+        <Alert tone="danger" title="Couldn't create your account" className="mb-5">
+          {error}
+        </Alert>
+      )}
       <form className="grid gap-5" onSubmit={handleSubmit}>
         <Field label="Full name" htmlFor="r-n" required>
-          <Input id="r-n" autoComplete="name" required placeholder="Amara Okafor" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            id="r-n"
+            autoComplete="name"
+            required
+            placeholder="Amara Okafor"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </Field>
         <Field label="Email address" htmlFor="r-e" required>
-          <Input id="r-e" type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            id="r-e"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </Field>
-        <Field label="Password" htmlFor="r-p" required hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}>
-          <Input id="r-p" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Field
+          label="Password"
+          htmlFor="r-p"
+          required
+          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        >
+          <Input
+            id="r-p"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </Field>
         <Field label="Confirm password" htmlFor="r-p2" required>
-          <Input id="r-p2" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          <Input
+            id="r-p2"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
         </Field>
-        <Checkbox id="r-nl" label="Email me what's on" description="Monthly exhibition news. Unsubscribe any time." checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)} />
-        <Button type="submit" size="lg" fullWidth>Create account</Button>
+        <Checkbox
+          id="r-nl"
+          label="Email me what's on"
+          description="Monthly exhibition news. Unsubscribe any time."
+          checked={newsletter}
+          onChange={(e) => setNewsletter(e.target.checked)}
+        />
+        <Button type="submit" size="lg" fullWidth>
+          Create account
+        </Button>
       </form>
     </AuthLayout>
   );

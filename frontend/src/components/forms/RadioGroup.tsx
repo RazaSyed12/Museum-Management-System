@@ -17,7 +17,16 @@ export interface RadioGroupProps extends Omit<HTMLAttributes<HTMLFieldSetElement
   direction?: 'row' | 'column';
 }
 
-export function RadioGroup({ name, options = [], value, onChange, legend, direction = 'column', className, ...rest }: RadioGroupProps) {
+export function RadioGroup({
+  name,
+  options = [],
+  value,
+  onChange,
+  legend,
+  direction = 'column',
+  className,
+  ...rest
+}: RadioGroupProps) {
   return (
     <fieldset className={cn('m-0 grid gap-2 border-0 p-0', className)} {...rest}>
       {legend && <legend className="type-label mb-1 p-0 text-heading">{legend}</legend>}

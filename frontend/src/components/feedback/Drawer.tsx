@@ -20,7 +20,18 @@ export interface DrawerProps extends HTMLAttributes<HTMLElement> {
   size?: number;
 }
 
-export function Drawer({ open = true, side = 'right', title, children, footer, onClose, size = 340, className, style, ...rest }: DrawerProps) {
+export function Drawer({
+  open = true,
+  side = 'right',
+  title,
+  children,
+  footer,
+  onClose,
+  size = 340,
+  className,
+  style,
+  ...rest
+}: DrawerProps) {
   if (!open) return null;
   const vertical = side === 'bottom';
   return (
@@ -52,7 +63,9 @@ export function Drawer({ open = true, side = 'right', title, children, footer, o
           {onClose && <IconButton icon="x" label="Close" onClick={onClose} size="sm" />}
         </header>
         <div className="flex-1 overflow-auto p-5">{children}</div>
-        {footer && <footer className="flex gap-3 border-t border-line-subtle px-5 py-4">{footer}</footer>}
+        {footer && (
+          <footer className="flex gap-3 border-t border-line-subtle px-5 py-4">{footer}</footer>
+        )}
       </aside>
     </div>
   );

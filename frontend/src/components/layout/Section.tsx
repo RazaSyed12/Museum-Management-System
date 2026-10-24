@@ -11,7 +11,15 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, 'title'>
   tone?: 'muted' | 'accent';
 }
 
-export function Section({ title, eyebrow, action, children, tone, className, ...rest }: SectionProps) {
+export function Section({
+  title,
+  eyebrow,
+  action,
+  children,
+  tone,
+  className,
+  ...rest
+}: SectionProps) {
   return (
     <section
       className={cn(
@@ -26,7 +34,11 @@ export function Section({ title, eyebrow, action, children, tone, className, ...
         {(title || action) && (
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div className="grid gap-1.5">
-              {eyebrow && <span className="type-eyebrow tracking-wider text-olive-600 uppercase">{eyebrow}</span>}
+              {eyebrow && (
+                <span className="type-eyebrow tracking-wider text-olive-600 uppercase">
+                  {eyebrow}
+                </span>
+              )}
               {title && <h2 className="ruled text-2xl/[1.2] md:text-3xl/snug">{title}</h2>}
             </div>
             {action}

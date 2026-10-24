@@ -33,7 +33,15 @@ export interface FilterPanelProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   activeCount?: number;
 }
 
-function Group({ title, children, defaultOpen = true }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
+function Group({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-line-subtle pb-4">
@@ -51,7 +59,18 @@ function Group({ title, children, defaultOpen = true }: { title: string; childre
   );
 }
 
-export function FilterPanel({ groups = [], selected = {}, onToggle, sortOptions, sort, onSort, onClear, activeCount = 0, className, ...rest }: FilterPanelProps) {
+export function FilterPanel({
+  groups = [],
+  selected = {},
+  onToggle,
+  sortOptions,
+  sort,
+  onSort,
+  onClear,
+  activeCount = 0,
+  className,
+  ...rest
+}: FilterPanelProps) {
   return (
     <div className={cn('grid content-start gap-4', className)} {...rest}>
       <div className="flex items-center justify-between gap-3">
@@ -59,11 +78,17 @@ export function FilterPanel({ groups = [], selected = {}, onToggle, sortOptions,
           <Icon name="sliders-horizontal" size={16} className="text-olive-600" />
           Filters
           {activeCount > 0 && (
-            <span className="rounded-pill bg-olive-100 px-1.75 py-[3px] font-body text-2xs leading-none font-semibold text-olive-700">{activeCount}</span>
+            <span className="rounded-pill bg-olive-100 px-1.75 py-[3px] font-body text-2xs leading-none font-semibold text-olive-700">
+              {activeCount}
+            </span>
           )}
         </span>
         {activeCount > 0 && (
-          <button type="button" onClick={onClear} className="type-body-sm cursor-pointer border-0 bg-transparent p-1 text-link underline">
+          <button
+            type="button"
+            onClick={onClear}
+            className="type-body-sm cursor-pointer border-0 bg-transparent p-1 text-link underline"
+          >
             Clear all
           </button>
         )}
@@ -71,7 +96,12 @@ export function FilterPanel({ groups = [], selected = {}, onToggle, sortOptions,
       {sortOptions && (
         <label className="grid gap-2">
           <span className="type-label text-heading">Sort by</span>
-          <Select options={sortOptions} value={sort} onChange={(e) => onSort?.(e.target.value)} size="sm" />
+          <Select
+            options={sortOptions}
+            value={sort}
+            onChange={(e) => onSort?.(e.target.value)}
+            size="sm"
+          />
         </label>
       )}
       {groups.map((g) => (

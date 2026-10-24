@@ -179,9 +179,31 @@ router.post('/refresh', async (req: Request, res: Response) => {
     refresh_token: parsed.data.refresh_token,
   });
 
-  if (error || !data.session) {
+  if (error || !data.session || !data.user) {
     return res.status(401).json({
       error: { message: 'Your session has expired. Please sign in again.', code: 'invalid_refresh_token' },
+    });
+  }
+
+  // A suspended or deleted account must not get a fresh session. If the refresh worked anyway,
+  // end the new session again and refuse.
+  const { data: profile, error: profileError } = await userClient(data.session.access_token)
+    .from('profiles')
+    .select('account_status')
+    .eq('id', data.user.id)
+    .single();
+  if (profileError || !profile) {
+    return res.status(500).json({
+      error: { message: 'Could not check your account.', code: 'server_error' },
+    });
+  }
+  if (profile.account_status !== 'active') {
+    await fetch(`${supabaseEnv.url}/auth/v1/logout?scope=local`, {
+      method: 'POST',
+      headers: { apikey: supabaseEnv.anonKey, Authorization: `Bearer ${data.session.access_token}` },
+    }).catch(() => undefined);
+    return res.status(403).json({
+      error: { message: 'This account is not active.', code: 'account_inactive' },
     });
   }
 
@@ -220,6 +242,3 @@ router.post('/sign-out', async (req: Request, res: Response) => {
   return res.status(200).json({ message: 'Signed out.' });
 });
 export default router;
-
-
-

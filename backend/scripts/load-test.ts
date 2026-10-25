@@ -1,5 +1,6 @@
 // Load test: 100 users fight over a limited number of seats on one event.
 // Run from the backend folder:  node scripts\load-test.ts
+// Against a cloud project, sign users up in groups:  $env:SIGNUP_BATCH="20"; $env:SIGNUP_PAUSE_MS="20000"
 // Needs the backend running on port 4000 and the staff test account.
 
 type CallResult = { status: number; json: any; ms: number };
@@ -11,6 +12,15 @@ const EVENT_ID = '66666666-6666-6666-6666-666666666602'; // Gold Rush Weekend ($
 const STAFF = { email: 'staff-test@museum.local', password: 'StaffPassword123' };
 const PASSWORD = 'TestPassword123';
 const RUN_ID: string = Date.now().toString(36);
+// Cloud projects limit how many sign-ups one connection may make in a burst.
+// SIGNUP_BATCH = users per group, SIGNUP_PAUSE_MS = wait between groups (and before retrying refused ones).
+// Defaults (all at once, no retry) are right for the local database.
+const SIGNUP_BATCH: number = Number(process.env.SIGNUP_BATCH || USERS);
+const SIGNUP_PAUSE_MS: number = Number(process.env.SIGNUP_PAUSE_MS || 0);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function call(
   method: string,
@@ -116,22 +126,33 @@ async function main(): Promise<void> {
   const allocationId: string = created.json.allocation.allocation_id;
   console.log(`Ticket type created with exactly ${seats} seats.`);
 
-  // --- Phase 1: sign up all users at once ---------------------------------------
-  const signups = await timed(() =>
-    Promise.all(
-      Array.from({ length: USERS }, (_, i) =>
+  // --- Phase 1: sign up all users (in groups if the cloud limits bursts) ---------
+  const tokens: (string | undefined)[] = new Array(USERS).fill(undefined);
+  const attempts: CallResult[] = [];
+  const signupStart = performance.now();
+  const maxRounds = SIGNUP_PAUSE_MS > 0 ? 40 : 1;
+  for (let round = 1; round <= maxRounds; round++) {
+    const pending: number[] = [];
+    for (let i = 0; i < USERS; i++) if (!tokens[i]) pending.push(i);
+    if (pending.length === 0) break;
+    const group = pending.slice(0, SIGNUP_BATCH);
+    const answers = await Promise.all(
+      group.map((i) =>
         call('POST', '/auth/sign-up', {
-          body: { email: `load${RUN_ID}-${i}@museum.local`, password: PASSWORD, full_name: `Load User ${i}` },
+          body: { email: `load${RUN_ID}-${i}-${round}@museum.local`, password: PASSWORD, full_name: `Load User ${i}` },
         }),
       ),
-    ),
-  );
-  report('Phase 1: sign up', signups.results, signups.wall);
-  const users: { token: string }[] = [];
-  for (const r of signups.results) {
-    const t: string | undefined = r.json?.session?.access_token;
-    if ((r.status === 201 || r.status === 200) && t) users.push({ token: t });
+    );
+    answers.forEach((r, k) => {
+      attempts.push(r);
+      const t: string | undefined = r.json?.session?.access_token;
+      if ((r.status === 201 || r.status === 200) && t) tokens[group[k]] = t;
+    });
+    if (SIGNUP_PAUSE_MS > 0 && tokens.some((t) => !t)) await sleep(SIGNUP_PAUSE_MS);
   }
+  report('Phase 1: sign up', attempts, performance.now() - signupStart);
+  const users: { token: string }[] = [];
+  for (const t of tokens) if (t) users.push({ token: t });
   check(`all ${USERS} users signed up`, users.length === USERS, `${users.length} ok`);
   if (users.length === 0) {
     process.exitCode = 1;

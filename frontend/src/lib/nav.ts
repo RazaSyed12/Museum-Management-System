@@ -17,6 +17,7 @@ export const ROUTES = {
   Item: '/collections',
   Events: '/events',
   Event: '/events',
+  Visit: '/visit',
   Tickets: '/tickets',
   Membership: '/membership',
   SignIn: '/sign-in',

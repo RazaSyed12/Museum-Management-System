@@ -32,24 +32,21 @@ export interface SearchOutcome {
 
 export const POPULAR_SEARCHES = ['Dinosaurs', 'Family', 'Tickets', 'Medieval'] as const;
 
-/** No dedicated "Visit" pages exist yet (opening hours, accessibility, ...),
- *  so those quick links fall back to Home rather than claiming a page that
- *  isn't built — same honesty rule as everywhere else mock data stands in
- *  for something not built yet. */
+/** Quick links shown before the visitor types anything. */
 export const QUICK_LINKS = [
-  { label: 'Plan your visit', href: '/' },
-  { label: 'Opening hours', href: '/' },
+  { label: 'Plan your visit', href: '/visit' },
+  { label: 'Opening hours', href: '/visit#hours' },
   { label: 'Book tickets', href: '/tickets' },
-  { label: 'Accessibility', href: '/' },
+  { label: 'Accessibility', href: '/visit#accessibility' },
 ] as const;
 
 /** Results shown per group; the count in the live region still reflects every match. */
 const PER_GROUP = 3;
 
 const PAGES: SearchResult[] = [
-  { id: 'page-visit', kind: 'Page', title: 'Plan your visit', meta: 'Opening hours, tickets and getting here', href: '/' },
-  { id: 'page-hours', kind: 'Page', title: 'Opening hours', meta: 'Mon–Fri 10:00–17:30 · Sat–Sun 09:30–18:00', href: '/' },
-  { id: 'page-access', kind: 'Page', title: 'Accessibility', meta: 'Step-free throughout · BSL tours on the first Saturday', href: '/' },
+  { id: 'page-visit', kind: 'Page', title: 'Plan your visit', meta: 'Opening hours, tickets and getting here', href: '/visit' },
+  { id: 'page-hours', kind: 'Page', title: 'Opening hours', meta: 'Mon–Fri 10:00–17:30 · Sat–Sun 09:30–18:00', href: '/visit#hours' },
+  { id: 'page-access', kind: 'Page', title: 'Accessibility', meta: 'Step-free throughout · BSL tours on the first Saturday', href: '/visit#accessibility' },
   { id: 'page-tickets', kind: 'Page', title: 'Tickets', meta: 'Book general admission and exhibition tickets', href: '/tickets' },
   { id: 'page-membership', kind: 'Page', title: 'Membership', meta: 'Reduced prices and reserved tickets', href: '/membership' },
 ];

@@ -71,7 +71,7 @@ export function useSiteNav(): SiteNav {
       router.push(ROUTES[label as ScreenName] ?? '/');
     },
     signOut() {
-      auth.signOut();
+      void auth.signOut();
       router.push('/');
     },
     setMember: auth.setMember,

@@ -587,45 +587,29 @@ export const staffHandlers = [
       const url = new URL(request.url);
       const path = url.pathname.split('/api/staff')[1] ?? '';
       const method = request.method;
-      if (path === '/auth/session') return HttpResponse.json(session() ?? null);
-      if (path === '/auth/login') {
-        const body = (await request.json()) as {
-          email: string;
-          password: string;
-          remember: boolean;
-        };
-        const user = s.users.find(
-          (u) => u.email.toLowerCase() === body.email.toLowerCase() && u.status === 'Active',
-        );
-        if (!user || body.password !== 'museum-demo')
-          return HttpResponse.json({ message: 'Check your email and password.' }, { status: 401 });
-        user.lastLogin = now();
+      // Sign-in itself is unified now (see lib/api/auth.ts) — there's no
+      // staff-only login here any more. This just bridges that one sign-in
+      // to the staff-portal-specific profile (phone, Admin/Manager/Staff
+      // tier, status) once lib/staff/session.tsx has confirmed via the
+      // unified session that this person's role is 'staff': it looks them
+      // up by email in the staff roster and, if found, establishes the
+      // legacy SESSION_KEY the rest of this file's handlers still gate on,
+      // so none of that logic needed to change.
+      if (path === '/auth/profile') {
         sessionStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(SESSION_KEY);
-        (body.remember ? localStorage : sessionStorage).setItem(
-          SESSION_KEY,
-          JSON.stringify({
-            id: user.id,
-            expires: Date.now() + (body.remember ? 30 : 1) * 86400000,
-          }),
-        );
-        persist();
-        return HttpResponse.json(user);
+        if (method === 'DELETE') return new HttpResponse(null, { status: 204 });
+        const email = url.searchParams.get('email')?.toLowerCase();
+        const match = email
+          ? s.users.find((u) => u.email.toLowerCase() === email && u.status === 'Active')
+          : undefined;
+        if (match) {
+          match.lastLogin = now();
+          localStorage.setItem(SESSION_KEY, JSON.stringify({ id: match.id, expires: Date.now() + 30 * 86400000 }));
+          persist();
+        }
+        return HttpResponse.json(match ?? null);
       }
-      if (path === '/auth/logout') {
-        sessionStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(SESSION_KEY);
-        return new HttpResponse(null, { status: 204 });
-      }
-      if (path === '/auth/forgot-password') return new HttpResponse(null, { status: 204 });
-      if (path === '/auth/reset-password' || path === '/auth/accept-invitation')
-        return HttpResponse.json(
-          {
-            message:
-              'This demo cannot verify emailed links. Connect the authentication API to complete this flow.',
-          },
-          { status: 400 },
-        );
       const user = session();
       if (!user)
         return HttpResponse.json(

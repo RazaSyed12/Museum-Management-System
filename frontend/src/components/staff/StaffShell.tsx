@@ -36,12 +36,6 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const { user, loading, error, refresh, logout } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
-  const authPage = [
-    '/staff/login',
-    '/staff/forgot-password',
-    '/staff/reset-password',
-    '/staff/invitations/accept',
-  ].includes(pathname);
   const [menu, setMenu] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -55,8 +49,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (!loading && !error && !user && !authPage) router.replace('/staff/login');
-  }, [loading, error, user, authPage, router]);
+    if (!loading && !error && !user) router.replace('/sign-in');
+  }, [loading, error, user, router]);
   useEffect(() => {
     setMenu(false);
     setQuery('');
@@ -95,7 +89,6 @@ export function StaffShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('keydown', close);
   }, []);
 
-  if (authPage) return children;
   if (loading)
     return (
       <div className="mx-auto max-w-200 p-8">
@@ -251,7 +244,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
               onClick={async () => {
                 try {
                   await logout();
-                  router.replace('/staff/login');
+                  router.replace('/sign-in');
                 } catch (err) {
                   setActionError(err instanceof Error ? err.message : 'Could not sign out.');
                 }

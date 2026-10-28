@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { Icon } from '@/components/foundation/Icon';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
+import { useCurrency } from '@/lib/useCurrency';
 import { cn } from '@/lib/cn';
 
 const BENEFITS = [
@@ -20,15 +21,19 @@ const BENEFITS = [
   { icon: 'mail', title: 'Members’ letter', body: 'A quarterly letter from the curators, printed and posted.' },
 ];
 
-const PLANS = [
-  { name: 'Individual', price: '£00', description: 'One named member' },
-  { name: 'Joint', price: '£00', description: 'Two named members at one address' },
-  { name: 'Family', price: '£00', description: 'Two adults and up to four children' },
+const PLAN_INFO = [
+  { name: 'Individual', description: 'One named member' },
+  { name: 'Joint', description: 'Two named members at one address' },
+  { name: 'Family', description: 'Two adults and up to four children' },
 ];
 
 export function MembershipScreen() {
   const auth = useAuth();
   const nav = useSiteNav();
+  const { symbol } = useCurrency();
+  // Placeholder rate pending the museum's 2027 prices — just the detected
+  // currency's symbol, not a real amount.
+  const PLANS = PLAN_INFO.map((p) => ({ ...p, price: `${symbol}00` }));
 
   return (
     <>

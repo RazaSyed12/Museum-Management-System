@@ -10,6 +10,7 @@ import { Icon } from '@/components/foundation/Icon';
 import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
+import { useCurrency } from '@/lib/useCurrency';
 import type { MuseumEvent } from '@/lib/api/events';
 import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, money, generateBookingRef, type TicketQty } from '@/lib/ticketing';
 
@@ -22,6 +23,7 @@ export interface PaymentScreenProps {
 export function PaymentScreen({ event, qty, contact }: PaymentScreenProps) {
   const router = useRouter();
   const { isMember } = useAuth();
+  const { currency } = useCurrency();
   const types = ticketTypesFor(event);
   const order = computeOrder(qty, types, isMember);
   const free = order.total === 0;
@@ -40,9 +42,9 @@ export function PaymentScreen({ event, qty, contact }: PaymentScreenProps) {
       title={free ? 'Confirm your free tickets' : 'Payment'}
       aside={
         <Summary
-          lines={[...ticketTypeLines(qty, types), ...orderBreakdownLines(order)]}
-          total={money(order.total)}
-          footer={<Button fullWidth size="lg" loading={status === 'loading'} onClick={confirm}>{free ? 'Confirm reservation' : `Pay ${money(order.total)}`}</Button>}
+          lines={[...ticketTypeLines(qty, types, currency), ...orderBreakdownLines(order, currency)]}
+          total={money(order.total, currency)}
+          footer={<Button fullWidth size="lg" loading={status === 'loading'} onClick={confirm}>{free ? 'Confirm reservation' : `Pay ${money(order.total, currency)}`}</Button>}
         />
       }
     >

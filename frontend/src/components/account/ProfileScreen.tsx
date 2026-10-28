@@ -16,25 +16,26 @@ import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
+import { useCurrency } from '@/lib/useCurrency';
 import { listBookings, type Booking } from '@/lib/api/bookings';
 import { recommendedForYou, hrefForRecommendation } from '@/lib/content';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 
-const COLUMNS: Column<Booking>[] = [
-  { key: 'ref', header: 'Reference' },
-  { key: 'event', header: 'Event' },
-  { key: 'date', header: 'Date' },
-  { key: 'qty', header: 'Tickets', align: 'right' },
-  { key: 'total', header: 'Total', align: 'right' },
-  { key: 'status', header: 'Status', render: (r) => <StatusBadge size="sm" tone={r.status === 'Confirmed' ? 'success' : 'danger'}>{r.status}</StatusBadge> },
-  { key: 'actions', header: '', align: 'right', render: () => <Button size="sm" variant="ghost" iconLeft="qr-code">Ticket</Button> },
-];
-
 export function ProfileScreen() {
   const auth = useAuth();
   const nav = useSiteNav();
   const router = useRouter();
+  const { format } = useCurrency();
+  const columns: Column<Booking>[] = [
+    { key: 'ref', header: 'Reference' },
+    { key: 'event', header: 'Event' },
+    { key: 'date', header: 'Date' },
+    { key: 'qty', header: 'Tickets', align: 'right' },
+    { key: 'totalValue', header: 'Total', align: 'right', render: (r) => (r.totalValue === 0 ? 'Free' : format(r.totalValue)) },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge size="sm" tone={r.status === 'Confirmed' ? 'success' : 'danger'}>{r.status}</StatusBadge> },
+    { key: 'actions', header: '', align: 'right', render: () => <Button size="sm" variant="ghost" iconLeft="qr-code">Ticket</Button> },
+  ];
   const [tab, setTab] = useState<Tab>('bookings');
   const [name, setName] = useState(auth.user?.name ?? '');
   const [bookings, setBookings] = useState<Booking[]>();
@@ -95,7 +96,7 @@ export function ProfileScreen() {
 
       <Container className="py-8 md:py-12">
         {tab === 'bookings' && (
-          bookings ? <DataTable<Booking> caption="Your bookings" columns={COLUMNS} rows={bookings} /> : <SkeletonCard />
+          bookings ? <DataTable<Booking> caption="Your bookings" columns={columns} rows={bookings} /> : <SkeletonCard />
         )}
 
         {tab === 'saved' && (

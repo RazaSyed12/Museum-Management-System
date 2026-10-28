@@ -69,7 +69,7 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
   return (
     <>
       <Hero go={nav.go} events={allEvents} />
-      <PlanVisit exhibitionPrice={exhibition.price} onCheck={(plan) => router.push(`/tickets/${exhibition.id}?general=${plan.visitors}`)} />
+      <PlanVisit exhibitionPriceValue={exhibition.priceValue} exhibitionMemberPrice={exhibition.memberPrice} onCheck={(plan) => router.push(`/tickets/${exhibition.id}?general=${plan.visitors}`)} />
       <VisitStrip />
       <Ticker />
 
@@ -111,7 +111,7 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
         <Grid cols={3}>
           {shownEvents.map((e) => (
             <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
-              location={e.location} price={e.price} free={e.free} availability={e.availability}
+              location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
               detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
           ))}
         </Grid>

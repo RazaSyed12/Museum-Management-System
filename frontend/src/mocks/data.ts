@@ -54,24 +54,24 @@ export const items: Item[] = [
 
 export const events: MuseumEvent[] = [
   { id: 'twilight', title: 'Twilight at the Museum', date: '14 Sep 2026', endDate: '14 Sep 2026', time: '18:30–21:00', location: 'Great Hall',
-    price: '£14 · £10 members', priceValue: 14, memberPrice: 10, childPrice: 7, availability: 'limited', remaining: 38, capacity: 200,
+    priceValue: 14, memberPrice: 10, childPrice: 7, availability: 'limited', remaining: 38, capacity: 200,
     description: 'After-hours access to the Great Hall with curator talks, live music and a late bar.' },
   { id: 'hoard-talk', title: 'Curator talk: Reading the Lanthorn Hoard', date: '21 Sep 2026', endDate: '21 Sep 2026', time: '13:00–14:00', location: 'Lecture Theatre',
-    price: 'Free', free: true, priceValue: 0, availability: 'available', remaining: 82, capacity: 120,
+    free: true, priceValue: 0, availability: 'available', remaining: 82, capacity: 120,
     description: 'Dr Naomi Vale on what ninety-two buried objects tell us about belief.' },
   { id: 'family-fossil', title: 'Family fossil workshop', date: '27 Sep 2026', endDate: '27 Sep 2026', time: '10:00–12:30', location: 'Learning Studio',
-    price: '£8 · £5 members', priceValue: 8, memberPrice: 5, childPrice: 4, availability: 'soldout', remaining: 0, capacity: 40,
+    priceValue: 8, memberPrice: 5, childPrice: 4, availability: 'soldout', remaining: 0, capacity: 40,
     description: 'Cast your own ammonite and meet the museum’s palaeontologists.' },
   { id: 'night-drawing', title: 'Late-night life drawing', date: '2 Oct 2026', endDate: '2 Oct 2026', time: '19:00–21:00', location: 'Gallery 9',
-    price: '£18 · £14 members', priceValue: 18, memberPrice: 14, childPrice: 9, availability: 'cancelled', remaining: 0, capacity: 30,
+    priceValue: 18, memberPrice: 14, childPrice: 9, availability: 'cancelled', remaining: 0, capacity: 30,
     description: 'This session has been cancelled. Ticket holders have been refunded in full.' },
   { id: 'beneath', title: 'Beneath the Lanthorn Fields', date: '3 Jul 2026', endDate: '3 Jan 2027', time: 'Daily, 10:00–17:00', location: 'Exhibition Wing',
-    price: '£16 · £12 members', priceValue: 16, memberPrice: 12, childPrice: 8, availability: 'available', remaining: 640, capacity: 1200,
+    priceValue: 16, memberPrice: 12, childPrice: 8, availability: 'available', remaining: 640, capacity: 1200,
     description: 'Ninety-two objects from a single Iron Age hoard, shown together for the first time since their discovery in 1974.' },
 ];
 
 export const bookings: Booking[] = [
-  { id: 'HM-2026-04821', ref: 'HM-2026-04821', event: 'Beneath the Lanthorn Fields', date: '12 Aug 2026', qty: 2, total: '£24.00', status: 'Confirmed' },
-  { id: 'HM-2026-04455', ref: 'HM-2026-04455', event: 'Curator talk: Reading the Lanthorn Hoard', date: '21 Sep 2026', qty: 1, total: 'Free', status: 'Confirmed' },
-  { id: 'HM-2026-03910', ref: 'HM-2026-03910', event: 'Family fossil workshop', date: '4 May 2026', qty: 4, total: '£20.00', status: 'Cancelled' },
+  { id: 'HM-2026-04821', ref: 'HM-2026-04821', event: 'Beneath the Lanthorn Fields', date: '12 Aug 2026', qty: 2, totalValue: 24, status: 'Confirmed' },
+  { id: 'HM-2026-04455', ref: 'HM-2026-04455', event: 'Curator talk: Reading the Lanthorn Hoard', date: '21 Sep 2026', qty: 1, totalValue: 0, status: 'Confirmed' },
+  { id: 'HM-2026-03910', ref: 'HM-2026-03910', event: 'Family fossil workshop', date: '4 May 2026', qty: 4, totalValue: 20, status: 'Cancelled' },
 ];

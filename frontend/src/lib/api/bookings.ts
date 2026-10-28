@@ -11,7 +11,9 @@ export interface Booking {
   event: string;
   date: string;
   qty: number;
-  total: string;
+  /** 0 for a free booking — formatted into the visitor's currency at
+   *  render time rather than baked into a display string. */
+  totalValue: number;
   status: BookingStatus;
 }
 

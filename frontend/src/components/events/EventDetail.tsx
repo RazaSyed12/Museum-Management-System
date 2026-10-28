@@ -8,6 +8,7 @@ import { Icon } from '@/components/foundation/Icon';
 import { DetailHero, MetaItem } from '@/components/layout/DetailHero';
 import { Container } from '@/components/layout/Container';
 import { useSiteNav } from '@/lib/nav';
+import { useCurrency } from '@/lib/useCurrency';
 import type { MuseumEvent, EventAvailability } from '@/lib/api/events';
 
 const BADGE: Record<EventAvailability, { tone: 'success' | 'warning' | 'danger'; label: string }> = {
@@ -23,10 +24,12 @@ export interface EventDetailProps {
 
 export function EventDetail({ event: e }: EventDetailProps) {
   const nav = useSiteNav();
+  const { format } = useCurrency();
   const [waitlisted, setWaitlisted] = useState(false);
   const cancelled = e.availability === 'cancelled';
   const soldout = e.availability === 'soldout';
   const badge = BADGE[e.availability];
+  const priceLabel = e.memberPrice != null ? `${format(e.priceValue)} · ${format(e.memberPrice)} members` : format(e.priceValue);
 
   return (
     <>
@@ -38,7 +41,7 @@ export function EventDetail({ event: e }: EventDetailProps) {
             <StatusBadge tone={badge.tone} size="sm">{e.availability === 'limited' ? `Limited — ${e.remaining} left` : badge.label}</StatusBadge>
             {e.free && <StatusBadge tone="info" size="sm" icon="gift">Free</StatusBadge>}
             {nav.isMember && !cancelled && e.memberPrice != null && (
-              <StatusBadge tone="member" size="sm">Member price £{e.memberPrice}</StatusBadge>
+              <StatusBadge tone="member" size="sm">Member price {format(e.memberPrice)}</StatusBadge>
             )}
           </div>
         }
@@ -48,7 +51,7 @@ export function EventDetail({ event: e }: EventDetailProps) {
             <MetaItem icon="calendar-days">{e.date}</MetaItem>
             <MetaItem icon="clock">{e.time}</MetaItem>
             <MetaItem icon="map-pin">{e.location}</MetaItem>
-            <MetaItem icon="banknote">{e.free ? 'Free' : e.price}</MetaItem>
+            <MetaItem icon="banknote">{e.free ? 'Free' : priceLabel}</MetaItem>
           </>
         }
       />
@@ -77,8 +80,8 @@ export function EventDetail({ event: e }: EventDetailProps) {
 
           <aside className="sticky top-25 grid gap-4 self-start rounded-lg border border-line-subtle bg-surface-card p-6 shadow-sm">
             <span className="type-eyebrow tracking-wider text-muted uppercase">Tickets</span>
-            <span className="font-display text-3xl/none text-heading">{e.free ? 'Free' : `£${e.priceValue}`}</span>
-            {!e.free && e.memberPrice != null && <span className="type-body-sm text-gold-700">Members £{e.memberPrice}</span>}
+            <span className="font-display text-3xl/none text-heading">{e.free ? 'Free' : format(e.priceValue)}</span>
+            {!e.free && e.memberPrice != null && <span className="type-body-sm text-gold-700">Members {format(e.memberPrice)}</span>}
             <div className="grid gap-2 border-y border-line-subtle py-4">
               <MetaItem icon="calendar-days">{e.date}</MetaItem>
               <MetaItem icon="clock">{e.time}</MetaItem>

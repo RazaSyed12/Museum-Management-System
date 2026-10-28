@@ -6,6 +6,7 @@ import { Icon } from '@/components/foundation/Icon';
 import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
+import { useCurrency } from '@/lib/useCurrency';
 import type { MuseumEvent } from '@/lib/api/events';
 import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, money, type TicketQty } from '@/lib/ticketing';
 
@@ -18,6 +19,7 @@ export interface ConfirmationScreenProps {
 
 export function ConfirmationScreen({ event, qty, contact, bookingRef }: ConfirmationScreenProps) {
   const { isMember } = useAuth();
+  const { currency } = useCurrency();
   const types = ticketTypesFor(event);
   const order = computeOrder(qty, types, isMember);
   const ticketLine = types.find((t) => qty[t.key] > 0);
@@ -28,8 +30,8 @@ export function ConfirmationScreen({ event, qty, contact, bookingRef }: Confirma
       title="You're going"
       aside={
         <Summary
-          lines={[...ticketTypeLines(qty, types), ...orderBreakdownLines(order)]}
-          total={money(order.total)}
+          lines={[...ticketTypeLines(qty, types, currency), ...orderBreakdownLines(order, currency)]}
+          total={money(order.total, currency)}
           note="A receipt has been emailed to you."
           footer={
             <div className="grid gap-3">
@@ -60,7 +62,7 @@ export function ConfirmationScreen({ event, qty, contact, bookingRef }: Confirma
               ['Date', `${event.date} · ${event.time}`],
               ['Location', event.location],
               ['Tickets', `${order.count} × ${ticketLine?.name ?? 'ticket'}`],
-              ['Total paid', money(order.total)],
+              ['Total paid', money(order.total, currency)],
               ['Booked by', contact.name || 'Guest'],
             ] as const).map(([k, v]) => (
               <Fragment key={k}>

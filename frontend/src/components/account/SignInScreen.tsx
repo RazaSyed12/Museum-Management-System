@@ -19,14 +19,20 @@ export function SignInScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string>();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const result = auth.signIn(email, password, rememberMe);
+    const result = await auth.signIn(email, password, rememberMe);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    router.push('/account');
+    // Same redirect rule as a fresh sign-up: the backend's /auth/me doc
+    // says onboarding_completed false means the preferences page first.
+    // role === 'staff' is the one thing a visitor sign-in never returns —
+    // there is no separate staff sign-in, this is it.
+    if (result.role === 'staff') router.push('/staff');
+    else if (!result.onboardingCompleted) router.push('/interests');
+    else router.push('/account');
   }
 
   return (
@@ -39,8 +45,9 @@ export function SignInScreen() {
         </p>
       }
     >
-      <Alert tone="info" title="Demo account" className="mb-5">
-        email <code>amara@example.com</code> · password <code>password123</code>
+      <Alert tone="info" title="Demo accounts" className="mb-5">
+        visitor <code>amara@example.com</code> / <code>password123</code> · staff{' '}
+        <code>admin@heritage.example</code> / <code>museum-demo</code>
       </Alert>
       {error && (
         <Alert tone="danger" title="We couldn't sign you in" className="mb-5">

@@ -19,7 +19,7 @@ export function ResetPasswordScreen({ email: initialEmail }: { email: string }) 
   const [error, setError] = useState<string>();
   const [done, setDone] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
@@ -29,7 +29,7 @@ export function ResetPasswordScreen({ email: initialEmail }: { email: string }) 
       setError("Passwords don't match.");
       return;
     }
-    const result = auth.resetPassword(email, password);
+    const result = await auth.resetPassword(email, password);
     if (!result.ok) {
       setError(result.error);
       return;

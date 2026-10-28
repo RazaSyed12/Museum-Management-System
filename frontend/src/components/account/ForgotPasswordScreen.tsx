@@ -14,9 +14,9 @@ export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    auth.requestPasswordReset(email);
+    await auth.requestPasswordReset(email);
     setSent(true);
   }
 

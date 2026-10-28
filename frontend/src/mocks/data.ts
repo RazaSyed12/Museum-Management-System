@@ -8,6 +8,7 @@
 import type { Collection, Item } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
 import type { Booking } from '@/lib/api/bookings';
+import type { Role } from '@/lib/api/auth';
 
 export const collections: Collection[] = [
   { id: 'ice-age', name: 'Ice Age Britain', category: 'Prehistory', period: 'Pleistocene', items: 128, tone: 'olive',
@@ -74,4 +75,28 @@ export const bookings: Booking[] = [
   { id: 'HM-2026-04821', ref: 'HM-2026-04821', event: 'Beneath the Lanthorn Fields', date: '12 Aug 2026', qty: 2, totalValue: 24, status: 'Confirmed' },
   { id: 'HM-2026-04455', ref: 'HM-2026-04455', event: 'Curator talk: Reading the Lanthorn Hoard', date: '21 Sep 2026', qty: 1, totalValue: 0, status: 'Confirmed' },
   { id: 'HM-2026-03910', ref: 'HM-2026-03910', event: 'Family fossil workshop', date: '4 May 2026', qty: 4, totalValue: 20, status: 'Cancelled' },
+];
+
+/** One sign-in for every visitor (see lib/api/auth.ts) — `role` is what
+ *  tells the frontend apart a registered visitor, a member and a staff
+ *  account, not a separate login. `admin@heritage.example` is deliberately
+ *  the same person as the Admin seed in mocks/staff.ts (same name, same
+ *  email) — signing in here and being recognised there is the whole point. */
+export interface MockAccount {
+  id: string;
+  full_name: string;
+  email: string;
+  password: string;
+  role: Role;
+  onboardingCompleted: boolean;
+  interests: string[];
+}
+
+export const accounts: MockAccount[] = [
+  { id: 'amara', full_name: 'Amara Okafor', email: 'amara@example.com', password: 'password123',
+    role: 'registered', onboardingCompleted: true, interests: ['Prehistory', 'Archaeology'] },
+  { id: 'judith', full_name: 'Judith Clarke', email: 'judith@example.com', password: 'password123',
+    role: 'member', onboardingCompleted: true, interests: ['Medieval', 'Renaissance'] },
+  { id: 'admin', full_name: 'Sarah Mitchell', email: 'admin@heritage.example', password: 'museum-demo',
+    role: 'staff', onboardingCompleted: true, interests: [] },
 ];

@@ -35,11 +35,21 @@ export interface Session {
   expires_at: number;
 }
 
+/** openapi.yaml's SignUpResponse deliberately has no `role` on `user` — a
+ *  fresh sign-up is always 'registered' by definition, so the real backend
+ *  doesn't bother sending it. */
+export interface NewAccountUser {
+  id: string;
+  email: string;
+  full_name: string;
+  onboarding_completed: boolean;
+}
+
 export async function signUp(input: {
   full_name: string;
   email: string;
   password: string;
-}): Promise<{ user: AuthUser; session: Session | null }> {
+}): Promise<{ user: NewAccountUser; session: Session | null }> {
   if (shouldMockDirectly()) return resolveSignUp(input);
   return apiPost('/auth/sign-up', input);
 }

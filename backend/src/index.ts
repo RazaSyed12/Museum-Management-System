@@ -23,7 +23,24 @@ import searchRouter from './routes/search';
 import paymentsRouter from './routes/payments';
 
 const app = express();
-app.use(cors());
+
+// Only these origins may call the API from a browser. Set ALLOWED_ORIGINS
+// in .env as a comma-separated list for prod (e.g. the deployed frontend
+// URL); falls back to the local Next.js dev server when unset.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    // No Origin header (curl, server-to-server, same-origin) is allowed.
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} is not allowed`));
+  }
+}));
 app.use(express.json());
 
 app.use('/auth', authRouter);

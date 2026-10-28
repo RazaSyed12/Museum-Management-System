@@ -60,28 +60,13 @@ function queryString(query: object): string {
 }
 
 export const staffApi = {
-  session: () => request<StaffUser | null>('/auth/session'),
-  login: (email: string, password: string, remember: boolean) =>
-    request<StaffUser>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, remember }),
-    }),
-  logout: () => request<void>('/auth/logout', { method: 'POST' }),
-  recover: (email: string) =>
-    request<void>('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
-  reset: (token: string, password: string) =>
-    request<void>('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, password }),
-    }),
-  accept: (token: string, password: string) =>
-    request<void>('/auth/accept-invitation', {
-      method: 'POST',
-      body: JSON.stringify({ token, password }),
-    }),
+  /** Bridges the unified sign-in (lib/api/auth.ts) to this person's
+   *  staff-portal profile — phone, Admin/Manager/Staff tier, status —
+   *  once the unified session has confirmed role === 'staff'. Returns
+   *  null if nobody in the staff roster has this email yet (an admin
+   *  needs to add them under User management first). */
+  myProfile: (email: string) => request<StaffUser | null>(`/auth/profile${queryString({ email })}`),
+  clearProfile: () => request<void>('/auth/profile', { method: 'DELETE' }),
   list: <K extends Resource>(resource: K, query: ListQuery = {}, signal?: AbortSignal) =>
     request<PageResult<StaffResources[K]>>(`/${resource}${queryString(query)}`, { signal }),
   get: <K extends Resource>(resource: K, id: string, signal?: AbortSignal) =>

@@ -32,7 +32,7 @@ export function shouldMockDirectly(): boolean {
 /** Browser fetches resolve relative URLs against the page's own origin;
  *  Node's fetch (the real-backend server-side case) has no such origin to
  *  resolve against and throws on a bare path, so it needs an absolute URL. */
-function apiUrl(path: string): string {
+export function apiUrl(path: string): string {
   if (typeof window !== 'undefined') return path;
   const base =
     process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -57,4 +57,73 @@ export async function apiFetchOptional<T>(path: string): Promise<T | undefined> 
   if (res.status === 404) return undefined;
   if (!res.ok) throw new Error(`${path} responded ${res.status}`);
   return res.json() as Promise<T>;
+}
+
+/** Every error backend/src/routes/* sends back is shaped
+ *  {"error":{"message","code"}} — this carries that through to callers
+ *  instead of a bare Error, so UI can key off `code` where it matters
+ *  (e.g. "session_expired") and not just show `message`. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function parseErrorBody(res: Response): Promise<{ message: string; code: string }> {
+  const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; code?: string } };
+  return {
+    message: body.error?.message ?? `${res.status} ${res.statusText}`,
+    code: body.error?.code ?? 'unknown_error',
+  };
+}
+
+/** POST with a JSON body, no auth required — sign-up, sign-in, refresh,
+ *  forgot/reset-password all look like this. */
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  await ensureMockingStarted();
+  const res = await fetch(apiUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** GET with "Authorization: Bearer <token>" — /auth/me and anything else
+ *  behind requireAuth. */
+export async function apiGetAuthed<T>(path: string, token: string): Promise<T> {
+  await ensureMockingStarted();
+  const res = await fetch(apiUrl(path), { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** POST with "Authorization: Bearer <token>" — /auth/sign-out. */
+export async function apiPostAuthed<T>(path: string, token: string, body?: unknown): Promise<T> {
+  await ensureMockingStarted();
+  const res = await fetch(apiUrl(path), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
+  return res.status === 204 ? (undefined as T) : (res.json() as Promise<T>);
 }

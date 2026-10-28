@@ -23,7 +23,7 @@ export function RegisterScreen() {
   const [newsletter, setNewsletter] = useState(true);
   const [error, setError] = useState<string>();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
@@ -33,7 +33,10 @@ export function RegisterScreen() {
       setError("Passwords don't match.");
       return;
     }
-    const result = auth.register({ name, email, password });
+    // Every new account starts as a plain registered visitor — becoming
+    // staff happens later, out of band (an admin promotes the account),
+    // not through this form.
+    const result = await auth.register({ name, email, password });
     if (!result.ok) {
       setError(result.error);
       return;

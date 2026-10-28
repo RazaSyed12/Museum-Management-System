@@ -6,7 +6,7 @@ import type {
 } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
 import type { Booking } from '@/lib/api/bookings';
-import type { AuthUser, Session } from '@/lib/api/auth';
+import type { AuthUser, NewAccountUser, Session } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { collections, items, categories, events, bookings, accounts, type MockAccount } from './data';
 
@@ -97,6 +97,10 @@ function toAuthUser(a: MockAccount): AuthUser {
   return { id: a.id, email: a.email, full_name: a.full_name, role: a.role, onboarding_completed: a.onboardingCompleted };
 }
 
+function toNewAccountUser(a: MockAccount): NewAccountUser {
+  return { id: a.id, email: a.email, full_name: a.full_name, onboarding_completed: a.onboardingCompleted };
+}
+
 function makeSession(a: MockAccount): Session {
   const base = { sub: a.id, email: a.email, role: a.role };
   return {
@@ -115,7 +119,7 @@ export async function resolveSignUp(input: {
   full_name: string;
   email: string;
   password: string;
-}): Promise<{ user: AuthUser; session: Session | null }> {
+}): Promise<{ user: NewAccountUser; session: Session | null }> {
   const email = input.email.trim().toLowerCase();
   if (accounts.some((a) => a.email.toLowerCase() === email))
     throw new ApiError('An account with that email already exists.', 'email_exists', 409);
@@ -133,7 +137,7 @@ export async function resolveSignUp(input: {
   // The real endpoint can return session: null when email confirmation is
   // required; there's no email service here, so the mock always signs
   // straight in, same as this app's register flow always has.
-  return { user: toAuthUser(account), session: makeSession(account) };
+  return { user: toNewAccountUser(account), session: makeSession(account) };
 }
 
 export async function resolveSignIn(input: { email: string; password: string }): Promise<{ user: AuthUser; session: Session }> {

@@ -205,11 +205,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async register({ name, email, password }) {
       try {
         const { user, session: newSession } = await authApi.signUp({ full_name: name, email, password });
+        // SignUpResponse's user has no `role` (openapi.yaml) — a brand-new
+        // account is always 'registered' by definition, so that's filled in
+        // here rather than read off the response.
+        const registeredUser: AuthUser = { ...user, role: 'registered' };
         // A brand-new account always goes straight to onboarding, so there's
         // nothing useful to do with session: null (email confirmation
         // required) in this demo — the mock never returns it.
-        if (newSession) applySignIn(user, newSession, false);
-        return { ok: true, role: user.role, onboardingCompleted: user.onboarding_completed };
+        if (newSession) applySignIn(registeredUser, newSession, false);
+        return { ok: true, role: 'registered', onboardingCompleted: user.onboarding_completed };
       } catch (err) {
         return { ok: false, error: err instanceof ApiError ? err.message : 'An account with that email already exists.' };
       }

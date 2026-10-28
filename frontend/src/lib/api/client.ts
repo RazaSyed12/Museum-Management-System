@@ -41,6 +41,17 @@ export function apiUrl(path: string): string {
   return new URL(path, base).toString();
 }
 
+/** Always resolves against NEXT_PUBLIC_API_BASE_URL, client-side included —
+ *  for a call that must reach the real backend even while collections/
+ *  events/etc. are still mocked. A same-origin relative path would still
+ *  get caught by MSW's browser worker (it's running for everything else);
+ *  going out as a genuinely different-origin request is what lets it
+ *  bypass MSW's interception instead of hitting the mock handler. */
+export function apiUrlAbsolute(path: string): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+  return new URL(path, base).toString();
+}
+
 export async function apiFetch<T>(path: string): Promise<T> {
   await ensureMockingStarted();
   const res = await fetch(apiUrl(path));
@@ -83,10 +94,12 @@ async function parseErrorBody(res: Response): Promise<{ message: string; code: s
 }
 
 /** POST with a JSON body, no auth required — sign-up, sign-in, refresh,
- *  forgot/reset-password all look like this. */
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+ *  forgot/reset-password all look like this. `absolute: true` targets the
+ *  real backend directly (see apiUrlAbsolute) instead of a same-origin
+ *  path MSW might still be intercepting for other, still-mocked resources. */
+export async function apiPost<T>(path: string, body: unknown, opts?: { absolute?: boolean }): Promise<T> {
   await ensureMockingStarted();
-  const res = await fetch(apiUrl(path), {
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -100,9 +113,11 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
 /** GET with "Authorization: Bearer <token>" — /auth/me and anything else
  *  behind requireAuth. */
-export async function apiGetAuthed<T>(path: string, token: string): Promise<T> {
+export async function apiGetAuthed<T>(path: string, token: string, opts?: { absolute?: boolean }): Promise<T> {
   await ensureMockingStarted();
-  const res = await fetch(apiUrl(path), { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!res.ok) {
     const { message, code } = await parseErrorBody(res);
     throw new ApiError(message, code, res.status);
@@ -111,9 +126,9 @@ export async function apiGetAuthed<T>(path: string, token: string): Promise<T> {
 }
 
 /** POST with "Authorization: Bearer <token>" — /auth/sign-out. */
-export async function apiPostAuthed<T>(path: string, token: string, body?: unknown): Promise<T> {
+export async function apiPostAuthed<T>(path: string, token: string, body?: unknown, opts?: { absolute?: boolean }): Promise<T> {
   await ensureMockingStarted();
-  const res = await fetch(apiUrl(path), {
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

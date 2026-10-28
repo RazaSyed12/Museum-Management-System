@@ -119,7 +119,7 @@ export function EventsBrowse() {
               <div className="grid gap-5">
                 {pageResults.map((e) => (
                   <EventCard key={e.id} layout="horizontal" title={e.title} description={e.description} date={e.date} time={e.time}
-                    location={e.location} price={e.price} free={e.free} availability={e.availability}
+                    location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
                     detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
                 ))}
               </div>

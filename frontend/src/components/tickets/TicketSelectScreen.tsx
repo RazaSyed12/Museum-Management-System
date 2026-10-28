@@ -10,6 +10,7 @@ import { Media } from '@/components/foundation/Media';
 import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
+import { useCurrency } from '@/lib/useCurrency';
 import { cn } from '@/lib/cn';
 import type { MuseumEvent } from '@/lib/api/events';
 import { ticketTypesFor, computeOrder, ticketTypeLines, qtyToSearchParams, money, type TicketQty } from '@/lib/ticketing';
@@ -22,6 +23,7 @@ export interface TicketSelectScreenProps {
 export function TicketSelectScreen({ event, initialQty }: TicketSelectScreenProps) {
   const router = useRouter();
   const { isMember } = useAuth();
+  const { currency, format } = useCurrency();
   const types = ticketTypesFor(event);
   const [qty, setQty] = useState<TicketQty>(initialQty);
   const order = computeOrder(qty, types, isMember);
@@ -36,8 +38,8 @@ export function TicketSelectScreen({ event, initialQty }: TicketSelectScreenProp
       title="Choose your tickets"
       aside={
         <Summary
-          lines={ticketTypeLines(qty, types)}
-          total={money(order.sub)}
+          lines={ticketTypeLines(qty, types, currency)}
+          total={money(order.sub, currency)}
           note="Fees and any member discount are shown at checkout."
           footer={<Button fullWidth size="lg" disabled={!order.count} onClick={continueToCheckout}>Continue to checkout</Button>}
         />
@@ -56,7 +58,7 @@ export function TicketSelectScreen({ event, initialQty }: TicketSelectScreenProp
       </div>
 
       {!isMember && event.memberPrice != null && (
-        <Alert tone="info" title={`Members pay £${event.memberPrice}`} action={<Button variant="secondary" size="sm" as="a" href="/membership">See membership</Button>}>
+        <Alert tone="info" title={`Members pay ${format(event.memberPrice)}`} action={<Button variant="secondary" size="sm" as="a" href="/membership">See membership</Button>}>
           Membership pays for itself in four visits, and member tickets are held until 48 hours before.
         </Alert>
       )}
@@ -74,7 +76,7 @@ export function TicketSelectScreen({ event, initialQty }: TicketSelectScreenProp
                 <span className="type-body-sm text-muted">{locked ? 'Sign in with a membership to unlock this price' : t.description}</span>
               </div>
               <div className="flex items-center gap-6">
-                <span className="font-body text-md leading-none font-semibold text-heading">{money(t.price)}</span>
+                <span className="font-body text-md leading-none font-semibold text-heading">{format(t.price)}</span>
                 <QuantityStepper label={t.name} value={qty[t.key]} max={Math.min(6, event.remaining)} disabled={locked}
                   onChange={(v) => setQty((q) => ({ ...q, [t.key]: v }))} />
               </div>

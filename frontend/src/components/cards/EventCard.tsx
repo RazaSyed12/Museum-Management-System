@@ -1,3 +1,5 @@
+'use client';
+
 import type { HTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
 import { Card } from './Card';
@@ -6,6 +8,7 @@ import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { Icon } from '@/components/foundation/Icon';
 import { Button } from '@/components/forms/Button';
 import { cn } from '@/lib/cn';
+import { useCurrency } from '@/lib/useCurrency';
 
 /* Ported from design-system/components/cards/EventCard.jsx + EventCard.d.ts. */
 type Availability = 'available' | 'limited' | 'soldout' | 'cancelled';
@@ -16,8 +19,10 @@ export interface EventCardProps extends HTMLAttributes<HTMLElement> {
   date?: string;
   time?: string;
   location?: string;
-  /** Display price string, e.g. "£14 · £10 members". Ignored when free. */
-  price?: string;
+  /** General admission price. Ignored when free. */
+  priceValue?: number;
+  /** Shown alongside priceValue as "<price> · <memberPrice> members" when present. */
+  memberPrice?: number;
   free?: boolean;
   /** Drives the badge and the CTA. cancelled/soldout never render a bookable primary button. */
   availability?: Availability;
@@ -48,10 +53,12 @@ function Meta({ icon, children }: { icon: string; children: ReactNode }) {
   );
 }
 
-export function EventCard({ title, description, date, time, location, price, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, detailHref, className, ...rest }: EventCardProps) {
+export function EventCard({ title, description, date, time, location, priceValue, memberPrice, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, detailHref, className, ...rest }: EventCardProps) {
+  const { format } = useCurrency();
   const a = AVAIL[availability];
   const blocked = availability === 'soldout' || availability === 'cancelled';
   const row = layout === 'horizontal';
+  const price = priceValue != null ? (memberPrice != null ? `${format(priceValue)} · ${format(memberPrice)} members` : format(priceValue)) : undefined;
   return (
     <Card interactive={!blocked} className={cn('p-0', row ? 'grid sm:grid-cols-[260px_minmax(0,1fr)]' : 'block', className)} {...rest}>
       {row ? (

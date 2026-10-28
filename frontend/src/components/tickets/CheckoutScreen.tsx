@@ -12,6 +12,7 @@ import { Alert } from '@/components/feedback/Alert';
 import { FlowFrame } from './FlowFrame';
 import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
+import { useCurrency } from '@/lib/useCurrency';
 import type { MuseumEvent } from '@/lib/api/events';
 import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, money, type TicketQty } from '@/lib/ticketing';
 
@@ -26,6 +27,7 @@ const ACCESS_OPTIONS = [{ value: 'none', label: 'No requirements' }, { value: 'w
 export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
   const router = useRouter();
   const { user, isMember } = useAuth();
+  const { currency, format } = useCurrency();
   const types = ticketTypesFor(event);
   const order = computeOrder(qty, types, isMember);
 
@@ -50,8 +52,8 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
       title="Check your order"
       aside={
         <Summary
-          lines={[...ticketTypeLines(qty, types), ...orderBreakdownLines(order)]}
-          total={money(order.total)}
+          lines={[...ticketTypeLines(qty, types, currency), ...orderBreakdownLines(order, currency)]}
+          total={money(order.total, currency)}
           note="You will not be charged until the next step."
           footer={<Button fullWidth size="lg" type="submit" form="checkout-form">Continue to payment</Button>}
         />
@@ -81,7 +83,7 @@ export function CheckoutScreen({ event, qty }: CheckoutScreenProps) {
           <RadioGroup name="access" value={access} onChange={setAccess} options={ACCESS_OPTIONS} />
         </div>
         {isMember && order.discount > 0 && (
-          <Alert tone="success" title="Member discount applied">£{order.discount.toFixed(2)} has been taken off this order.</Alert>
+          <Alert tone="success" title="Member discount applied">{format(order.discount)} has been taken off this order.</Alert>
         )}
       </form>
     </FlowFrame>

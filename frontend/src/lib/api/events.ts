@@ -10,7 +10,6 @@ export interface MuseumEvent {
   endDate: string;
   time: string;
   location: string;
-  price: string;
   priceValue: number;
   memberPrice?: number;
   /** Under-18/student price — API-REQUIREMENTS.md names this as part of
@@ -26,9 +25,11 @@ export interface MuseumEvent {
 
 /** GET /events — backend/API-REQUIREMENTS.md. The real endpoint sends
  *  `startAt`/`endAt` as timestamps and a computed `availability`; the
- *  fixture already has both pre-formatted and computed, so nothing to
- *  convert here yet — that conversion will live in this file once the
- *  real response shape lands. */
+ *  fixture already has `availability` computed, so nothing to convert
+ *  here yet — that conversion will live in this file once the real
+ *  response shape lands. Prices are plain numbers, formatted into the
+ *  visitor's currency at render time (see lib/currency.ts) rather than
+ *  baked into a display string server-side. */
 export async function listEvents(): Promise<MuseumEvent[]> {
   if (shouldMockDirectly()) return resolveEvents();
   return apiFetch<MuseumEvent[]>('/api/events');

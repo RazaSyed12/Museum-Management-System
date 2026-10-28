@@ -8,6 +8,7 @@
  * is lost on a refresh.
  */
 import type { MuseumEvent } from '@/lib/api/events';
+import { DEFAULT_CURRENCY, formatMoney, type CurrencyCode } from '@/lib/currency';
 
 export interface TicketQty {
   general: number;
@@ -42,9 +43,10 @@ export interface Order {
   count: number;
 }
 
-/** Member discount: £2 off every general ticket, same rule the design
- *  system's prototype used — a flat, visible incentive rather than a
- *  per-event negotiated rate the fixture has no field for. */
+/** Member discount: 2 units off every general ticket (in whichever
+ *  currency is active), same rule the design system's prototype used —
+ *  a flat, visible incentive rather than a per-event negotiated rate the
+ *  fixture has no field for. */
 export function computeOrder(qty: TicketQty, types: TicketType[], isMember: boolean): Order {
   const priceOf = (key: keyof TicketQty) => types.find((t) => t.key === key)!.price;
   const sub = qty.general * priceOf('general') + qty.member * priceOf('member') + qty.child * priceOf('child');
@@ -56,8 +58,8 @@ export function computeOrder(qty: TicketQty, types: TicketType[], isMember: bool
   return { qty, sub, fee, vat, discount, total, count };
 }
 
-export function money(n: number): string {
-  return n === 0 ? '£0.00' : `£${n.toFixed(2)}`;
+export function money(n: number, currency: CurrencyCode = DEFAULT_CURRENCY): string {
+  return formatMoney(n, currency);
 }
 
 export type SearchParamsLike = URLSearchParams | Record<string, string | string[] | undefined>;
@@ -96,17 +98,17 @@ export function qtyToSearchParams(qty: TicketQty): URLSearchParams {
 /** Structurally matches components/tickets/Summary's SummaryLine — kept
  *  duck-typed here rather than importing that type, so this file (plain
  *  order math) doesn't depend on a component. */
-export function ticketTypeLines(qty: TicketQty, types: TicketType[]) {
-  return types.map((t) => ({ label: `${t.name} × ${qty[t.key]}`, value: money(qty[t.key] * t.price), muted: !qty[t.key] }));
+export function ticketTypeLines(qty: TicketQty, types: TicketType[], currency: CurrencyCode = DEFAULT_CURRENCY) {
+  return types.map((t) => ({ label: `${t.name} × ${qty[t.key]}`, value: money(qty[t.key] * t.price, currency), muted: !qty[t.key] }));
 }
 
-export function orderBreakdownLines(order: Order) {
+export function orderBreakdownLines(order: Order, currency: CurrencyCode = DEFAULT_CURRENCY) {
   const lines: Array<{ label: string; value: string; strong?: boolean; tone?: 'discount'; icon?: string }> = [
-    { label: 'Subtotal', value: money(order.sub), strong: true },
-    { label: 'Service charge', value: money(order.fee) },
-    { label: 'VAT (5%)', value: money(order.vat) },
+    { label: 'Subtotal', value: money(order.sub, currency), strong: true },
+    { label: 'Service charge', value: money(order.fee, currency) },
+    { label: 'VAT (5%)', value: money(order.vat, currency) },
   ];
-  if (order.discount) lines.push({ label: 'Member discount', value: `−${money(order.discount)}`, tone: 'discount', icon: 'award' });
+  if (order.discount) lines.push({ label: 'Member discount', value: `−${money(order.discount, currency)}`, tone: 'discount', icon: 'award' });
   return lines;
 }
 

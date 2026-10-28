@@ -5,23 +5,30 @@ import { Button } from '@/components/forms/Button';
 import { FilterPills } from '@/components/forms/FilterPills';
 import { IconButton } from '@/components/forms/IconButton';
 import { Container } from '@/components/layout/Container';
+import { useCurrency } from '@/lib/useCurrency';
 
 const DATES = ['Today', 'Tomorrow', 'This weekend'] as const;
 const MIN_VISITORS = 1;
 const MAX_VISITORS = 10;
 
 export interface PlanVisitProps {
-  /** The current exhibition's display price, e.g. "£16 · £12 members". */
-  exhibitionPrice: string;
+  /** The current exhibition's general admission price. */
+  exhibitionPriceValue: number;
+  /** Shown alongside exhibitionPriceValue as "<price> · <memberPrice> members" when present. */
+  exhibitionMemberPrice?: number;
   /** Called with the visitor's choices. */
   onCheck: (plan: { date: string; visitors: number }) => void;
 }
 
 /* Sits across the bottom edge of the hero (negative top margin), so it must be
    rendered directly after <Hero />. */
-export function PlanVisit({ exhibitionPrice, onCheck }: PlanVisitProps) {
+export function PlanVisit({ exhibitionPriceValue, exhibitionMemberPrice, onCheck }: PlanVisitProps) {
   const [date, setDate] = useState<string>(DATES[0]);
   const [visitors, setVisitors] = useState(2);
+  const { format } = useCurrency();
+  const exhibitionPrice = exhibitionMemberPrice != null
+    ? `${format(exhibitionPriceValue)} · ${format(exhibitionMemberPrice)} members`
+    : format(exhibitionPriceValue);
 
   return (
     <Container className="relative z-10 -mt-12">

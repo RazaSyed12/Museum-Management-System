@@ -28,9 +28,9 @@ export class StaffApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   await ensureMockingStarted();
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const url = base ? new URL(`/api/staff${path}`, base).toString() : `/api/staff${path}`;
-  const response = await fetch(url, {
+  // Always same-origin, for MSW's browser worker to intercept — there's no
+  // real /api/staff/* backend, so NEXT_PUBLIC_API_BASE_URL never applies here.
+  const response = await fetch(`/api/staff${path}`, {
     ...init,
     credentials: 'include',
     cache: 'no-store',

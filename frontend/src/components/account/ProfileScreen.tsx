@@ -49,7 +49,8 @@ export function ProfileScreen() {
   }, [auth.user]);
 
   useEffect(() => {
-    listBookings().then(setBookings);
+    // A failed fetch shouldn't crash the whole profile page — just show no bookings.
+    listBookings().then(setBookings).catch(() => setBookings([]));
   }, []);
 
   if (!auth.user) return null;

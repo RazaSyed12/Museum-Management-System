@@ -15,7 +15,7 @@ export function TicketsPicker() {
   const [events, setEvents] = useState<MuseumEvent[]>();
 
   useEffect(() => {
-    listEvents().then(setEvents);
+    listEvents().then(setEvents).catch(() => setEvents([]));
   }, []);
 
   return (

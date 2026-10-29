@@ -22,6 +22,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         active={nav.active}
         user={nav.user}
         isMember={nav.isMember}
+        authReady={nav.authReady}
         onNavigate={nav.go}
         onSignIn={() => nav.go('SignIn')}
         onMenu={() => setMenuOpen(true)}

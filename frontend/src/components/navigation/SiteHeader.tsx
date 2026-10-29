@@ -6,6 +6,7 @@ import { Logo } from '@/components/foundation/Logo';
 import { Icon } from '@/components/foundation/Icon';
 import { Button } from '@/components/forms/Button';
 import { IconButton } from '@/components/forms/IconButton';
+import { Skeleton } from '@/components/feedback/Skeleton';
 import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/cn';
 
@@ -28,6 +29,9 @@ export interface SiteHeaderProps extends HTMLAttributes<HTMLElement> {
   user?: SiteHeaderUser;
   /** Adds the gold "Member" flag under the visitor's name. */
   isMember?: boolean;
+  /** False while a stored session is still being verified — shows a
+   *  neutral placeholder instead of flashing "Sign in" ahead of it. */
+  authReady?: boolean;
   assetBase?: string;
   onNavigate?: (item: string) => void;
   onSearch?: () => void;
@@ -44,6 +48,7 @@ export function SiteHeader({
   active = 'Home',
   user,
   isMember,
+  authReady = true,
   assetBase,
   onNavigate,
   onSearch,
@@ -95,7 +100,9 @@ export function SiteHeader({
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <IconButton icon="search" label="Search" onClick={onSearch} />
-          {user ? (
+          {!authReady ? (
+            <Skeleton width={34} height={34} className="rounded-full" aria-label="Checking your session" />
+          ) : user ? (
             <button
               type="button"
               onClick={() => onNavigate?.('Profile')}

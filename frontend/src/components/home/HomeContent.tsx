@@ -17,6 +17,7 @@ import { EventCard } from '@/components/cards/EventCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { useSiteNav } from '@/lib/nav';
 import { recommendedForYou, popularRightNow, hrefForRecommendation } from '@/lib/content';
+import { toneForIndex } from '@/lib/tone';
 import type { Collection } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
 
@@ -37,7 +38,7 @@ export interface HomeContentProps {
 /* Filter rows above the collections and events grids. Categories come from the
    data (staff-managed), capped so the row stays on one line on desktop. */
 function collectionFilterOptions(collections: Collection[]) {
-  return ['All', ...Array.from(new Set(collections.map((c) => c.category))).slice(0, 5)];
+  return ['All', ...Array.from(new Set(collections.flatMap((c) => c.categories.map((cat) => cat.name)))).slice(0, 5)];
 }
 
 const EVENT_FILTERS: Record<string, (e: MuseumEvent) => boolean> = {
@@ -55,13 +56,17 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
   const [collectionFilter, setCollectionFilter] = useState('All');
   const [eventFilter, setEventFilter] = useState('All');
 
-  const exhibition = allEvents.find((e) => e.id === 'beneath')!;
-  // The exhibition and the evening event each have their own hero slide, so
-  // the events grid below lists everything else.
-  const listedEvents = allEvents.filter((e) => e.id !== 'beneath' && e.id !== 'twilight');
+  // Same "soonest two" selection Hero uses, so the grid below doesn't repeat its slides.
+  const heroEvents = [...allEvents]
+    .filter((e) => e.availability !== 'cancelled')
+    .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+    .slice(0, 2);
+  const exhibition = heroEvents[0];
+  const heroEventIds = new Set(heroEvents.map((e) => e.id));
+  const listedEvents = allEvents.filter((e) => !heroEventIds.has(e.id));
 
   const shownCollections = allCollections
-    .filter((c) => collectionFilter === 'All' || c.category === collectionFilter)
+    .filter((c) => collectionFilter === 'All' || c.categories.some((cat) => cat.name === collectionFilter))
     .slice(0, 3);
   const eventMatches = EVENT_FILTERS[eventFilter] ?? (() => true);
   const shownEvents = listedEvents.filter(eventMatches).slice(0, 3);
@@ -69,7 +74,9 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
   return (
     <>
       <Hero go={nav.go} events={allEvents} />
-      <PlanVisit exhibitionPriceValue={exhibition.priceValue} exhibitionMemberPrice={exhibition.memberPrice} onCheck={(plan) => router.push(`/tickets/${exhibition.id}?general=${plan.visitors}`)} />
+      {exhibition && (
+        <PlanVisit exhibitionPriceValue={exhibition.priceValue} exhibitionMemberPrice={exhibition.memberPrice} onCheck={(plan) => router.push(`/tickets/${exhibition.id}?general=${plan.visitors}`)} />
+      )}
       <VisitStrip />
       <Ticker />
 
@@ -83,9 +90,9 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
           className="mb-6"
         />
         <Grid cols={3}>
-          {shownCollections.map((c) => (
-            <CollectionCard key={c.id} name={c.name} category={c.category} period={c.period}
-              description={c.description} itemCount={c.items} tone={c.tone} href={`/collections/${c.id}`} />
+          {shownCollections.map((c, i) => (
+            <CollectionCard key={c.id} name={c.name} category={c.categories[0]?.name}
+              description={c.description ?? undefined} tone={toneForIndex(i)} href={`/collections/${c.id}`} />
           ))}
         </Grid>
       </Section>

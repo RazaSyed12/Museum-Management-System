@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const [{ items: allCollections }, allEvents] = await Promise.all([
-    listCollections({ sort: 'popular', pageSize: 999 }),
+    listCollections({ limit: 100 }),
     listEvents(),
   ]);
 

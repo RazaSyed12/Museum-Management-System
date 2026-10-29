@@ -52,20 +52,22 @@ const PAGES: SearchResult[] = [
 ];
 
 async function buildIndex(): Promise<Record<SearchGroup['label'], SearchResult[]>> {
-  const [{ items: collections }, events] = await Promise.all([listCollections({ pageSize: 999 }), listEvents()]);
+  const [{ items: collections }, events] = await Promise.all([listCollections({ limit: 100 }), listEvents()]);
   return {
     Collections: collections.map((c) => ({
       id: `collection-${c.id}`,
       kind: 'Collection' as const,
       title: c.name,
-      meta: `${c.category} · ${c.period} · ${c.items} objects`,
+      meta: [c.categories.map((cat) => cat.name).join(', '), c.location?.name].filter(Boolean).join(' · '),
       href: `/collections/${c.id}`,
     })),
     Events: events.map((e) => ({
       id: `event-${e.id}`,
-      kind: e.id === 'beneath' ? ('Exhibition' as const) : ('Event' as const),
+      // Spans more than one day — a long-running show rather than a single
+      // dated event. Derived from the actual date range, not a hardcoded id.
+      kind: e.date !== e.endDate ? ('Exhibition' as const) : ('Event' as const),
       title: e.title,
-      meta: e.id === 'beneath' ? `${e.date} – ${e.endDate} · ${e.location}` : `${e.date} · ${e.location}${e.free ? ' · Free' : ''}`,
+      meta: e.date !== e.endDate ? `${e.date} – ${e.endDate} · ${e.location}` : `${e.date} · ${e.location}${e.free ? ' · Free' : ''}`,
       href: `/events/${e.id}`,
     })),
     Pages: PAGES,

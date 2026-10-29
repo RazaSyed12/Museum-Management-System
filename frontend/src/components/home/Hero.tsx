@@ -29,41 +29,32 @@ interface Slide {
 /** Time each slide stays up before advancing. */
 const SLIDE_MS = 7000;
 
-/* Slides draw on the same events data as the rest of the home page, so they
-   follow it when that becomes a real fetch. The membership slide is static
-   copy from the design system. */
+/* Event slides are just whichever two events are soonest — no real "is
+   exhibition" flag to pick one specially. Membership slide is static copy. */
 function buildSlides(events: MuseumEvent[]): Slide[] {
-  const exhibition = events.find((e) => e.id === 'beneath')!;
-  const evening = events.find((e) => e.id === 'twilight')!;
+  const upcoming = [...events]
+    .filter((e) => e.availability !== 'cancelled')
+    .sort((a, b) => +new Date(a.date) - +new Date(b.date));
+
+  const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
+    id: e.id,
+    eyebrow: 'Coming up',
+    title: e.title,
+    description: e.description,
+    meta: [
+      { icon: 'calendar-days', text: e.date === e.endDate ? `${e.date} · ${e.time}` : `${e.date} – ${e.endDate}` },
+      { icon: 'map-pin', text: e.location },
+    ],
+    primary: { label: 'Book tickets', href: `/tickets/${e.id}` },
+    secondary: { label: 'See what’s on', to: 'Events' },
+    tone: 'green',
+    caption: `${e.title} — Heritage Museum`,
+  }));
+  // Alternate tone so two consecutive slides don't look identical.
+  if (eventSlides[1]) eventSlides[1].tone = 'olive';
+
   return [
-    {
-      id: exhibition.id,
-      eyebrow: 'Current exhibition',
-      title: exhibition.title,
-      description: exhibition.description,
-      meta: [
-        { icon: 'calendar-days', text: `${exhibition.date} – ${exhibition.endDate}` },
-        { icon: 'map-pin', text: exhibition.location },
-      ],
-      primary: { label: 'Explore exhibition', to: 'Collection' },
-      secondary: { label: 'Book tickets', href: `/tickets/${exhibition.id}` },
-      tone: 'green',
-      caption: 'Exhibition photography — Great Hall',
-    },
-    {
-      id: evening.id,
-      eyebrow: 'This month',
-      title: evening.title,
-      description: evening.description,
-      meta: [
-        { icon: 'calendar-days', text: `${evening.date} · ${evening.time}` },
-        { icon: 'map-pin', text: evening.location },
-      ],
-      primary: { label: 'Book tickets', href: `/tickets/${evening.id}` },
-      secondary: { label: 'See what’s on', to: 'Events' },
-      tone: 'olive',
-      caption: 'Event photography — Great Hall after hours',
-    },
+    ...eventSlides,
     {
       id: 'membership',
       eyebrow: 'Membership',

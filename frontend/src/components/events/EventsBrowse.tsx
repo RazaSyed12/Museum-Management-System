@@ -35,7 +35,7 @@ export function EventsBrowse() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    listEvents().then(setEvents);
+    listEvents().then(setEvents).catch(() => setEvents([]));
   }, []);
 
   const activeCount = selected.Price!.length + selected.Availability!.length;

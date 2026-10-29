@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import type { HTMLAttributes } from 'react';
 import { Logo } from '@/components/foundation/Logo';
-import { Icon } from '@/components/foundation/Icon';
 import { Button } from '@/components/forms/Button';
 import { IconButton } from '@/components/forms/IconButton';
 import { Skeleton } from '@/components/feedback/Skeleton';
@@ -122,7 +121,6 @@ export function SiteHeader({
                   {isMember ? 'Member' : 'Account'}
                 </span>
               </span>
-              <Icon name="chevron-down" size={16} className="hidden text-muted md:block" />
             </button>
           ) : (
             <>

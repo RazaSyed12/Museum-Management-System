@@ -126,12 +126,12 @@ export const handlers = [
   http.get('/api/collections', async ({ request }) => {
     await delay(LATENCY_MS);
     const url = new URL(request.url);
+    const featured = url.searchParams.get('featured');
     const result = await resolveCollections({
       q: url.searchParams.get('q') ?? undefined,
-      category: url.searchParams.getAll('category'),
-      sort: (url.searchParams.get('sort') as 'popular' | 'az' | null) ?? undefined,
-      page: Number(url.searchParams.get('page') ?? '1'),
-      pageSize: Number(url.searchParams.get('pageSize') ?? '24'),
+      featured: featured === null ? undefined : featured === 'true',
+      limit: url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : undefined,
+      offset: url.searchParams.has('offset') ? Number(url.searchParams.get('offset')) : undefined,
     });
     return HttpResponse.json(result);
   }),

@@ -7,7 +7,7 @@
  * not staff-managed data.
  */
 import { collections } from '@/mocks/data';
-import type { Tone } from '@/lib/api/collections';
+import type { Tone } from '@/lib/tone';
 
 export interface Recommendation {
   title: string;

@@ -141,12 +141,6 @@ export function StaffShell({ children }: { children: ReactNode }) {
           },
         )}
       </nav>
-      <div className="mt-8 border-t border-line-inverse pt-5">
-        <Link href="/" className="flex items-center gap-2 px-3 text-sm text-sand-300 no-underline">
-          <Icon name="arrow-up-right" size={16} />
-          Visit the public site
-        </Link>
-      </div>
     </>
   );
   return (
@@ -214,6 +208,11 @@ export function StaffShell({ children }: { children: ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <IconButton
+              icon="arrow-up-right"
+              label="Visit the public site"
+              onClick={() => router.push('/')}
+            />
             <div className="relative">
               <IconButton
                 icon="bell"

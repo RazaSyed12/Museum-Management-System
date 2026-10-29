@@ -105,7 +105,7 @@ export function SiteHeader({
             <button
               type="button"
               onClick={() => onNavigate?.('Profile')}
-              className="flex h-11 cursor-pointer items-center gap-2 border-0 bg-transparent pr-2 pl-1.5"
+              className="flex h-11 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent pr-2 pl-1.5 transition-control hover:bg-paper-100"
             >
               <span className="grid size-[34px] place-items-center rounded-full bg-green-900 font-body text-sm leading-none font-semibold text-sand-300">
                 {user.initials}

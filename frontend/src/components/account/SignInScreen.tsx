@@ -11,11 +11,11 @@ import { Button } from '@/components/forms/Button';
 import { Alert } from '@/components/feedback/Alert';
 import { useAuth } from '@/lib/auth';
 
-/** role === 'staff' is the one thing a visitor sign-in never returns — there's no separate staff sign-in, this is it. */
-function destinationFor(role: string, onboardingCompleted: boolean): string {
-  if (role === 'staff') return '/staff';
-  if (!onboardingCompleted) return '/interests';
-  return '/account';
+/** Staff sign in through the same form and land on the client site like
+ *  anyone else (always onboarding_completed — see backend/src/routes/me.ts);
+ *  they reach the staff portal from the "Staff Portal" button on /account. */
+function destinationFor(onboardingCompleted: boolean): string {
+  return onboardingCompleted ? '/account' : '/interests';
 }
 
 export function SignInScreen() {
@@ -28,7 +28,7 @@ export function SignInScreen() {
 
   // Already signed in (e.g. a stored session rehydrated) — don't show the form, just go.
   useEffect(() => {
-    if (auth.ready && auth.user) router.replace(destinationFor(auth.user.role, auth.user.onboardingCompleted));
+    if (auth.ready && auth.user) router.replace(destinationFor(auth.user.onboardingCompleted));
   }, [auth.ready, auth.user, router]);
 
   async function handleSubmit(e: FormEvent) {
@@ -38,7 +38,7 @@ export function SignInScreen() {
       setError(result.error);
       return;
     }
-    router.push(destinationFor(result.role, result.onboardingCompleted));
+    router.push(destinationFor(result.onboardingCompleted));
   }
 
   return (

@@ -1,4 +1,5 @@
 import type {
+  Category,
   Collection,
   Item,
   ListCollectionsQuery,
@@ -21,18 +22,17 @@ import { collections, items, categories, events, bookings, accounts, type MockAc
 export async function resolveCollections(
   query: ListCollectionsQuery = {},
 ): Promise<ListCollectionsResult> {
-  const { q, category, sort = 'popular', page = 1, pageSize = 24 } = query;
-  let results = collections;
+  const { q, featured, limit = 20, offset = 0 } = query;
+  // Only published collections are public, matching the real endpoint's unauthenticated view.
+  let results = collections.filter((c) => c.status === 'published');
   if (q) results = results.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
-  if (category?.length) results = results.filter((c) => category.includes(c.category));
-  if (sort === 'az') results = [...results].sort((a, b) => a.name.localeCompare(b.name));
+  if (featured !== undefined) results = results.filter((c) => c.featured === featured);
   const total = results.length;
-  const start = (page - 1) * pageSize;
-  return { items: results.slice(start, start + pageSize), total, page, pageSize };
+  return { items: results.slice(offset, offset + limit), total, limit, offset };
 }
 
 export async function resolveCollection(id: string): Promise<Collection | undefined> {
-  return collections.find((c) => c.id === id);
+  return collections.find((c) => c.id === id && c.status === 'published');
 }
 
 export async function resolveCollectionItems(collectionId: string): Promise<Item[]> {
@@ -48,7 +48,7 @@ export async function resolveCollectionItem(
   return collection && items.find((i) => i.id === itemId && i.collection === collection.name);
 }
 
-export async function resolveCategories(): Promise<string[]> {
+export async function resolveCategories(): Promise<Category[]> {
   return categories;
 }
 
@@ -64,12 +64,7 @@ export async function resolveBookings(): Promise<Booking[]> {
   return bookings;
 }
 
-/**
- * Auth — mirrors backend/src/routes/{auth,session}.ts. Tokens here are a
- * toy stand-in for a real JWT: base64 of {sub, email, role, exp}, good
- * enough to round-trip identity through a header the same way a real
- * bearer token would, without needing server-side session storage.
- */
+/** Mirrors backend/src/routes/{auth,session}.ts. Tokens are base64 of {sub, email, role, exp} — a toy JWT stand-in. */
 interface TokenPayload {
   sub: string;
   email: string;
@@ -134,9 +129,7 @@ export async function resolveSignUp(input: {
     interests: [],
   };
   accounts.push(account);
-  // The real endpoint can return session: null when email confirmation is
-  // required; there's no email service here, so the mock always signs
-  // straight in, same as this app's register flow always has.
+  // Real endpoint can return session: null (needs confirmation); mock always signs straight in.
   return { user: toNewAccountUser(account), session: makeSession(account) };
 }
 
@@ -162,9 +155,7 @@ export async function resolveRefreshSession(refreshToken: string): Promise<{ ses
 }
 
 export async function resolveSignOut(token: string): Promise<void> {
-  // Nothing to revoke — a real backend invalidates the refresh token
-  // server-side; this mock has no server-side session to clean up. The
-  // param stays so this still matches lib/api/auth.ts's real-backend call.
+  // Nothing to revoke here; param stays to match lib/api/auth.ts's real-backend call signature.
   void token;
 }
 

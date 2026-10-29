@@ -11,6 +11,7 @@ import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import type { Collection, Item } from '@/lib/api/collections';
+import { toneForIndex } from '@/lib/tone';
 import { cn } from '@/lib/cn';
 
 /* The facts list only shows fields the data model actually has — no
@@ -76,7 +77,7 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
           <div className="grid gap-5">
             <div className="flex flex-wrap gap-2">
               <StatusBadge tone="olive" size="sm">
-                {collection.category}
+                {collection.categories[0]?.name}
               </StatusBadge>
               <StatusBadge tone="neutral" size="sm" icon="hourglass">
                 {item.period}
@@ -129,13 +130,13 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
       {suggestions.length > 0 && (
         <Section title="You may also like">
           <Grid cols={2}>
-            {suggestions.map((c) => (
+            {suggestions.map((c, i) => (
               <RecommendationCard
                 key={c.id}
                 kind="Collection"
                 title={c.name}
                 reason="Visitors also explored"
-                tone={c.tone}
+                tone={toneForIndex(i)}
                 href={`/collections/${c.id}`}
               />
             ))}

@@ -5,33 +5,53 @@
  * `window.HM` fixture). This whole folder goes away once the real backend
  * exists; see lib/api/* for the contract it's standing in for.
  */
-import type { Collection, Item } from '@/lib/api/collections';
+import type { Collection, Category, Item } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
 import type { Booking } from '@/lib/api/bookings';
 import type { Role } from '@/lib/api/auth';
 
-export const collections: Collection[] = [
-  { id: 'ice-age', name: 'Ice Age Britain', category: 'Prehistory', period: 'Pleistocene', items: 128, tone: 'olive',
-    description: 'Mammoth, aurochs and the first people to cross the land bridge.', location: 'Gallery 1 · Ground floor' },
-  { id: 'dinosaurs', name: 'Age of Dinosaurs', category: 'Dinosaurs', period: 'Mesozoic', items: 96, tone: 'green',
-    description: 'Fossils and reconstructions from the Jurassic and Cretaceous.', location: 'Gallery 2 · Ground floor' },
-  { id: 'lanthorn', name: 'The Lanthorn Hoard', category: 'Archaeology', period: 'Iron Age', items: 92, tone: 'stone',
-    description: 'Ninety-two objects buried in the third century BCE.', location: 'Gallery 4 · First floor' },
-  { id: 'armoury', name: 'Medieval Armoury', category: 'Medieval', period: '1100–1450', items: 41, tone: 'green',
-    description: 'Arms, armour and the craft of the medieval smith.', location: 'Gallery 7 · First floor' },
-  { id: 'portraits', name: 'Renaissance Portraits', category: 'Renaissance', period: '1400–1600', items: 64, tone: 'sand',
-    description: 'Faces of merchants, scholars and their households.', location: 'Gallery 9 · Second floor' },
-  { id: 'ceramics', name: 'Ancient Ceramics', category: 'Ancient History', period: '800 BCE–200 CE', items: 210, tone: 'stone',
-    description: 'Vessels for grain, wine, oil and the dead.', location: 'Gallery 5 · First floor' },
-  { id: 'birds', name: 'Birds of the Estuary', category: 'Art', period: '19th century', items: 37, tone: 'olive',
-    description: 'Watercolours and specimens from the Lanthorn marshes.', location: 'Gallery 11 · Second floor' },
-  { id: 'coins', name: 'Coin & Currency', category: 'Archaeology', period: 'Roman–Georgian', items: 480, tone: 'sand',
-    description: 'Two thousand years of money made and spent locally.', location: 'Gallery 6 · First floor' },
+/** Mock category ids are this fixture's own closed id space — unrelated to
+ *  (never mixed with) the real backend's category UUIDs. */
+function cat(id: string, name: string): { id: string; name: string } {
+  return { id, name };
+}
+
+export const categories: Category[] = [
+  { id: 'prehistory', name: 'Prehistory', description: null, parentCategoryId: null, active: true },
+  { id: 'dinosaurs', name: 'Dinosaurs', description: null, parentCategoryId: null, active: true },
+  { id: 'archaeology', name: 'Archaeology', description: null, parentCategoryId: null, active: true },
+  { id: 'ancient-history', name: 'Ancient History', description: null, parentCategoryId: null, active: true },
+  { id: 'medieval', name: 'Medieval', description: null, parentCategoryId: null, active: true },
+  { id: 'renaissance', name: 'Renaissance', description: null, parentCategoryId: null, active: true },
+  { id: 'art', name: 'Art', description: null, parentCategoryId: null, active: true },
 ];
 
-/** Staff-managed category list in the real API — never hard-code this at
- *  a call site. */
-export const categories = ['Prehistory', 'Dinosaurs', 'Archaeology', 'Ancient History', 'Medieval', 'Renaissance', 'Art'];
+export const collections: Collection[] = [
+  { id: 'ice-age', name: 'Ice Age Britain', categories: [cat('prehistory', 'Prehistory')], status: 'published', featured: true,
+    description: 'Mammoth, aurochs and the first people to cross the land bridge.', location: { name: 'Gallery 1 · Ground floor', city: null },
+    createdAt: '2025-01-10T00:00:00Z', updatedAt: '2025-01-10T00:00:00Z' },
+  { id: 'dinosaurs', name: 'Age of Dinosaurs', categories: [cat('dinosaurs', 'Dinosaurs')], status: 'published', featured: true,
+    description: 'Fossils and reconstructions from the Jurassic and Cretaceous.', location: { name: 'Gallery 2 · Ground floor', city: null },
+    createdAt: '2025-02-14T00:00:00Z', updatedAt: '2025-02-14T00:00:00Z' },
+  { id: 'lanthorn', name: 'The Lanthorn Hoard', categories: [cat('archaeology', 'Archaeology')], status: 'published', featured: true,
+    description: 'Ninety-two objects buried in the third century BCE.', location: { name: 'Gallery 4 · First floor', city: null },
+    createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-03-01T00:00:00Z' },
+  { id: 'armoury', name: 'Medieval Armoury', categories: [cat('medieval', 'Medieval')], status: 'published', featured: false,
+    description: 'Arms, armour and the craft of the medieval smith.', location: { name: 'Gallery 7 · First floor', city: null },
+    createdAt: '2025-03-20T00:00:00Z', updatedAt: '2025-03-20T00:00:00Z' },
+  { id: 'portraits', name: 'Renaissance Portraits', categories: [cat('renaissance', 'Renaissance')], status: 'published', featured: false,
+    description: 'Faces of merchants, scholars and their households.', location: { name: 'Gallery 9 · Second floor', city: null },
+    createdAt: '2025-04-05T00:00:00Z', updatedAt: '2025-04-05T00:00:00Z' },
+  { id: 'ceramics', name: 'Ancient Ceramics', categories: [cat('ancient-history', 'Ancient History')], status: 'published', featured: false,
+    description: 'Vessels for grain, wine, oil and the dead.', location: { name: 'Gallery 5 · First floor', city: null },
+    createdAt: '2025-04-22T00:00:00Z', updatedAt: '2025-04-22T00:00:00Z' },
+  { id: 'birds', name: 'Birds of the Estuary', categories: [cat('art', 'Art')], status: 'published', featured: false,
+    description: 'Watercolours and specimens from the Lanthorn marshes.', location: { name: 'Gallery 11 · Second floor', city: null },
+    createdAt: '2025-05-11T00:00:00Z', updatedAt: '2025-05-11T00:00:00Z' },
+  { id: 'coins', name: 'Coin & Currency', categories: [cat('archaeology', 'Archaeology')], status: 'published', featured: false,
+    description: 'Two thousand years of money made and spent locally.', location: { name: 'Gallery 6 · First floor', city: null },
+    createdAt: '2025-06-02T00:00:00Z', updatedAt: '2025-06-02T00:00:00Z' },
+];
 
 /**
  * Artefact records. Only The Lanthorn Hoard has any — that's the design

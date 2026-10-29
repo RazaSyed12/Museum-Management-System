@@ -13,38 +13,25 @@ import { SkeletonCard } from '@/components/feedback/Skeleton';
 import { Container } from '@/components/layout/Container';
 import { Grid } from '@/components/layout/Grid';
 import { CollectionCard } from '@/components/cards/CollectionCard';
-import { listCollections, listCategories, type Collection } from '@/lib/api/collections';
+import { toneForIndex } from '@/lib/tone';
+import { listCollections, listCategories, type Collection, type Category } from '@/lib/api/collections';
 
-/* Three simplifications here, all because there's no real backend yet:
-   - Only the Category filter is wired up. The source also renders a Period
-     group, but its period buckets ("Prehistoric", "Ancient", ...) don't map
-     cleanly onto the real `collection.period` values ("Pleistocene",
-     "Roman–Georgian", ...) — inventing an era-bucketing scheme felt more
-     like fabricating data than porting a design.
-   - Sort is "Most popular" (the curated order in mocks/data.ts) and "A–Z"
-     only, since "Recently added" / "Oldest first" need an added-date field
-     that doesn't exist. The source's second Select next to the search bar
-     duplicated the sidebar's sort control — dropped as an oversight, not a
-     deliberate feature.
-   - listCollections is asked for everything matching the current filters
-     (a high pageSize) and paged client-side below, because the mobile
-     "load more" button needs the same filtered set sliced two ways. A real
-     paginated backend will need this reworked to fetch one page at a time. */
+/* No Period group (real Collection has no such field) and no "Most popular"
+   sort (no real popularity data) — category/sort filter client-side instead. */
 const PAGE_SIZE = 6;
-const SORT_OPTIONS = ['Most popular', 'A–Z'];
+const FETCH_LIMIT = 100;
+const SORT_OPTIONS = ['A–Z', 'Recently added'];
 
 export function CollectionsBrowse() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [sort, setSort] = useState(SORT_OPTIONS[0]!);
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [results, setResults] = useState<Collection[]>([]);
-  const [total, setTotal] = useState(0);
+  const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
+  const [all, setAll] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Debounce free-text search so it doesn't fire a request per keystroke.
@@ -53,50 +40,52 @@ export function CollectionsBrowse() {
     return () => clearTimeout(t);
   }, [query]);
 
-  // Category list + per-category counts for the filter sidebar: fetched
-  // unfiltered, once, independent of the visitor's current search/filters.
   useEffect(() => {
     listCategories().then(setCategoryOptions);
-    listCollections({ pageSize: 999 }).then((r) => {
-      const counts: Record<string, number> = {};
-      for (const c of r.items) counts[c.category] = (counts[c.category] ?? 0) + 1;
-      setCategoryCounts(counts);
-    });
   }, []);
 
+  // Fetched unfiltered (just the free-text search, which the server does
+  // support); category, sort, and paging all happen below against this set.
   useEffect(() => {
     let active = true;
     setLoading(true);
-    listCollections({
-      q: debouncedQuery || undefined,
-      category: selectedCategories.length ? selectedCategories : undefined,
-      sort: sort === 'A–Z' ? 'az' : 'popular',
-      pageSize: 999,
-    }).then((r) => {
-      if (!active) return;
-      setResults(r.items);
-      setTotal(r.total);
-      setLoading(false);
+    listCollections({ q: debouncedQuery || undefined, limit: FETCH_LIMIT }).then((r) => {
+      if (active) {
+        setAll(r.items);
+        setLoading(false);
+      }
     });
     return () => {
       active = false;
     };
-  }, [debouncedQuery, selectedCategories, sort]);
+  }, [debouncedQuery]);
+
+  const categoryCounts: Record<string, number> = {};
+  for (const c of all) for (const cat of c.categories) categoryCounts[cat.id] = (categoryCounts[cat.id] ?? 0) + 1;
+
+  const filtered = (
+    selectedCategoryIds.length
+      ? all.filter((c) => c.categories.some((cat) => selectedCategoryIds.includes(cat.id)))
+      : all
+  ).toSorted((a, b) =>
+    sort === 'A–Z' ? a.name.localeCompare(b.name) : b.createdAt.localeCompare(a.createdAt),
+  );
+  const total = filtered.length;
 
   const toggleCategory = (value: string) => {
-    setSelectedCategories((cur) =>
+    setSelectedCategoryIds((cur) =>
       cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value],
     );
     setPage(1);
   };
   const clearFilters = () => {
-    setSelectedCategories([]);
+    setSelectedCategoryIds([]);
     setPage(1);
   };
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const loadMoreResults = results.slice(0, page * PAGE_SIZE);
+  const pageResults = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const loadMoreResults = filtered.slice(0, page * PAGE_SIZE);
 
   const filterPanel = (
     <FilterPanel
@@ -104,15 +93,15 @@ export function CollectionsBrowse() {
         {
           title: 'Category',
           options: categoryOptions.map((c) => ({
-            value: c,
-            label: c,
-            count: categoryCounts[c] ?? 0,
+            value: c.id,
+            label: c.name,
+            count: categoryCounts[c.id] ?? 0,
           })),
         },
       ]}
-      selected={{ Category: selectedCategories }}
+      selected={{ Category: selectedCategoryIds }}
       onToggle={(_group, value) => toggleCategory(value)}
-      activeCount={selectedCategories.length}
+      activeCount={selectedCategoryIds.length}
       onClear={clearFilters}
       sortOptions={SORT_OPTIONS}
       sort={sort}
@@ -122,6 +111,8 @@ export function CollectionsBrowse() {
       }}
     />
   );
+
+  const selectedLabels = selectedCategoryIds.map((id) => categoryOptions.find((c) => c.id === id)?.name ?? id);
 
   return (
     <>
@@ -133,8 +124,7 @@ export function CollectionsBrowse() {
           />
           <h1 className="mb-3 text-3xl/[1.1] md:type-h1">Collections</h1>
           <p className="type-body mb-6 max-w-140">
-            Eight permanent collections, from the Pleistocene to the nineteenth century. Filter by
-            category to narrow things down.
+            Explore the museum&rsquo;s collections. Filter by category to narrow things down.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <SearchField
@@ -154,7 +144,7 @@ export function CollectionsBrowse() {
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden"
             >
-              Filters{selectedCategories.length ? ` (${selectedCategories.length})` : ''}
+              Filters{selectedCategoryIds.length ? ` (${selectedCategoryIds.length})` : ''}
             </Button>
           </div>
         </Container>
@@ -168,16 +158,16 @@ export function CollectionsBrowse() {
               <span className="type-body-sm text-muted">
                 {loading ? 'Searching…' : `Showing ${total} collection${total === 1 ? '' : 's'}`}
               </span>
-              {selectedCategories.length > 0 && (
+              {selectedCategoryIds.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {selectedCategories.map((c) => (
+                  {selectedCategoryIds.map((id, i) => (
                     <button
-                      key={c}
+                      key={id}
                       type="button"
-                      onClick={() => toggleCategory(c)}
+                      onClick={() => toggleCategory(id)}
                       className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-pill border border-olive-300 bg-olive-50 px-2.5 font-body text-xs leading-none font-semibold text-olive-700"
                     >
-                      {c}
+                      {selectedLabels[i]}
                       <Icon name="x" size={12} />
                     </button>
                   ))}
@@ -191,17 +181,15 @@ export function CollectionsBrowse() {
                   <SkeletonCard key={i} />
                 ))}
               </Grid>
-            ) : results.length ? (
+            ) : total ? (
               <Grid cols={3}>
-                {pageResults.map((c) => (
+                {pageResults.map((c, i) => (
                   <CollectionCard
                     key={c.id}
                     name={c.name}
-                    category={c.category}
-                    period={c.period}
-                    description={c.description}
-                    itemCount={c.items}
-                    tone={c.tone}
+                    category={c.categories[0]?.name}
+                    description={c.description ?? undefined}
+                    tone={toneForIndex(i)}
                     href={`/collections/${c.id}`}
                   />
                 ))}

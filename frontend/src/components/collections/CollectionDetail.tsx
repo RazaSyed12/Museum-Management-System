@@ -7,6 +7,7 @@ import { Grid } from '@/components/layout/Grid';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { CollectionCard } from '@/components/cards/CollectionCard';
+import { toneForIndex } from '@/lib/tone';
 import type { Collection, Item } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
 
@@ -31,13 +32,14 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
         crumbs={[{ label: 'Home', href: '/' }, { label: 'Collections', href: '/collections' }, { label: collection.name }]}
         title={collection.name}
         eyebrow={
-          <div className="flex gap-2">
-            <StatusBadge tone="olive" size="sm">{collection.category}</StatusBadge>
-            <StatusBadge tone="neutral" size="sm" icon="hourglass">{collection.period}</StatusBadge>
+          <div className="flex flex-wrap gap-2">
+            {collection.categories.map((c) => (
+              <StatusBadge key={c.id} tone="olive" size="sm">{c.name}</StatusBadge>
+            ))}
           </div>
         }
-        description={collection.description}
-        meta={<><MetaItem icon="map-pin">{collection.location}</MetaItem><MetaItem icon="gem">{collection.items} objects</MetaItem></>}
+        description={collection.description ?? undefined}
+        meta={collection.location && <MetaItem icon="map-pin">{collection.location.name}</MetaItem>}
         actions={
           <>
             {relatedItems[0] && (
@@ -74,9 +76,9 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
 
       <Section title="Related collections">
         <Grid cols={3}>
-          {relatedCollections.map((c) => (
-            <CollectionCard key={c.id} name={c.name} category={c.category} period={c.period} description={c.description}
-              itemCount={c.items} tone={c.tone} href={`/collections/${c.id}`} />
+          {relatedCollections.map((c, i) => (
+            <CollectionCard key={c.id} name={c.name} category={c.categories[0]?.name} description={c.description ?? undefined}
+              tone={toneForIndex(i)} href={`/collections/${c.id}`} />
           ))}
         </Grid>
       </Section>

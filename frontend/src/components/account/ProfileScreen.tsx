@@ -69,13 +69,16 @@ export function ProfileScreen() {
             <div className="grid gap-1.5">
               <h1 className="text-4xl/tight">{user.name}</h1>
               <div className="flex flex-wrap gap-2">
-                {auth.isMember
+                {auth.isStaff
+                  ? <StatusBadge tone="info" icon="shield-check">Staff account</StatusBadge>
+                  : auth.isMember
                   ? <StatusBadge tone="member">Member · renews 4 Mar 2027</StatusBadge>
                   : <StatusBadge tone="neutral" icon="user">Registered visitor</StatusBadge>}
                 <StatusBadge tone="neutral" icon="mail">{user.email}</StatusBadge>
               </div>
             </div>
             <div className="ml-auto flex gap-3">
+              {auth.isStaff && <Button variant="secondary" iconLeft="layout-dashboard" onClick={() => router.push('/staff')}>Staff Portal</Button>}
               {!auth.isMember && <Button variant="accent" onClick={() => router.push('/membership')}>Become a member</Button>}
               <Button variant="secondary" onClick={nav.signOut}>Sign out</Button>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthLayout } from '@/components/layout/AuthLayout';
@@ -11,6 +11,13 @@ import { Button } from '@/components/forms/Button';
 import { Alert } from '@/components/feedback/Alert';
 import { useAuth } from '@/lib/auth';
 
+/** role === 'staff' is the one thing a visitor sign-in never returns — there's no separate staff sign-in, this is it. */
+function destinationFor(role: string, onboardingCompleted: boolean): string {
+  if (role === 'staff') return '/staff';
+  if (!onboardingCompleted) return '/interests';
+  return '/account';
+}
+
 export function SignInScreen() {
   const auth = useAuth();
   const router = useRouter();
@@ -19,6 +26,11 @@ export function SignInScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string>();
 
+  // Already signed in (e.g. a stored session rehydrated) — don't show the form, just go.
+  useEffect(() => {
+    if (auth.ready && auth.user) router.replace(destinationFor(auth.user.role, auth.user.onboardingCompleted));
+  }, [auth.ready, auth.user, router]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const result = await auth.signIn(email, password, rememberMe);
@@ -26,13 +38,7 @@ export function SignInScreen() {
       setError(result.error);
       return;
     }
-    // Same redirect rule as a fresh sign-up: the backend's /auth/me doc
-    // says onboarding_completed false means the preferences page first.
-    // role === 'staff' is the one thing a visitor sign-in never returns —
-    // there is no separate staff sign-in, this is it.
-    if (result.role === 'staff') router.push('/staff');
-    else if (!result.onboardingCompleted) router.push('/interests');
-    else router.push('/account');
+    router.push(destinationFor(result.role, result.onboardingCompleted));
   }
 
   return (

@@ -41,39 +41,39 @@ export function apiUrl(path: string): string {
   return new URL(path, base).toString();
 }
 
-/** Always resolves against NEXT_PUBLIC_API_BASE_URL, client-side included —
- *  for a call that must reach the real backend even while collections/
- *  events/etc. are still mocked. A same-origin relative path would still
- *  get caught by MSW's browser worker (it's running for everything else);
- *  going out as a genuinely different-origin request is what lets it
- *  bypass MSW's interception instead of hitting the mock handler. */
+/** Always resolves against NEXT_PUBLIC_API_BASE_URL, even client-side —
+ *  bypasses MSW (still running for other, still-mocked resources). */
 export function apiUrlAbsolute(path: string): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
   return new URL(path, base).toString();
 }
 
-export async function apiFetch<T>(path: string): Promise<T> {
+export async function apiFetch<T>(path: string, opts?: { absolute?: boolean }): Promise<T> {
   await ensureMockingStarted();
-  const res = await fetch(apiUrl(path));
-  if (!res.ok) throw new Error(`${path} responded ${res.status}`);
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
   return res.json() as Promise<T>;
 }
 
 /** Same as apiFetch, but a 404 resolves to undefined instead of throwing —
  *  for single-resource lookups the caller treats as "might not exist"
  *  (collection/item by id) rather than an error. */
-export async function apiFetchOptional<T>(path: string): Promise<T | undefined> {
+export async function apiFetchOptional<T>(path: string, opts?: { absolute?: boolean }): Promise<T | undefined> {
   await ensureMockingStarted();
-  const res = await fetch(apiUrl(path));
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
   if (res.status === 404) return undefined;
-  if (!res.ok) throw new Error(`${path} responded ${res.status}`);
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
   return res.json() as Promise<T>;
 }
 
-/** Every error backend/src/routes/* sends back is shaped
- *  {"error":{"message","code"}} — this carries that through to callers
- *  instead of a bare Error, so UI can key off `code` where it matters
- *  (e.g. "session_expired") and not just show `message`. */
+/** Carries backend/src/routes/*'s {"error":{"message","code"}} shape through,
+ *  so UI can key off `code` (e.g. "session_expired") not just `message`. */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -93,10 +93,7 @@ async function parseErrorBody(res: Response): Promise<{ message: string; code: s
   };
 }
 
-/** POST with a JSON body, no auth required — sign-up, sign-in, refresh,
- *  forgot/reset-password all look like this. `absolute: true` targets the
- *  real backend directly (see apiUrlAbsolute) instead of a same-origin
- *  path MSW might still be intercepting for other, still-mocked resources. */
+/** POST with a JSON body, no auth required. `absolute: true` targets the real backend (see apiUrlAbsolute). */
 export async function apiPost<T>(path: string, body: unknown, opts?: { absolute?: boolean }): Promise<T> {
   await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {

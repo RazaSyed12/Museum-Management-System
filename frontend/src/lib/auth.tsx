@@ -59,11 +59,7 @@ function readStoredSession(): Session | undefined {
   if (typeof window === 'undefined') return undefined;
   try {
     const remembered = window.localStorage.getItem(REMEMBER_KEY);
-    if (remembered) {
-      const session = JSON.parse(remembered) as Session;
-      if (session.expires_at * 1000 > Date.now()) return session;
-      window.localStorage.removeItem(REMEMBER_KEY);
-    }
+    if (remembered) return JSON.parse(remembered) as Session;
     const sessionOnly = window.sessionStorage.getItem(SESSION_KEY);
     if (sessionOnly) return JSON.parse(sessionOnly) as Session;
   } catch {
@@ -152,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     (async () => {
       try {
+        // Skip straight to a refresh if the access token has already
+        // expired — calling /auth/me with it would just fail anyway.
+        if (stored.expires_at * 1000 <= Date.now()) throw new ApiError('expired', 'unauthorized', 401);
         const { user } = await authApi.getMe(stored.access_token);
         setSession(stored);
         setAuthUser(user);

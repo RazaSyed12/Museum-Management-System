@@ -14,7 +14,7 @@ interface Props {
 
 /** Prerender every known artefact at build time; anything else 404s. */
 export async function generateStaticParams() {
-  const { items: collections } = await listCollections({ pageSize: 999 });
+  const { items: collections } = await listCollections({ limit: 100 });
   const perCollection = await Promise.all(
     collections.map(async (c) =>
       (await listCollectionItems(c.id)).map((item) => ({ id: c.id, itemId: item.id })),
@@ -36,7 +36,7 @@ export default async function ItemDetailPage({ params }: Props) {
 
   const [allItems, { items: allCollections }] = await Promise.all([
     listCollectionItems(id),
-    listCollections({ pageSize: 999 }),
+    listCollections({ limit: 100 }),
   ]);
   const relatedItems = allItems.filter((i) => i.id !== item.id);
   const suggestions = allCollections.filter((c) => c.id !== collection.id).slice(0, 2);

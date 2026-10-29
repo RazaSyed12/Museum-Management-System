@@ -8,9 +8,10 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-/** Prerender every known collection at build time; anything else 404s. */
+/** Prerender every known collection at build time; anything else 404s.
+ *  limit: 100 is the real API's max page size. */
 export async function generateStaticParams() {
-  const { items } = await listCollections({ pageSize: 999 });
+  const { items } = await listCollections({ limit: 100 });
   return items.map((c) => ({ id: c.id }));
 }
 
@@ -26,7 +27,7 @@ export default async function CollectionDetailPage({ params }: Props) {
 
   const [relatedItems, { items: allCollections }, allEvents] = await Promise.all([
     listCollectionItems(id),
-    listCollections({ pageSize: 999 }),
+    listCollections({ limit: 100 }),
     listEvents(),
   ]);
   const relatedCollections = allCollections.filter((c) => c.id !== collection.id).slice(0, 3);

@@ -44,8 +44,8 @@ function seed(): MockState {
   const users: StaffUser[] = [
     {
       id: 'admin',
-      name: 'Sarah Mitchell',
-      email: 'admin@heritage.example',
+      name: 'Heritage Museum Admin',
+      email: 'admin@heritage.museum.com',
       phone: '',
       role: 'Admin',
       status: 'Active',

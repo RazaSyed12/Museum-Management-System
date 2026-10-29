@@ -37,6 +37,8 @@ export interface SiteUser {
 export interface SiteNav {
   user?: SiteUser;
   isMember: boolean;
+  /** False while a stored session is still being verified. */
+  authReady: boolean;
   active: string;
   /**
    * Plain `string`, not `ScreenName`: this is the boundary the design
@@ -66,6 +68,7 @@ export function useSiteNav(): SiteNav {
   return {
     user: auth.user,
     isMember: auth.isMember,
+    authReady: auth.ready,
     active: activeFromPath(pathname),
     go(label) {
       router.push(ROUTES[label as ScreenName] ?? '/');

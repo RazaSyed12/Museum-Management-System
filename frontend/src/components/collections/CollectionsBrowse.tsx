@@ -41,7 +41,7 @@ export function CollectionsBrowse() {
   }, [query]);
 
   useEffect(() => {
-    listCategories().then(setCategoryOptions);
+    listCategories().then(setCategoryOptions).catch(() => setCategoryOptions([]));
   }, []);
 
   // Fetched unfiltered (just the free-text search, which the server does
@@ -49,12 +49,19 @@ export function CollectionsBrowse() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    listCollections({ q: debouncedQuery || undefined, limit: FETCH_LIMIT }).then((r) => {
-      if (active) {
-        setAll(r.items);
-        setLoading(false);
-      }
-    });
+    listCollections({ q: debouncedQuery || undefined, limit: FETCH_LIMIT })
+      .then((r) => {
+        if (active) {
+          setAll(r.items);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAll([]);
+          setLoading(false);
+        }
+      });
     return () => {
       active = false;
     };

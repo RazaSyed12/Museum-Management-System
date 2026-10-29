@@ -51,10 +51,6 @@ export function SignInScreen() {
         </p>
       }
     >
-      <Alert tone="info" title="Demo accounts" className="mb-5">
-        visitor <code>amara@example.com</code> / <code>password123</code> · staff{' '}
-        <code>admin@heritage.example</code> / <code>museum-demo</code>
-      </Alert>
       {error && (
         <Alert tone="danger" title="We couldn't sign you in" className="mb-5">
           {error}

@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/auth';
  *  anyone else (always onboarding_completed — see backend/src/routes/me.ts);
  *  they reach the staff portal from the "Staff Portal" button on /account. */
 function destinationFor(onboardingCompleted: boolean): string {
-  return onboardingCompleted ? '/account' : '/interests';
+  return onboardingCompleted ? '/' : '/interests';
 }
 
 export function SignInScreen() {

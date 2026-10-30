@@ -8,10 +8,14 @@ const router = Router();
 
 // What the public site needs about a collection. The embedded bits
 // follow the foreign keys: locations(...) is the collection's location,
-// collection_categories -> categories(...) is its category list.
+// collection_categories -> categories(...) is its category list,
+// collection_media -> media(...) its photos (sorted below, not by Postgres —
+// ordering an embedded resource needs a raw order param supabase-js doesn't
+// expose cleanly, and there are never enough images per collection for it to matter).
 export const COLLECTION_SELECT =
   'collection_id, name, description, status, featured, location_id, created_at, updated_at, ' +
-  'locations(name, city), collection_categories(categories(category_id, name))';
+  'locations(name, city), collection_categories(categories(category_id, name)), ' +
+  'collection_media(sort_order, media(media_id, url, alt_text))';
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ error: { message, code: 'validation_error' } });
@@ -24,12 +28,17 @@ function serverError(res: Response, message: string) {
 // Turns the database row into the shape the frontend wants:
 // one "location" object and a flat "categories" list.
 export function shape(row: any) {
-  const { locations, collection_categories, ...rest } = row;
+  const { locations, collection_categories, collection_media, ...rest } = row;
   return {
     ...rest,
     location: locations ?? null,
     categories: (collection_categories ?? [])
       .map((link: any) => link.categories)
+      .filter(Boolean),
+    images: (collection_media ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      .map((link: any) => link.media)
       .filter(Boolean),
   };
 }

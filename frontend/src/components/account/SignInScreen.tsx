@@ -9,7 +9,6 @@ import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
 import { Button } from '@/components/forms/Button';
 import { Alert } from '@/components/feedback/Alert';
-import { Icon } from '@/components/foundation/Icon';
 import { useAuth } from '@/lib/auth';
 
 /** Staff sign in through the same form and land on the client site like
@@ -27,18 +26,10 @@ export function SignInScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  // True once sign-in has succeeded (or a stored session was found) and
-  // we're only waiting on navigation — the header updates to "signed in"
-  // the instant auth state changes, so the form has to stop looking like
-  // an idle sign-in form right away too, or the two look out of sync.
-  const [redirecting, setRedirecting] = useState(false);
 
   // Already signed in (e.g. a stored session rehydrated) — don't show the form, just go.
   useEffect(() => {
-    if (auth.ready && auth.user) {
-      setRedirecting(true);
-      router.replace(destinationFor(auth.user.onboardingCompleted));
-    }
+    if (auth.ready && auth.user) router.replace(destinationFor(auth.user.onboardingCompleted));
   }, [auth.ready, auth.user, router]);
 
   async function handleSubmit(e: FormEvent) {
@@ -50,7 +41,6 @@ export function SignInScreen() {
       setBusy(false);
       return;
     }
-    setRedirecting(true);
     router.push(destinationFor(result.onboardingCompleted));
   }
 
@@ -59,64 +49,53 @@ export function SignInScreen() {
       title="Sign in"
       intro="Your tickets, saved objects and recommendations."
       footer={
-        !redirecting && (
-          <p className="type-body-sm text-center text-muted">
-            New here? <Link href="/register">Create an account</Link>
-          </p>
-        )
+        <p className="type-body-sm text-center text-muted">
+          New here? <Link href="/register">Create an account</Link>
+        </p>
       }
     >
-      {redirecting ? (
-        <div role="status" aria-label="Signing in" className="flex items-center justify-center gap-2 py-12 type-label text-muted">
-          <Icon name="loader-circle" size={18} className="animate-spin motion-reduce:animate-none" />
-          Signing you in…
-        </div>
-      ) : (
-        <>
-          {error && (
-            <Alert tone="danger" title="We couldn't sign you in" className="mb-5">
-              {error}
-            </Alert>
-          )}
-          <form className="grid gap-5" onSubmit={handleSubmit}>
-            <Field label="Email address" htmlFor="si-e" required>
-              <Input
-                id="si-e"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-            <Field label="Password" htmlFor="si-p" required>
-              <Input
-                id="si-p"
-                type="password"
-                autoComplete="current-password"
-                required
-                invalid={!!error}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <Checkbox
-                id="si-r"
-                label="Remember me"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <Link href="/forgot-password" className="type-body-sm">
-                Forgot your password?
-              </Link>
-            </div>
-            <Button type="submit" size="lg" fullWidth loading={busy}>
-              Sign in
-            </Button>
-          </form>
-        </>
+      {error && (
+        <Alert tone="danger" title="We couldn't sign you in" className="mb-5">
+          {error}
+        </Alert>
       )}
+      <form className="grid gap-5" onSubmit={handleSubmit}>
+        <Field label="Email address" htmlFor="si-e" required>
+          <Input
+            id="si-e"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+        <Field label="Password" htmlFor="si-p" required>
+          <Input
+            id="si-p"
+            type="password"
+            autoComplete="current-password"
+            required
+            invalid={!!error}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Checkbox
+            id="si-r"
+            label="Remember me"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <Link href="/forgot-password" className="type-body-sm">
+            Forgot your password?
+          </Link>
+        </div>
+        <Button type="submit" size="lg" fullWidth loading={busy}>
+          Sign in
+        </Button>
+      </form>
     </AuthLayout>
   );
 }

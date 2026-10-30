@@ -1,21 +1,28 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import * as authApi from '@/lib/api/auth';
 import type { AuthUser, Role, Session } from '@/lib/api/auth';
-import { ApiError } from '@/lib/api/client';
+import { ApiError, apiUrlAbsolute } from '@/lib/api/client';
 
 /**
  * One sign-in for the whole site — visitors, members and staff alike (see
  * lib/api/auth.ts and backend/src/routes/session.ts). `role` on the signed-
  * in user is what tells them apart; there is no separate staff login.
  *
- * Session storage mirrors what a real httpOnly cookie would do, since this
- * still runs against the mock by default: sessionStorage for "not
- * remembered" (dies when the tab closes), localStorage with a real
- * expires_at for "remembered" (survives restarts, checked on load). Once
- * NEXT_PUBLIC_API_MOCKING=disabled, lib/api/auth.ts's functions call the
- * real backend instead — nothing here changes.
+ * Sessions use sessionStorage for "not remembered" and localStorage for
+ * "remembered". Protected staff requests share a token renewal rather than
+ * reading session details themselves. Auth can also run in the local preview
+ * through lib/api/auth.ts's own toggle.
  */
 
 export interface AuthUserView {
@@ -117,6 +124,7 @@ export interface AuthContextValue {
   /** False until the stored session has been checked once, on mount — lets
    *  callers avoid flashing a signed-out state while that check is pending. */
   ready: boolean;
+  request: (path: string, init?: RequestInit) => Promise<Response>;
   signIn: (email: string, password: string, rememberMe: boolean) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   register: (input: { name: string; email: string; password: string }) => Promise<AuthResult>;
@@ -139,20 +147,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | undefined>(undefined);
   const [authUser, setAuthUser] = useState<AuthUser | undefined>(undefined);
   const [ready, setReady] = useState(false);
+  const currentSession = useRef<Session | undefined>(undefined);
+  const currentUserId = useRef<string | undefined>(undefined);
+  const renewal = useRef<Promise<Session> | undefined>(undefined);
+  const restoration = useRef<Promise<void> | undefined>(undefined);
+
+  const keepSession = useCallback((next: Session | undefined) => {
+    currentSession.current = next;
+    setSession(next);
+  }, []);
+
+  const expireSession = useCallback(() => {
+    clearStoredSession();
+    currentSession.current = undefined;
+    currentUserId.current = undefined;
+    setSession(undefined);
+    setAuthUser(undefined);
+  }, []);
+
+  const refreshSession = useCallback(async (): Promise<Session> => {
+    if (renewal.current) return renewal.current;
+    const previous = currentSession.current;
+    if (!previous) throw new ApiError('Sign in required.', 'unauthorized', 401);
+    const pending = (async () => {
+      try {
+        const { session: next } = await authApi.refreshSession(previous.refresh_token);
+        const { user } = await authApi.getMe(next.access_token);
+        if (currentSession.current !== previous)
+          throw new ApiError('Your session has changed. Please try again.', 'session_changed', 401);
+        const rememberMe = window.localStorage.getItem(REMEMBER_KEY) !== null;
+        writeStoredSession(next, rememberMe);
+        keepSession(next);
+        setAuthUser(user);
+        return next;
+      } catch (err) {
+        if (
+          currentSession.current === previous &&
+          err instanceof ApiError &&
+          [401, 403].includes(err.status)
+        )
+          expireSession();
+        throw err;
+      }
+    })();
+    renewal.current = pending;
+    try {
+      return await pending;
+    } finally {
+      if (renewal.current === pending) renewal.current = undefined;
+    }
+  }, [keepSession, expireSession]);
+
+  const request = useCallback(
+    async (path: string, init: RequestInit = {}) => {
+      let active = currentSession.current;
+      const userId = currentUserId.current;
+      if (!active) throw new ApiError('Sign in required.', 'unauthorized', 401);
+      init.signal?.throwIfAborted();
+      if (active.expires_at * 1000 <= Date.now() + 30000) active = await refreshSession();
+      const send = (token: string) => {
+        if (currentUserId.current !== userId)
+          throw new ApiError('Your session has changed. Please try again.', 'session_changed', 401);
+        const headers = new Headers(init.headers);
+        headers.set('Authorization', `Bearer ${token}`);
+        return fetch(apiUrlAbsolute(path), { ...init, headers, cache: 'no-store' });
+      };
+      init.signal?.throwIfAborted();
+      let response = await send(active.access_token);
+      if (response.status === 401) {
+        // Concurrent requests share one renewal; a later 401 can reuse its token.
+        const next =
+          currentSession.current !== active && currentSession.current
+            ? currentSession.current
+            : await refreshSession();
+        init.signal?.throwIfAborted();
+        response = await send(next.access_token);
+        if (response.status === 401 && currentSession.current === next) expireSession();
+      }
+      return response;
+    },
+    [refreshSession, expireSession],
+  );
 
   useEffect(() => {
+    if (restoration.current) return;
     const stored = readStoredSession();
     if (!stored) {
       setReady(true);
       return;
     }
-    (async () => {
+    currentSession.current = stored;
+    restoration.current = (async () => {
       try {
         // Skip straight to a refresh if the access token has already
         // expired — calling /auth/me with it would just fail anyway.
-        if (stored.expires_at * 1000 <= Date.now()) throw new ApiError('expired', 'unauthorized', 401);
+        if (stored.expires_at * 1000 <= Date.now())
+          throw new ApiError('expired', 'unauthorized', 401);
         const { user } = await authApi.getMe(stored.access_token);
-        setSession(stored);
+        if (currentSession.current !== stored) return;
+        currentUserId.current = user.id;
+        keepSession(stored);
         setAuthUser(user);
       } catch {
         // The access token (1 hour) has likely expired even though the
@@ -163,47 +257,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const rememberMe = window.localStorage.getItem(REMEMBER_KEY) !== null;
           const { session: refreshed } = await authApi.refreshSession(stored.refresh_token);
           const { user } = await authApi.getMe(refreshed.access_token);
+          if (currentSession.current !== stored) return;
+          currentUserId.current = user.id;
           writeStoredSession(refreshed, rememberMe);
-          setSession(refreshed);
+          keepSession(refreshed);
           setAuthUser(user);
         } catch {
-          clearStoredSession();
+          if (currentSession.current === stored) expireSession();
         }
       } finally {
         setReady(true);
       }
     })();
-  }, []);
+  }, [keepSession, expireSession]);
 
   function applySignIn(user: AuthUser, newSession: Session, rememberMe: boolean) {
     writeStoredSession(newSession, rememberMe);
-    setSession(newSession);
+    currentUserId.current = user.id;
+    keepSession(newSession);
     setAuthUser(user);
   }
 
+  const user = useMemo(() => authUser && toView(authUser), [authUser]);
   const value: AuthContextValue = {
-    user: authUser && toView(authUser),
+    user,
     isMember: authUser?.role === 'member',
     isStaff: authUser?.role === 'staff',
     ready,
+    request,
     async signIn(email, password, rememberMe) {
       try {
         const { user, session: newSession } = await authApi.signIn({ email, password });
         applySignIn(user, newSession, rememberMe);
         return { ok: true, role: user.role, onboardingCompleted: user.onboarding_completed };
       } catch (err) {
-        return { ok: false, error: err instanceof ApiError ? err.message : "We couldn't sign you in. Check your email and password." };
+        return {
+          ok: false,
+          error:
+            err instanceof ApiError
+              ? err.message
+              : "We couldn't sign you in. Check your email and password.",
+        };
       }
     },
     async signOut() {
       if (session) await authApi.signOut(session.access_token).catch(() => undefined);
-      clearStoredSession();
-      setSession(undefined);
-      setAuthUser(undefined);
+      expireSession();
     },
     async register({ name, email, password }) {
       try {
-        const { user, session: newSession } = await authApi.signUp({ full_name: name, email, password });
+        const { user, session: newSession } = await authApi.signUp({
+          full_name: name,
+          email,
+          password,
+        });
         // SignUpResponse's user has no `role` (openapi.yaml) — a brand-new
         // account is always 'registered' by definition, so that's filled in
         // here rather than read off the response.
@@ -214,7 +321,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (newSession) applySignIn(registeredUser, newSession, false);
         return { ok: true, role: 'registered', onboardingCompleted: user.onboarding_completed };
       } catch (err) {
-        return { ok: false, error: err instanceof ApiError ? err.message : 'An account with that email already exists.' };
+        return {
+          ok: false,
+          error:
+            err instanceof ApiError ? err.message : 'An account with that email already exists.',
+        };
       }
     },
     async requestPasswordReset(email) {
@@ -225,7 +336,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authApi.resetPassword(email, newPassword);
         return { ok: true, role: 'registered', onboardingCompleted: true };
       } catch (err) {
-        return { ok: false, error: err instanceof ApiError ? err.message : 'That reset link is invalid or has expired.' };
+        return {
+          ok: false,
+          error:
+            err instanceof ApiError ? err.message : 'That reset link is invalid or has expired.',
+        };
       }
     },
     setMember(isMember) {

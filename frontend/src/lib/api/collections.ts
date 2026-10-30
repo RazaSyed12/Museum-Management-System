@@ -29,6 +29,8 @@ export interface Collection {
   featured: boolean;
   location: LocationRef | null;
   categories: CategoryRef[];
+  /** Cover image, if staff have uploaded one. */
+  image?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +85,12 @@ interface RawLocationRef {
   city: string | null;
 }
 
+interface RawMediaRef {
+  media_id: string;
+  url: string;
+  alt_text: string | null;
+}
+
 interface RawCollection {
   collection_id: string;
   name: string;
@@ -91,6 +99,7 @@ interface RawCollection {
   featured: boolean;
   location: RawLocationRef | null;
   categories: RawCategoryRef[];
+  images: RawMediaRef[];
   created_at: string;
   updated_at: string;
 }
@@ -104,6 +113,7 @@ function mapCollection(raw: RawCollection): Collection {
     featured: raw.featured,
     location: raw.location,
     categories: raw.categories.map((c) => ({ id: c.category_id, name: c.name })),
+    image: raw.images[0]?.url,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };

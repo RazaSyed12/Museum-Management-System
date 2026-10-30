@@ -30,7 +30,7 @@ export function TicketsPicker() {
           : events.map((e) => (
               <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
                 location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
-                detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
+                image={e.image} detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
             ))}
       </Grid>
     </Container>

@@ -65,9 +65,15 @@ export function useSiteNav(): SiteNav {
   const pathname = usePathname();
   const auth = useAuth();
 
+  // Sign-in updates the session the instant it succeeds, but leaving the
+  // sign-in page takes a moment longer — show signed-out here until that
+  // navigation lands, so the header doesn't flip to "signed in" while the
+  // sign-in form (mid-redirect) is still what's on screen.
+  const onSignInPage = pathname === ROUTES.SignIn;
+
   return {
-    user: auth.user,
-    isMember: auth.isMember,
+    user: onSignInPage ? undefined : auth.user,
+    isMember: onSignInPage ? false : auth.isMember,
     authReady: auth.ready,
     active: activeFromPath(pathname),
     go(label) {

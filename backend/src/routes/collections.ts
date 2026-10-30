@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { userClient } from '../lib/supabaseClients';
 import { readerClient } from '../lib/readerClient';
-import { requireAuth, requireStaff } from '../middleware/auth';
+import { requireAuth, requireStaff, requireAdminOrManager } from '../middleware/auth';
 
 const router = Router();
 
@@ -185,6 +185,15 @@ router.patch('/:id', requireAuth, requireStaff, async (req: Request, res: Respon
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
 
+  if (parsed.data.status === 'archived') {
+    const tier = req.auth!.tier;
+    if (tier !== 'admin' && tier !== 'manager') {
+      return res.status(403).json({
+        error: { message: 'Archiving a collection requires an admin or manager tier.', code: 'forbidden' },
+      });
+    }
+  }
+
   const id = idParsed.data.id;
   const { category_ids, ...fields } = parsed.data;
   const db = userClient(req.auth!.token);
@@ -234,10 +243,10 @@ router.patch('/:id', requireAuth, requireStaff, async (req: Request, res: Respon
   return res.status(200).json({ collection: shape(full) });
 });
 
-// POST /collections/:id/archive — staff only. Archiving hides a collection from
+// POST /collections/:id/archive — admin/manager only. Archiving hides a collection from
 // the public site but keeps it (and its history) in the database. It does the
 // same as PATCH {"status":"archived"}, as a clearly named action. Repeating it is harmless.
-router.post('/:id/archive', requireAuth, requireStaff, async (req: Request, res: Response) => {
+router.post('/:id/archive', requireAuth, requireStaff, requireAdminOrManager, async (req: Request, res: Response) => {
   const parsed = idSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
   const db = userClient(req.auth!.token);

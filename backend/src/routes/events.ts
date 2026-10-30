@@ -4,7 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { userClient } from '../lib/supabaseClients';
 import { readerClient } from '../lib/readerClient';
 import { replaceLinks, allCategoriesActive } from '../lib/links';
-import { requireAuth, requireStaff } from '../middleware/auth';
+import { requireAuth, requireStaff, requireAdminOrManager } from '../middleware/auth';
 
 const router = Router();
 
@@ -274,6 +274,15 @@ router.patch('/:id', requireAuth, requireStaff, async (req: Request, res: Respon
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
 
+  if (parsed.data.status === 'cancelled') {
+    const tier = req.auth!.tier;
+    if (tier !== 'admin' && tier !== 'manager') {
+      return res.status(403).json({
+        error: { message: 'Cancelling an event requires an admin or manager tier.', code: 'forbidden' },
+      });
+    }
+  }
+
   const id = idParsed.data.id;
   const { category_ids, collection_ids, ...fields } = parsed.data;
   const db = userClient(req.auth!.token);
@@ -321,7 +330,7 @@ router.patch('/:id', requireAuth, requireStaff, async (req: Request, res: Respon
 // harmless. (What happens to existing bookings is decided with ticketing.)
 // ---------------------------------------------------------------------------
 
-router.post('/:id/cancel', requireAuth, requireStaff, async (req: Request, res: Response) => {
+router.post('/:id/cancel', requireAuth, requireStaff, requireAdminOrManager, async (req: Request, res: Response) => {
   const parsed = idSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error.issues[0].message);
   const db = userClient(req.auth!.token);

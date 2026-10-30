@@ -55,6 +55,13 @@ function writeLocalInterests(userId: string, interests: string[]) {
   }
 }
 
+/** For lib/api/* modules that aren't React components (so can't call
+ *  useAuth()) but still need to send the signed-in user's token — the
+ *  staff-portal API client is the only user of this today. */
+export function getAccessToken(): string | undefined {
+  return readStoredSession()?.access_token;
+}
+
 function readStoredSession(): Session | undefined {
   if (typeof window === 'undefined') return undefined;
   try {

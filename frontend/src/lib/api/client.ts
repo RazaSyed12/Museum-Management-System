@@ -139,3 +139,33 @@ export async function apiPostAuthed<T>(path: string, token: string, body?: unkno
   }
   return res.status === 204 ? (undefined as T) : (res.json() as Promise<T>);
 }
+
+/** PATCH with "Authorization: Bearer <token>" — staff-only partial updates. */
+export async function apiPatchAuthed<T>(path: string, token: string, body: unknown, opts?: { absolute?: boolean }): Promise<T> {
+  await ensureMockingStarted();
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Same as apiGetAuthed, but a 404 resolves to undefined — for a staff
+ *  single-record lookup the caller treats as "might not exist". */
+export async function apiGetAuthedOptional<T>(path: string, token: string, opts?: { absolute?: boolean }): Promise<T | undefined> {
+  await ensureMockingStarted();
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 404) return undefined;
+  if (!res.ok) {
+    const { message, code } = await parseErrorBody(res);
+    throw new ApiError(message, code, res.status);
+  }
+  return res.json() as Promise<T>;
+}

@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchOptional, shouldMockDirectly } from './client';
+import { apiFetch, apiFetchOptional, apiGetAuthedOptional, apiPatchAuthed, apiPostAuthed, shouldMockDirectly } from './client';
 import { resolveEvents, resolveEvent } from '@/mocks/resolve';
 
 export type EventAvailability = 'available' | 'limited' | 'soldout' | 'cancelled';
@@ -38,7 +38,10 @@ function formatEventTime(startIso: string, endIso: string): string {
   return `${fmt.format(new Date(startIso))}–${fmt.format(new Date(endIso))}`;
 }
 
-interface RawEvent {
+/** Exported for the Staff Portal, which needs the raw ISO timestamps and
+ *  status enum — MuseumEvent below only carries display-formatted/derived
+ *  versions of both. */
+export interface RawEvent {
   event_id: string;
   name: string;
   description: string | null;
@@ -48,6 +51,7 @@ interface RawEvent {
   ticket_price: number;
   capacity: number;
   location: { name: string; city: string | null } | null;
+  categories: { category_id: string; name: string }[];
   images: { media_id: string; url: string; alt_text: string | null }[];
 }
 
@@ -93,4 +97,50 @@ export async function getEvent(id: string): Promise<MuseumEvent | undefined> {
   }
   if (shouldMockDirectly()) return resolveEvent(id);
   return apiFetchOptional<MuseumEvent>(`/api/events/${id}`);
+}
+
+/** Staff-authed — sees draft events too, and returns the raw shape (ISO
+ *  timestamps, raw status) the Staff Portal's forms need, unlike MuseumEvent
+ *  above which only carries display-formatted/derived versions of both. */
+export async function listEventsForStaff(token: string): Promise<RawEvent[]> {
+  const data = await apiGetAuthedOptional<{ events: RawEvent[]; total: number; limit: number; offset: number }>(
+    '/events?when=all&limit=100',
+    token,
+    { absolute: true },
+  );
+  return data?.events ?? [];
+}
+
+export async function getEventForStaff(id: string, token: string): Promise<RawEvent | undefined> {
+  const data = await apiGetAuthedOptional<{ event: RawEvent }>(`/events/${id}`, token, { absolute: true });
+  return data?.event;
+}
+
+export interface SaveEventInput {
+  name: string;
+  description?: string | null;
+  status?: 'draft' | 'scheduled';
+  location_id?: string | null;
+  ticket_price?: number;
+  capacity: number;
+  start_at: string;
+  end_at: string;
+  category_ids?: string[];
+}
+
+export async function createEvent(input: SaveEventInput, token: string): Promise<RawEvent> {
+  const data = await apiPostAuthed<{ event: RawEvent }>('/events', token, input, { absolute: true });
+  return data.event;
+}
+
+export async function updateEvent(id: string, input: Partial<SaveEventInput>, token: string): Promise<RawEvent> {
+  const data = await apiPatchAuthed<{ event: RawEvent }>(`/events/${id}`, token, input, { absolute: true });
+  return data.event;
+}
+
+/** reason is accepted here for the UI's own prompt/audit trail, but the
+ *  real endpoint doesn't read a request body yet — it just sets 'cancelled'. */
+export async function cancelEvent(id: string, reason: string, token: string): Promise<RawEvent> {
+  const data = await apiPostAuthed<{ event: RawEvent }>(`/events/${id}/cancel`, token, { reason }, { absolute: true });
+  return data.event;
 }

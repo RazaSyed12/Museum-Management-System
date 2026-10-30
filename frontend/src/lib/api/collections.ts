@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchOptional, shouldMockDirectly } from './client';
+import { apiFetch, apiFetchOptional, apiGetAuthedOptional, apiPatchAuthed, apiPostAuthed, shouldMockDirectly } from './client';
 import {
   resolveCollections,
   resolveCollection,
@@ -150,6 +150,49 @@ export async function getCollection(id: string): Promise<Collection | undefined>
   }
   if (shouldMockDirectly()) return resolveCollection(id);
   return apiFetchOptional<Collection>(`/api/collections/${id}`);
+}
+
+/** Staff-authed — sees draft/archived collections too (RLS), not just
+ *  published ones. Used by the Staff Portal's Collections screens. */
+export async function listCollectionsForStaff(query: ListCollectionsQuery, token: string): Promise<ListCollectionsResult> {
+  const qs = queryString({ q: query.q, featured: query.featured, limit: query.limit, offset: query.offset });
+  const data = await apiGetAuthedOptional<{ collections: RawCollection[]; total: number; limit: number; offset: number }>(
+    `/collections${qs}`,
+    token,
+    { absolute: true },
+  );
+  return data
+    ? { items: data.collections.map(mapCollection), total: data.total, limit: data.limit, offset: data.offset }
+    : { items: [], total: 0, limit: query.limit ?? 20, offset: query.offset ?? 0 };
+}
+
+export async function getCollectionForStaff(id: string, token: string): Promise<Collection | undefined> {
+  const data = await apiGetAuthedOptional<{ collection: RawCollection }>(`/collections/${id}`, token, { absolute: true });
+  return data && mapCollection(data.collection);
+}
+
+export interface SaveCollectionInput {
+  name: string;
+  description?: string | null;
+  status?: CollectionStatus;
+  location_id?: string | null;
+  featured?: boolean;
+  category_ids?: string[];
+}
+
+export async function createCollection(input: SaveCollectionInput, token: string): Promise<Collection> {
+  const data = await apiPostAuthed<{ collection: RawCollection }>('/collections', token, input, { absolute: true });
+  return mapCollection(data.collection);
+}
+
+export async function updateCollection(id: string, input: Partial<SaveCollectionInput>, token: string): Promise<Collection> {
+  const data = await apiPatchAuthed<{ collection: RawCollection }>(`/collections/${id}`, token, input, { absolute: true });
+  return mapCollection(data.collection);
+}
+
+export async function archiveCollection(id: string, token: string): Promise<Collection> {
+  const data = await apiPostAuthed<{ collection: RawCollection }>(`/collections/${id}/archive`, token, undefined, { absolute: true });
+  return mapCollection(data.collection);
 }
 
 /** Always mocks — no real /collections/{id}/items endpoint yet. */

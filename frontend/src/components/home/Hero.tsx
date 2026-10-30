@@ -24,6 +24,7 @@ interface Slide {
   secondary: { label: string; to: string } | { label: string; href: string };
   tone: NonNullable<MediaProps['tone']>;
   caption: string;
+  image?: string;
 }
 
 /** Time each slide stays up before advancing. */
@@ -49,6 +50,7 @@ function buildSlides(events: MuseumEvent[]): Slide[] {
     secondary: { label: 'See what’s on', to: 'Events' },
     tone: 'green',
     caption: `${e.title} — Heritage Museum`,
+    image: e.image,
   }));
   // Alternate tone so two consecutive slides don't look identical.
   if (eventSlides[1]) eventSlides[1].tone = 'olive';
@@ -116,7 +118,7 @@ export function Hero({ go, events }: HeroProps) {
       onBlur={() => setHolding(false)}
     >
       <div key={`bg-${slide.id}`} className="absolute inset-0 animate-kenburns motion-reduce:animate-none">
-        <Media tone={slide.tone} ratio="auto" caption={slide.caption} className="h-full rounded-none" />
+        <Media src={slide.image} tone={slide.tone} ratio="auto" caption={slide.caption} className="h-full rounded-none" />
         {/* Vertical scrim on mobile, horizontal once the copy sits beside the image. */}
         <div className="scrim-image md:scrim-hero absolute inset-0" />
       </div>

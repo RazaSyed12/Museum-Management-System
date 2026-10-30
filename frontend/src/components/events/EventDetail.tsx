@@ -36,6 +36,7 @@ export function EventDetail({ event: e }: EventDetailProps) {
       <DetailHero
         crumbs={[{ label: 'Home', href: '/' }, { label: "What's on", href: '/events' }, { label: e.title }]}
         title={e.title}
+        image={e.image}
         eyebrow={
           <div className="flex flex-wrap gap-2">
             <StatusBadge tone={badge.tone} size="sm">{e.availability === 'limited' ? `Limited — ${e.remaining} left` : badge.label}</StatusBadge>

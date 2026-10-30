@@ -31,6 +31,7 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
       <DetailHero
         crumbs={[{ label: 'Home', href: '/' }, { label: 'Collections', href: '/collections' }, { label: collection.name }]}
         title={collection.name}
+        image={collection.image}
         eyebrow={
           <div className="flex flex-wrap gap-2">
             {collection.categories.map((c) => (
@@ -69,7 +70,7 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
           {relatedEvents.map((e) => (
             <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
               location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
-              detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
+              image={e.image} detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
           ))}
         </Grid>
       </Section>
@@ -78,7 +79,7 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
         <Grid cols={3}>
           {relatedCollections.map((c, i) => (
             <CollectionCard key={c.id} name={c.name} category={c.categories[0]?.name} description={c.description ?? undefined}
-              tone={toneForIndex(i)} href={`/collections/${c.id}`} />
+              image={c.image} tone={toneForIndex(i)} href={`/collections/${c.id}`} />
           ))}
         </Grid>
       </Section>

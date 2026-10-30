@@ -196,6 +196,7 @@ export function CollectionsBrowse() {
                     name={c.name}
                     category={c.categories[0]?.name}
                     description={c.description ?? undefined}
+                    image={c.image}
                     tone={toneForIndex(i)}
                     href={`/collections/${c.id}`}
                   />

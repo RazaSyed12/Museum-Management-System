@@ -15,6 +15,8 @@ export interface DetailHeroProps {
   description?: string;
   meta?: ReactNode;
   actions?: ReactNode;
+  /** Cover photo, if one's been uploaded — falls back to the tone placeholder otherwise. */
+  image?: string;
 }
 
 export function DetailHero({
@@ -24,13 +26,15 @@ export function DetailHero({
   description,
   meta,
   actions,
+  image,
 }: DetailHeroProps) {
   return (
     <div className="relative bg-green-900">
       <Media
+        src={image}
         tone="green"
         ratio="auto"
-        caption="Collection photography"
+        caption={title}
         className="absolute inset-0 h-full rounded-none"
       />
       <div className="scrim-hero absolute inset-0" />

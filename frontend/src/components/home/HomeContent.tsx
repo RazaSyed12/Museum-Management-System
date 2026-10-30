@@ -92,7 +92,7 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
         <Grid cols={3}>
           {shownCollections.map((c, i) => (
             <CollectionCard key={c.id} name={c.name} category={c.categories[0]?.name}
-              description={c.description ?? undefined} tone={toneForIndex(i)} href={`/collections/${c.id}`} />
+              description={c.description ?? undefined} image={c.image} tone={toneForIndex(i)} href={`/collections/${c.id}`} />
           ))}
         </Grid>
       </Section>
@@ -119,7 +119,7 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
           {shownEvents.map((e) => (
             <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
               location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
-              detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
+              image={e.image} detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
           ))}
         </Grid>
       </Section>

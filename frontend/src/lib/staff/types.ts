@@ -22,6 +22,9 @@ export interface StaffEvent {
   title: string;
   description: string;
   type: string;
+  /** Required by the real backend to create an event; no real equivalent
+   *  for StaffCollection's single-category model, so this reuses it. */
+  categoryId: string;
   startAt: string;
   endAt: string;
   location: string;

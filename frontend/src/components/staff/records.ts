@@ -64,6 +64,13 @@ export const RECORDS: Record<Resource, RecordDefinition> = {
         required: true,
       },
       {
+        key: 'categoryId',
+        label: 'Category',
+        type: 'select',
+        reference: 'categories',
+        required: true,
+      },
+      {
         key: 'description',
         label: 'Description',
         type: 'textarea',

@@ -1036,7 +1036,7 @@ components:
           type: string
     Event:
       type: object
-      required: [event_id, name, start_at, end_at, status, ticket_price, capacity, created_at, updated_at, location, categories, collections]
+      required: [event_id, name, start_at, end_at, status, ticket_price, capacity, created_at, updated_at, location, categories, collections, images]
       properties:
         event_id:
           type: string
@@ -1075,6 +1075,11 @@ components:
           description: Collections the event showcases (only those the caller may see)
           items:
             $ref: '#/components/schemas/CollectionRef'
+        images:
+          type: array
+          description: Ordered by sort_order; the first entry is the cover image.
+          items:
+            $ref: '#/components/schemas/MediaRef'
         created_at:
           type: string
           format: date-time
@@ -1266,9 +1271,21 @@ components:
         city:
           type: string
           nullable: true
+    MediaRef:
+      type: object
+      required: [media_id, url, alt_text]
+      properties:
+        media_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        alt_text:
+          type: string
+          nullable: true
     Collection:
       type: object
-      required: [collection_id, name, status, featured, created_at, updated_at, location, categories]
+      required: [collection_id, name, status, featured, created_at, updated_at, location, categories, images]
       properties:
         collection_id:
           type: string
@@ -1293,6 +1310,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRef'
+        images:
+          type: array
+          description: Ordered by sort_order; the first entry is the cover image.
+          items:
+            $ref: '#/components/schemas/MediaRef'
         created_at:
           type: string
           format: date-time

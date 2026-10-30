@@ -61,7 +61,10 @@ export async function apiFetch<T>(path: string, opts?: { absolute?: boolean }): 
 /** Same as apiFetch, but a 404 resolves to undefined instead of throwing —
  *  for single-resource lookups the caller treats as "might not exist"
  *  (collection/item by id) rather than an error. */
-export async function apiFetchOptional<T>(path: string, opts?: { absolute?: boolean }): Promise<T | undefined> {
+export async function apiFetchOptional<T>(
+  path: string,
+  opts?: { absolute?: boolean },
+): Promise<T | undefined> {
   await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
   if (res.status === 404) return undefined;
@@ -86,7 +89,9 @@ export class ApiError extends Error {
 }
 
 async function parseErrorBody(res: Response): Promise<{ message: string; code: string }> {
-  const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; code?: string } };
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string; code?: string };
+  };
   return {
     message: body.error?.message ?? `${res.status} ${res.statusText}`,
     code: body.error?.code ?? 'unknown_error',
@@ -94,8 +99,12 @@ async function parseErrorBody(res: Response): Promise<{ message: string; code: s
 }
 
 /** POST with a JSON body, no auth required. `absolute: true` targets the real backend (see apiUrlAbsolute). */
-export async function apiPost<T>(path: string, body: unknown, opts?: { absolute?: boolean }): Promise<T> {
-  await ensureMockingStarted();
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  opts?: { absolute?: boolean },
+): Promise<T> {
+  if (!opts?.absolute) await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -110,8 +119,12 @@ export async function apiPost<T>(path: string, body: unknown, opts?: { absolute?
 
 /** GET with "Authorization: Bearer <token>" — /auth/me and anything else
  *  behind requireAuth. */
-export async function apiGetAuthed<T>(path: string, token: string, opts?: { absolute?: boolean }): Promise<T> {
-  await ensureMockingStarted();
+export async function apiGetAuthed<T>(
+  path: string,
+  token: string,
+  opts?: { absolute?: boolean },
+): Promise<T> {
+  if (!opts?.absolute) await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -123,8 +136,13 @@ export async function apiGetAuthed<T>(path: string, token: string, opts?: { abso
 }
 
 /** POST with "Authorization: Bearer <token>" — /auth/sign-out. */
-export async function apiPostAuthed<T>(path: string, token: string, body?: unknown, opts?: { absolute?: boolean }): Promise<T> {
-  await ensureMockingStarted();
+export async function apiPostAuthed<T>(
+  path: string,
+  token: string,
+  body?: unknown,
+  opts?: { absolute?: boolean },
+): Promise<T> {
+  if (!opts?.absolute) await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), {
     method: 'POST',
     headers: {

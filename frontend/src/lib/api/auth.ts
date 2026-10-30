@@ -20,6 +20,7 @@
  * resources still on NEXT_PUBLIC_API_MOCKING.
  */
 import { apiPost, apiGetAuthed, apiPostAuthed, shouldMockDirectly } from './client';
+import { staffUsesBackend } from '@/lib/staff/config';
 import {
   resolveSignUp,
   resolveSignIn,
@@ -57,7 +58,16 @@ export interface NewAccountUser {
 }
 
 function authMockingDisabled(): boolean {
-  return process.env.NEXT_PUBLIC_AUTH_API_MOCKING === 'disabled';
+  // Staff use the same sign-in as visitors, so a live portal needs a real
+  // session too. An explicit auth preview still takes precedence.
+  return (
+    process.env.NEXT_PUBLIC_AUTH_API_MOCKING === 'disabled' ||
+    (process.env.NEXT_PUBLIC_AUTH_API_MOCKING !== 'enabled' && staffUsesBackend())
+  );
+}
+
+export function usesBackendAuth(): boolean {
+  return authMockingDisabled();
 }
 
 export async function signUp(input: {
@@ -114,9 +124,16 @@ export async function requestPasswordReset(email: string): Promise<void> {
  *  to actually send one — the real endpoint expects the access_token from
  *  that link's URL fragment instead (backend/src/routes/session.ts), not
  *  an email address. */
-export async function resetPassword(emailOrAccessToken: string, new_password: string): Promise<void> {
+export async function resetPassword(
+  emailOrAccessToken: string,
+  new_password: string,
+): Promise<void> {
   if (authMockingDisabled()) {
-    await apiPost('/auth/reset-password', { access_token: emailOrAccessToken, new_password }, { absolute: true });
+    await apiPost(
+      '/auth/reset-password',
+      { access_token: emailOrAccessToken, new_password },
+      { absolute: true },
+    );
     return;
   }
   if (shouldMockDirectly()) return resolveResetPassword(emailOrAccessToken, new_password);

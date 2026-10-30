@@ -136,6 +136,7 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
                 kind="Collection"
                 title={c.name}
                 reason="Visitors also explored"
+                image={c.image}
                 tone={toneForIndex(i)}
                 href={`/collections/${c.id}`}
               />

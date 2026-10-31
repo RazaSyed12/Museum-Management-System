@@ -4889,6 +4889,607 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /visitors:
+    get:
+      summary: List visitors
+      description: Staff only. ?q= matches name or email (no uniqueness is enforced on email — this is how staff check for an existing visitor before creating a new one).
+      operationId: listVisitors
+      tags:
+        - Visitors
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of visitors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitorListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a visitor
+      description: Staff only. For a walk-in with no login.
+      operationId: createVisitor
+      tags:
+        - Visitors
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisitorRequest'
+      responses:
+        '201':
+          description: Visitor created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitorResponse'
+        '400':
+          description: Validation failed, or linked_profile_id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /visitors/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get one visitor
+      description: >-
+        Staff only. Booking/membership/visit history comes from those
+        resources' own list endpoints filtered by visitor_id, not from here.
+      operationId: getVisitor
+      tags:
+        - Visitors
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The visitor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such visitor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit a visitor
+      description: Staff only. Only the fields that are sent are changed; null clears an optional field.
+      operationId: updateVisitor
+      tags:
+        - Visitors
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisitorRequest'
+      responses:
+        '200':
+          description: The updated visitor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitorResponse'
+        '400':
+          description: Validation failed, or linked_profile_id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such visitor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /visits:
+    get:
+      summary: List visits (attendance)
+      description: >-
+        Staff only. ?visitor_id= and ?booking_id= are how the visitor and
+        booking detail screens get their attendance history.
+      operationId: listVisits
+      tags:
+        - Visits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: visitor_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: booking_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of visits, most recent first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Record a walk-in visit
+      description: >-
+        Any staff tier. visitor_id is optional (omit it for a fully anonymous
+        head count). For a ticketed visit, use POST /bookings/{id}/check-in
+        instead — this endpoint deliberately does not accept a booking_id.
+      operationId: createVisit
+      tags:
+        - Visits
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisitRequest'
+      responses:
+        '201':
+          description: Visit recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitResponse'
+        '400':
+          description: Validation failed, or the visitor does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /visits/{id}:
+    get:
+      summary: Get one visit
+      description: Staff only. Visits are read-only once created — no edit/delete endpoint.
+      operationId: getVisit
+      tags:
+        - Visits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The visit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such visit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /staff/memberships:
+    get:
+      summary: List memberships
+      description: Staff only. ?status=, ?plan_id= (the "type" filter — plans are this system's membership types), ?visitor_id=, ?user_id=.
+      operationId: listStaffMemberships
+      tags:
+        - Memberships
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, expired, cancelled]
+        - name: plan_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: visitor_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of memberships
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffMembershipListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Record a membership
+      description: >-
+        Staff only. Records a membership directly (for a walk-in visitor or an
+        existing account) without going through the self-service
+        purchase/payment flow (POST /membership/purchase) — this is for staff
+        recording one themselves (comp, phone sign-up, etc.). Exactly one of
+        user_id/visitor_id is required. No overlap/renewal check against the
+        holder's other memberships is enforced (an open decision).
+      operationId: createStaffMembership
+      tags:
+        - Memberships
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStaffMembershipRequest'
+      responses:
+        '201':
+          description: Membership recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffMembershipResponse'
+        '400':
+          description: Validation failed, the plan/user/visitor does not exist, or neither/both of user_id and visitor_id were sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /staff/memberships/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get one membership
+      description: Staff only.
+      operationId: getStaffMembership
+      tags:
+        - Memberships
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The membership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffMembershipResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such membership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Edit a membership
+      description: >-
+        Staff only. status, ends_at and purchase_price only — plan_id, user_id
+        and visitor_id are immutable after creation (swapping the plan or the
+        holder is a new membership, not an edit to this one).
+      operationId: updateStaffMembership
+      tags:
+        - Memberships
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStaffMembershipRequest'
+      responses:
+        '200':
+          description: The updated membership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffMembershipResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such membership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -7695,3 +8296,268 @@ components:
               description:
                 type: string
                 nullable: true
+
+    Visitor:
+      type: object
+      required: [visitor_id, full_name, email, phone, address, linked_profile_id, created_at, updated_at]
+      properties:
+        visitor_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        linked_profile_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set once this walk-in visitor creates (or is matched to) a real account.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    VisitorResponse:
+      type: object
+      required: [visitor]
+      properties:
+        visitor:
+          $ref: '#/components/schemas/Visitor'
+    VisitorListResponse:
+      type: object
+      required: [visitors, total, limit, offset]
+      properties:
+        visitors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Visitor'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateVisitorRequest:
+      type: object
+      required: [full_name]
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        email:
+          type: string
+          format: email
+          maxLength: 200
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 50
+        address:
+          type: string
+          minLength: 1
+          maxLength: 500
+    UpdateVisitorRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Send only the fields to change. null clears an optional field.
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        email:
+          type: string
+          format: email
+          maxLength: 200
+          nullable: true
+        phone:
+          type: string
+          maxLength: 50
+          nullable: true
+        address:
+          type: string
+          maxLength: 500
+          nullable: true
+    Visit:
+      type: object
+      required: [attendance_id, visitor_id, booking_id, quantity, visited_at, created_by, created_at]
+      properties:
+        attendance_id:
+          type: string
+          format: uuid
+        visitor_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: null for a fully anonymous walk-in.
+        booking_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set when this attendance was created by checking in a ticketed booking. At most one visit per booking.
+        quantity:
+          type: integer
+          minimum: 1
+        visited_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: The staff member who recorded this or performed the check-in.
+        created_at:
+          type: string
+          format: date-time
+    VisitResponse:
+      type: object
+      required: [visit]
+      properties:
+        visit:
+          $ref: '#/components/schemas/Visit'
+    VisitListResponse:
+      type: object
+      required: [visits, total, limit, offset]
+      properties:
+        visits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Visit'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateVisitRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        visitor_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1
+        visited_at:
+          type: string
+          format: date-time
+          description: Defaults to now.
+    StaffMembership:
+      type: object
+      required: [membership_id, user_id, visitor_id, plan_id, status, starts_at, ends_at, purchase_price, plan]
+      properties:
+        membership_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        visitor_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Exactly one of user_id/visitor_id is set.
+        plan_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, active, expired, cancelled]
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        purchase_price:
+          type: number
+          nullable: true
+          description: What was actually paid at purchase time, preserved even if the plan's price later changes.
+        plan:
+          $ref: '#/components/schemas/MembershipPlan'
+    StaffMembershipResponse:
+      type: object
+      required: [membership]
+      properties:
+        membership:
+          $ref: '#/components/schemas/StaffMembership'
+    StaffMembershipListResponse:
+      type: object
+      required: [memberships, total, limit, offset]
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffMembership'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateStaffMembershipRequest:
+      type: object
+      required: [plan_id]
+      additionalProperties: false
+      description: Exactly one of user_id/visitor_id is required.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        visitor_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, active, expired, cancelled]
+          default: active
+        starts_at:
+          type: string
+          format: date-time
+          description: Defaults to now.
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Omit to compute starts_at + the plan's duration_months automatically.
+        purchase_price:
+          type: number
+          minimum: 0
+          description: Omit to use the plan's current price.
+    UpdateStaffMembershipRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Send only the fields to change. plan_id, user_id and visitor_id are not editable here.
+      properties:
+        status:
+          type: string
+          enum: [pending, active, expired, cancelled]
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        purchase_price:
+          type: number
+          minimum: 0

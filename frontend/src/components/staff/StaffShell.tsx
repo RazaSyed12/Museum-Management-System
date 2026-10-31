@@ -33,7 +33,7 @@ const NAV = [
 ] as const;
 
 export function StaffShell({ children }: { children: ReactNode }) {
-  const { user, loading, error, refresh, logout } = useStaffSession();
+  const { user, loading, error, refresh, logout, live, catalogue } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -44,8 +44,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const [searching, setSearching] = useState(false);
   const [actionError, setActionError] = useState('');
   const notifications = useStaffData(
-    () => (user ? staffApi.notifications() : Promise.resolve([])),
-    [user?.id, pathname],
+    () => (user && !live ? staffApi.notifications() : Promise.resolve([])),
+    [user?.id, pathname, live],
   );
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
   }, [pathname]);
   useEffect(() => {
     const controller = new AbortController();
-    if (!query.trim()) {
+    if (!query.trim() || !user) {
       setResults([]);
       setSearching(false);
       return;
@@ -65,9 +65,27 @@ export function StaffShell({ children }: { children: ReactNode }) {
     setSearching(true);
     const timer = setTimeout(() => {
       setSearchError('');
-      staffApi
-        .search(query.trim(), controller.signal)
-        .then(setResults)
+      const search = live
+        ? Promise.all(
+            (['collections', 'events', 'categories'] as const).map(async (resource) => {
+              const page = await catalogue.list(
+                resource,
+                { q: query.trim(), pageSize: 5 },
+                controller.signal,
+              );
+              return page.items.map((row) => ({
+                id: row.id,
+                label: row.name,
+                kind: resource,
+                href: `/staff/${resource}/${row.id}`,
+              }));
+            }),
+          ).then((groups) => groups.flat())
+        : staffApi.search(query.trim(), controller.signal);
+      search
+        .then((rows) => {
+          if (!controller.signal.aborted) setResults(rows);
+        })
         .catch((err: unknown) => {
           if (!controller.signal.aborted)
             setSearchError(err instanceof Error ? err.message : 'Search failed.');
@@ -80,7 +98,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [query, live, catalogue, user]);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setQuery('');
@@ -99,6 +117,14 @@ export function StaffShell({ children }: { children: ReactNode }) {
     return (
       <div className="p-8">
         <RequestError error={error} retry={() => void refresh()} />
+        <div className="mt-4 flex gap-3">
+          <Button as="a" href="/account" variant="secondary">
+            Back to my account
+          </Button>
+          <Button variant="ghost" onClick={() => void logout()}>
+            Sign out
+          </Button>
+        </div>
       </div>
     );
   if (!user)
@@ -170,7 +196,12 @@ export function StaffShell({ children }: { children: ReactNode }) {
               id="portal-search"
               iconLeft="search"
               type="search"
-              placeholder="Search visitors, events, bookings…"
+              placeholder={
+                live
+                  ? 'Search collections, events, categories…'
+                  : 'Search visitors, events, bookings…'
+              }
+              maxLength={100}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-expanded={Boolean(query.trim())}
@@ -213,19 +244,21 @@ export function StaffShell({ children }: { children: ReactNode }) {
               label="Visit the public site"
               onClick={() => router.push('/')}
             />
-            <div className="relative">
-              <IconButton
-                icon="bell"
-                label={`Notifications, ${notifications.data?.filter((n) => !n.read).length ?? 0} unread`}
-                onClick={() => {
-                  notifications.refresh();
-                  setNotificationsOpen(true);
-                }}
-              />
-              {notifications.data?.some((n) => !n.read) && (
-                <span className="pointer-events-none absolute top-1 right-1 size-2 rounded-full bg-danger-600" />
-              )}
-            </div>
+            {!live && (
+              <div className="relative">
+                <IconButton
+                  icon="bell"
+                  label={`Notifications, ${notifications.data?.filter((n) => !n.read).length ?? 0} unread`}
+                  onClick={() => {
+                    notifications.refresh();
+                    setNotificationsOpen(true);
+                  }}
+                />
+                {notifications.data?.some((n) => !n.read) && (
+                  <span className="pointer-events-none absolute top-1 right-1 size-2 rounded-full bg-danger-600" />
+                )}
+              </div>
+            )}
             <span className="grid size-10 place-items-center rounded-full bg-olive-100 font-semibold text-olive-700">
               {user.name
                 .split(' ')
@@ -235,7 +268,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
             </span>
             <span className="hidden md:grid">
               <span className="type-label text-heading">{user.name}</span>
-              <span className="text-xs text-muted">{user.role}</span>
+              <span className="text-xs text-muted">{user.role ?? 'Staff account'}</span>
             </span>
             <IconButton
               icon="log-out"

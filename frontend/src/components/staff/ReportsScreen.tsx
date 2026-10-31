@@ -13,8 +13,14 @@ import { can } from '@/lib/staff/permissions';
 import { downloadCsv, localDay, money } from '@/lib/staff/format';
 import type { ReportKind, ReportRow } from '@/lib/staff/types';
 import { Loading, PageHeading, Panel, RequestError, useStaffData } from './Shared';
+import { staffUsesBackend } from '@/lib/staff/config';
+import { StaffUnavailable } from './Unavailable';
 
 export function ReportsScreen() {
+  return staffUsesBackend() ? <StaffUnavailable title="Reports" /> : <DemoReportsScreen />;
+}
+
+function DemoReportsScreen() {
   const { user } = useStaffSession();
   const [kind, setKind] = useState<ReportKind>('visitors');
   const [from, setFrom] = useState(`${localDay().slice(0, 7)}-01`);

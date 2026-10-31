@@ -2180,6 +2180,12 @@ paths:
             type: string
             maxLength: 300
           description: A short description of the image
+        - name: filename
+          in: query
+          schema:
+            type: string
+            maxLength: 255
+          description: The original filename, for display only (the storage path is independent of it)
       requestBody:
         required: true
         content:
@@ -6654,6 +6660,7 @@ components:
         - media_id
         - url
         - media_type
+        - original_filename
         - alt_text
         - created_at
       properties:
@@ -6667,6 +6674,10 @@ components:
         media_type:
           type: string
           example: image/png
+        original_filename:
+          type: string
+          nullable: true
+          description: The filename the uploader sent, for display only.
         alt_text:
           type: string
           nullable: true
@@ -6714,6 +6725,7 @@ components:
         - media_id
         - url
         - media_type
+        - original_filename
         - alt_text
         - sort_order
       properties:
@@ -6725,6 +6737,9 @@ components:
           format: uri
         media_type:
           type: string
+        original_filename:
+          type: string
+          nullable: true
         alt_text:
           type: string
           nullable: true

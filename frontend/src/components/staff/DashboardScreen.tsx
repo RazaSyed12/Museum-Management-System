@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { Media } from '@/components/foundation/Media';
 import { staffApi } from '@/lib/api/staff';
 import { date, localDay } from '@/lib/staff/format';
+import { staffUsesBackend } from '@/lib/staff/config';
+import { CatalogueDashboard } from './CatalogueDashboard';
 import {
   Capacity,
   Loading,
@@ -20,6 +22,10 @@ import {
 } from './Shared';
 
 export function DashboardScreen() {
+  return staffUsesBackend() ? <CatalogueDashboard /> : <DemoDashboardScreen />;
+}
+
+function DemoDashboardScreen() {
   const { data, loading, error, refresh } = useStaffData((signal) => staffApi.dashboard(signal));
   useEffect(() => {
     const timer = setInterval(refresh, 60000);

@@ -5496,6 +5496,183 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /admin/dashboard:
+    get:
+      summary: Dashboard numbers
+      description: >-
+        Any staff tier. Current vs previous period = this Adelaide calendar
+        month vs the one before it. upcoming_events includes each event's
+        capacity alongside its confirmed-booked count.
+      operationId: getDashboard
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/reports/{kind}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [visitors, tickets, memberships, events, collections]
+    get:
+      summary: Run a report
+      description: >-
+        Any staff tier. date_from/date_to (YYYY-MM-DD, required, inclusive
+        Adelaide calendar days) apply to every kind except collections,
+        which takes no date range at all — it's a current snapshot,
+        independent of report dates. visitors additionally takes
+        ?group=day|month|year (default day); collections takes
+        ?group=category|period (default category). Each kind's date basis
+        is documented on the kind itself: visitors uses attendance time,
+        tickets uses booking time, memberships uses membership start date,
+        events uses the event's own date (not its bookings' creation time).
+      operationId: getReport
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date_from
+          in: query
+          description: Required for visitors, tickets, memberships and events. Not used by collections.
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          description: Required for visitors, tickets, memberships and events. Not used by collections.
+          schema:
+            type: string
+            format: date
+        - name: group
+          in: query
+          description: 'visitors: day|month|year (default day). collections: category|period (default category). Ignored by other kinds.'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Invalid kind, missing/invalid date range, or invalid group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/reports/{kind}/export:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [visitors, tickets, memberships, events, collections]
+    get:
+      summary: Export a report as CSV
+      description: >-
+        Admin or manager tier only — distinct from GET /admin/reports/{kind}
+        itself, which every staff tier can view. Runs the identical report
+        and returns its rows as a CSV file (Content-Disposition: attachment).
+        Same query parameters as GET /admin/reports/{kind}.
+      operationId: exportReport
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: group
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+        '400':
+          description: Invalid kind, missing/invalid date range, or invalid group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff, or lacks an admin/manager tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -8576,3 +8753,129 @@ components:
         purchase_price:
           type: number
           minimum: 0
+    ReportResponse:
+      type: object
+      required: [kind, rows]
+      additionalProperties: true
+      description: >-
+        The envelope common to every report kind. Exact extra fields vary:
+        visitors adds total_visitors; tickets adds totals (booked_quantity,
+        cancelled_quantity, revenue, refunded); memberships adds
+        current_status_counts (a snapshot, not date-bound); events and
+        collections add nothing beyond rows. See GET /admin/reports/{kind}
+        for each kind's row shape and date basis.
+      properties:
+        kind:
+          type: string
+          enum: [visitors, tickets, memberships, events, collections]
+        date_from:
+          type: string
+          format: date
+          nullable: true
+          description: Absent for collections, which takes no date range.
+        date_to:
+          type: string
+          format: date
+          nullable: true
+        date_basis:
+          type: string
+          nullable: true
+          description: Which timestamp column this report is dated by.
+        group_by:
+          type: string
+          nullable: true
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    DashboardPeriod:
+      type: object
+      required: [current_start, current_end, previous_start, previous_end]
+      properties:
+        current_start:
+          type: string
+          format: date-time
+        current_end:
+          type: string
+          format: date-time
+        previous_start:
+          type: string
+          format: date-time
+        previous_end:
+          type: string
+          format: date-time
+    DashboardUpcomingEvent:
+      type: object
+      required: [event_id, name, start_at, end_at, capacity, booked_quantity]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        capacity:
+          type: integer
+        booked_quantity:
+          type: integer
+          description: Confirmed bookings only.
+    DashboardRecentBooking:
+      type: object
+      required: [booking_id, event_id, event_name, booking_status, quantity, total_amount, booked_at]
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        event_name:
+          type: string
+        booking_status:
+          type: string
+          enum: [pending, confirmed, cancelled, expired]
+        quantity:
+          type: integer
+        total_amount:
+          type: number
+        booked_at:
+          type: string
+          format: date-time
+    DashboardResponse:
+      type: object
+      required:
+        - period
+        - visits_current_period
+        - visits_previous_period
+        - booked_tickets_current_period
+        - active_memberships
+        - upcoming_events
+        - recent_bookings
+      properties:
+        period:
+          $ref: '#/components/schemas/DashboardPeriod'
+        visits_current_period:
+          type: integer
+          description: Sum of attendance.quantity this Adelaide calendar month.
+        visits_previous_period:
+          type: integer
+        booked_tickets_current_period:
+          type: integer
+          description: Sum of pending/confirmed booking quantity booked this calendar month.
+        active_memberships:
+          type: integer
+          description: Current snapshot, not date-bound.
+        upcoming_events:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardUpcomingEvent'
+        recent_bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardRecentBooking'

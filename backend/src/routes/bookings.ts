@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { userClient } from '../lib/supabaseClients';
-import { requireAuth, requireStaff } from '../middleware/auth';
+import { requireAuth, requireStaff, requireAdminOrManager } from '../middleware/auth';
 
 // Paths are written in full (/bookings/..., /me/bookings, /admin/bookings, /events/:id/bookings),
 // so this router is mounted without a prefix. Paying lives in routes/payments.ts.
@@ -10,7 +10,7 @@ const router = Router();
 const HOLD_MINUTES = 15; // keep in step with the 15 minutes inside the SQL functions
 
 const BOOKING_SELECT =
-  'booking_id, user_id, event_id, booking_status, quantity, subtotal, discount_amount, tax_amount, service_fee, total_amount, booked_at, ' +
+  'booking_id, user_id, event_id, booking_status, quantity, subtotal, discount_amount, tax_amount, service_fee, total_amount, booked_at, checked_in_at, ' +
   'events(event_id, name, start_at, end_at), ' +
   'tickets(ticket_id, allocation_id, ticket_status, price, ticket_code), ' +
   'payments(payment_id, provider, method, payment_status, amount, currency, transaction_reference, failure_code, failure_message, paid_at, refunded_at, created_at)';
@@ -41,6 +41,12 @@ function rpcFailure(res: Response, error: { message?: string; details?: string |
       return notFound(res, 'Booking');
     case 'cannot_cancel':
       return send(res, 409, 'cannot_cancel', 'This event has already started, so the booking can no longer be cancelled.');
+    case 'already_checked_in':
+      return send(res, 409, 'already_checked_in', 'This booking has already been checked in, so it can no longer be cancelled.');
+    case 'not_confirmed':
+      return send(res, 409, 'not_confirmed', 'Only a confirmed booking can be checked in.');
+    case 'nothing_to_refund':
+      return send(res, 409, 'nothing_to_refund', 'This booking has no completed payment to refund.');
     case 'account_not_active':
       return send(res, 403, 'forbidden', 'Your account cannot make bookings.');
     case 'not_signed_in':
@@ -95,6 +101,7 @@ router.post('/bookings', requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /bookings/:id/cancel — the owner (or staff). Frees the seats; a paid booking is refunded.
+// Refused once the booking has been checked in (code already_checked_in).
 router.post('/bookings/:id/cancel', requireAuth, async (req: Request, res: Response) => {
   const id = String(req.params.id);
   if (!idSchema.safeParse(id).success) return notFound(res, 'Booking');
@@ -103,10 +110,42 @@ router.post('/bookings/:id/cancel', requireAuth, async (req: Request, res: Respo
   return res.json({ booking: data });
 });
 
+// POST /bookings/:id/check-in — any staff tier. Marks the booking checked in at the
+// door. Only works on a confirmed booking; repeating it on an already-checked-in
+// booking is a harmless no-op (not an error, doesn't duplicate anything).
+router.post('/bookings/:id/check-in', requireAuth, requireStaff, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  if (!idSchema.safeParse(id).success) return notFound(res, 'Booking');
+  const { data, error } = await userClient(req.auth!.token).rpc('check_in_booking', { p_booking_id: id });
+  if (error) return rpcFailure(res, error, 'Could not check in the booking.');
+  return res.json({ booking: data });
+});
+
+// POST /bookings/:id/refund — admin/manager tier only. Deliberately separate from
+// cancel: refunds the booking's completed payment(s) without cancelling it or
+// releasing its seats. Cancel it separately afterwards if that's also wanted.
+router.post('/bookings/:id/refund', requireAuth, requireStaff, requireAdminOrManager, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  if (!idSchema.safeParse(id).success) return notFound(res, 'Booking');
+  const { data, error } = await userClient(req.auth!.token).rpc('staff_refund_booking', { p_booking_id: id });
+  if (error) return rpcFailure(res, error, 'Could not refund the booking.');
+  return res.json({ booking: data });
+});
+
 const listSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'cancelled', 'expired']).optional(),
   event_id: z.guid().optional(),
   user_id: z.guid().optional(),
+  // Searches ticket codes (the human-readable reference, e.g. MUS-3F9A1C07BE)
+  // — not visitor name/email, which would need a join into auth.users this
+  // client can't make directly.
+  q: z.string().trim().min(1).max(100).optional(),
+  // Visit-date range, i.e. the EVENT's start_at — not when the booking was
+  // made. The frontend computes its own today/upcoming/past tab bounds from
+  // these two raw bounds, so no timezone assumption is baked in here.
+  date_from: z.iso.datetime({ offset: true }).optional(),
+  date_to: z.iso.datetime({ offset: true }).optional(),
+  sort: z.enum(['booked_at', 'visit_date']).default('booked_at'),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -120,14 +159,40 @@ async function listBookings(req: Request, res: Response, fixed: { user_id?: stri
   const db = userClient(req.auth!.token);
   await db.rpc('release_expired_holds'); // so statuses are up to date
 
+  // q and the visit-date range both resolve to a list of ids first (tickets
+  // for q, events for the date range), same convention as the category_id /
+  // collection_id filters elsewhere in this codebase.
+  let bookingIds: string[] | null = null;
+  if (f.q) {
+    const { data, error } = await db.from('tickets').select('booking_id').ilike('ticket_code', `%${f.q}%`);
+    if (error) return serverError(res, 'Could not load the bookings.');
+    bookingIds = [...new Set((data ?? []).map((r: any) => r.booking_id as string))];
+    if (bookingIds.length === 0) return res.json({ bookings: [], total: 0, limit: f.limit, offset: f.offset });
+  }
+  let eventIds: string[] | null = null;
+  if (f.date_from || f.date_to) {
+    let eventQuery = db.from('events').select('event_id');
+    if (f.date_from) eventQuery = eventQuery.gte('start_at', f.date_from);
+    if (f.date_to) eventQuery = eventQuery.lte('start_at', f.date_to);
+    const { data, error } = await eventQuery;
+    if (error) return serverError(res, 'Could not load the bookings.');
+    eventIds = (data ?? []).map((r: any) => r.event_id as string);
+    if (eventIds.length === 0) return res.json({ bookings: [], total: 0, limit: f.limit, offset: f.offset });
+  }
+
   let query = db
     .from('bookings')
     .select(BOOKING_SELECT, { count: 'exact' })
-    .order('booked_at', { ascending: false })
     .range(f.offset, f.offset + f.limit - 1);
+  query =
+    f.sort === 'visit_date'
+      ? query.order('start_at', { ascending: false, referencedTable: 'events' })
+      : query.order('booked_at', { ascending: false });
   if (f.status) query = query.eq('booking_status', f.status);
   if (f.event_id) query = query.eq('event_id', f.event_id);
   if (f.user_id) query = query.eq('user_id', f.user_id);
+  if (bookingIds) query = query.in('booking_id', bookingIds);
+  if (eventIds) query = query.in('event_id', eventIds);
 
   const { data, error, count } = await query;
   if (error) return serverError(res, 'Could not load the bookings.');

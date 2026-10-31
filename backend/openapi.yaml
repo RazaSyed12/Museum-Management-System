@@ -771,6 +771,208 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /hero:
+    get:
+      summary: List hero slides
+      description: >-
+        Public. Without a token only active, in-window slides are returned,
+        ordered by sort_order. With a staff token every slide is included,
+        same as GET /events and GET /collections already behave.
+      operationId: listHeroSlides
+      tags: [Hero]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Every slide the caller may see, ordered by sort_order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeroSlideListResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a hero slide
+      description: >-
+        Staff only (any tier). A slide may link to an event or a collection
+        but never both. If sort_order is not given it is set to one past the
+        current highest value, so the new slide lands at the end.
+      operationId: createHeroSlide
+      tags: [Hero]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHeroSlideRequest'
+      responses:
+        '201':
+          description: Hero slide created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeroSlideResponse'
+        '400':
+          description: >-
+            Validation failed, both event_id and collection_id were sent,
+            ends_at was not after starts_at, or an unknown event/collection/
+            media id was given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /hero/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The hero slide's id
+        schema:
+          type: string
+          format: uuid
+    patch:
+      summary: Edit a hero slide
+      description: >-
+        Staff only. Only the fields that are sent are changed. Also doubles
+        as the reordering mechanism — send { "sort_order": n } alone to move
+        a slide.
+      operationId: updateHeroSlide
+      tags: [Hero]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHeroSlideRequest'
+      responses:
+        '200':
+          description: The updated hero slide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeroSlideResponse'
+        '400':
+          description: >-
+            Validation failed, both event_id and collection_id were sent,
+            ends_at was not after starts_at, or an unknown event/collection/
+            media id was given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such hero slide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /hero/{id}/archive:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The hero slide's id
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Archive a hero slide
+      description: >-
+        Admin or manager tier only. Sets is_active to false rather than
+        deleting the row, so configuration/history isn't lost. Calling it
+        again on an already-archived slide changes nothing.
+      operationId: archiveHeroSlide
+      tags: [Hero]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The archived hero slide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeroSlideResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff, or lacks an admin/manager tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such hero slide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /events:
     get:
       summary: List events
@@ -9141,3 +9343,265 @@ components:
           type: integer
         offset:
           type: integer
+
+    HeroLinkedEvent:
+      type: object
+      nullable: true
+      required: [event_id, name, start_at, end_at, location]
+      description: >-
+        Present only when the slide links to an event. Reflects the event's
+        current data rather than a copy frozen at slide-creation time.
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/LocationRef'
+    HeroLinkedCollection:
+      type: object
+      nullable: true
+      required: [collection_id, name, historical_period]
+      description: >-
+        Present only when the slide links to a collection. Reflects the
+        collection's current data rather than a copy frozen at
+        slide-creation time.
+      properties:
+        collection_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        historical_period:
+          type: string
+          nullable: true
+    HeroImage:
+      type: object
+      nullable: true
+      required: [media_id, url, alt_text]
+      properties:
+        media_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        alt_text:
+          type: string
+          nullable: true
+    HeroSlide:
+      type: object
+      required:
+        - slide_id
+        - title
+        - sort_order
+        - is_active
+        - created_at
+        - updated_at
+        - linked_event
+        - linked_collection
+        - image
+      properties:
+        slide_id:
+          type: string
+          format: uuid
+        eyebrow:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        primary_label:
+          type: string
+          nullable: true
+        primary_href:
+          type: string
+          nullable: true
+        secondary_label:
+          type: string
+          nullable: true
+        secondary_href:
+          type: string
+          nullable: true
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        collection_id:
+          type: string
+          format: uuid
+          nullable: true
+        media_id:
+          type: string
+          format: uuid
+          nullable: true
+        sort_order:
+          type: integer
+          description: Drives display order. Lower values show first.
+        is_active:
+          type: boolean
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        linked_event:
+          $ref: '#/components/schemas/HeroLinkedEvent'
+        linked_collection:
+          $ref: '#/components/schemas/HeroLinkedCollection'
+        image:
+          $ref: '#/components/schemas/HeroImage'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    HeroSlideResponse:
+      type: object
+      required: [slide]
+      properties:
+        slide:
+          $ref: '#/components/schemas/HeroSlide'
+    HeroSlideListResponse:
+      type: object
+      required: [slides]
+      properties:
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/HeroSlide'
+    CreateHeroSlideRequest:
+      type: object
+      required: [title]
+      additionalProperties: false
+      properties:
+        eyebrow:
+          type: string
+          maxLength: 100
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Treasures of the Outback
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        primary_label:
+          type: string
+          maxLength: 100
+          nullable: true
+        primary_href:
+          type: string
+          maxLength: 500
+          nullable: true
+        secondary_label:
+          type: string
+          maxLength: 100
+          nullable: true
+        secondary_href:
+          type: string
+          maxLength: 500
+          nullable: true
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: A slide can link to an event or a collection, not both.
+        collection_id:
+          type: string
+          format: uuid
+          nullable: true
+        media_id:
+          type: string
+          format: uuid
+          nullable: true
+        sort_order:
+          type: integer
+          minimum: 0
+          description: Defaults to one past the current highest sort_order.
+        is_active:
+          type: boolean
+          default: true
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+    UpdateHeroSlideRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: >-
+        Send only the fields to change. Also doubles as the reordering
+        mechanism — send sort_order alone to move a slide.
+      properties:
+        eyebrow:
+          type: string
+          maxLength: 100
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        primary_label:
+          type: string
+          maxLength: 100
+          nullable: true
+        primary_href:
+          type: string
+          maxLength: 500
+          nullable: true
+        secondary_label:
+          type: string
+          maxLength: 100
+          nullable: true
+        secondary_href:
+          type: string
+          maxLength: 500
+          nullable: true
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        collection_id:
+          type: string
+          format: uuid
+          nullable: true
+        media_id:
+          type: string
+          format: uuid
+          nullable: true
+        sort_order:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true

@@ -27,7 +27,7 @@ function pathFromUrl(url: string): string | null {
   return i >= 0 ? url.slice(i + URL_MARKER.length) : null;
 }
 
-const MEDIA_SELECT = 'media_id, url, media_type, alt_text, created_at';
+const MEDIA_SELECT = 'media_id, url, media_type, original_filename, alt_text, created_at';
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ error: { message, code: 'validation_error' } });
@@ -65,7 +65,7 @@ function imageBody(req: Request, res: Response, next: NextFunction) {
   });
 }
 
-// POST /media?alt_text=... — staff only. Body = the image bytes, Content-Type = the image type.
+// POST /media?alt_text=&filename=... — staff only. Body = the image bytes, Content-Type = the image type.
 router.post('/media', requireAuth, requireStaff, imageBody, async (req: Request, res: Response) => {
   const type = (req.header('content-type') ?? '').split(';')[0].trim().toLowerCase();
   const body = req.body;
@@ -74,7 +74,9 @@ router.post('/media', requireAuth, requireStaff, imageBody, async (req: Request,
   }
   if (!looksLike(type, body)) return badRequest(res, 'The file is not a valid image of that type.');
 
-  const query = z.object({ alt_text: z.string().trim().max(300).optional() }).safeParse(req.query);
+  const query = z
+    .object({ alt_text: z.string().trim().max(300).optional(), filename: z.string().trim().max(255).optional() })
+    .safeParse(req.query);
   if (!query.success) return badRequest(res, query.error.issues[0].message);
 
   const auth = req.auth!;
@@ -86,7 +88,13 @@ router.post('/media', requireAuth, requireStaff, imageBody, async (req: Request,
 
   const { data, error } = await db
     .from('media')
-    .insert({ uploaded_by: auth.userId, url: publicUrl(path), media_type: type, alt_text: query.data.alt_text ?? null })
+    .insert({
+      uploaded_by: auth.userId,
+      url: publicUrl(path),
+      media_type: type,
+      original_filename: query.data.filename ?? null,
+      alt_text: query.data.alt_text ?? null,
+    })
     .select(MEDIA_SELECT)
     .single();
   if (error || !data) {
@@ -135,7 +143,7 @@ router.patch('/media/:id', requireAuth, requireStaff, async (req: Request, res: 
 });
 
 // DELETE /media/:id — staff only. Removes the file and the row; it also disappears
-// from every collection and event it was attached to.
+// from every collection, event or artefact it was attached to.
 router.delete('/media/:id', requireAuth, requireStaff, async (req: Request, res: Response) => {
   const id = String(req.params.id);
   if (!idSchema.safeParse(id).success) return notFound(res, 'Image');
@@ -173,7 +181,7 @@ for (const t of targets) {
   const loadList = async (db: any, id: string) =>
     db
       .from(t.link)
-      .select('sort_order, media(media_id, url, media_type, alt_text)')
+      .select('sort_order, media(media_id, url, media_type, original_filename, alt_text)')
       .eq(t.key, id)
       .order('sort_order', { ascending: true });
 

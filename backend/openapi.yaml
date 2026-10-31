@@ -4895,6 +4895,191 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /admin/search:
+    get:
+      summary: Search staff-only records
+      description: >-
+        Any staff tier. A SEPARATE search from GET /search, not an
+        extension of it — reaches visitors, bookings, memberships and
+        staff accounts, which must never be reachable through the public
+        endpoint. The staff_user kind is only ever populated for an admin
+        caller, enforced in the database function itself. Flat, bounded
+        list (up to limit per kind, best matches first).
+      operationId: staffSearch
+      tags:
+        - Search
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The text to search for
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+          description: Maximum results of each kind
+      responses:
+        '200':
+          description: Matching records across every searched domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffSearchResponse'
+        '400':
+          description: Search text must be 2 to 100 characters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/notifications:
+    get:
+      summary: List my notifications
+      description: >-
+        Any staff tier. Every notification belongs to exactly one
+        recipient (the caller) — there is no shared/broadcast state.
+        unread_count is always the caller's TOTAL unread count,
+        independent of ?unread_only= and pagination, so the frontend can
+        show a badge without a second request. Currently generated for
+        event_cancelled and event_near_capacity only — see the migration
+        this shipped in for what else was considered and why it wasn't
+        built yet (upcoming membership expiry needs a scheduled job this
+        project doesn't have; "booking changes" was left unspecified by
+        the handoff doc).
+      operationId: listMyNotifications
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unread_only
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/notifications/{id}/read:
+    post:
+      summary: Mark a notification read
+      description: Any staff tier, own notifications only. Idempotent — reading an already-read notification again just returns it unchanged.
+      operationId: markNotificationRead
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The notification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such notification, or it belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /visitors:
     get:
       summary: List visitors
@@ -6453,6 +6638,7 @@ components:
                 - already_checked_in
                 - not_confirmed
                 - nothing_to_refund
+                - notification_not_found
                 - not_found
                 - server_error
                 - invalid_category
@@ -8879,3 +9065,79 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DashboardRecentBooking'
+    StaffSearchResult:
+      type: object
+      required: [kind, id, label, destination]
+      properties:
+        kind:
+          type: string
+          enum: [visitor, event, booking, membership, collection, item, staff_user]
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        destination:
+          type: string
+          description: The API path for this record, e.g. /visitors/{id}.
+    StaffSearchResponse:
+      type: object
+      required: [query, results]
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSearchResult'
+    Notification:
+      type: object
+      required: [notification_id, type, message, resource_kind, resource_id, read_at, created_at]
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [event_cancelled, event_near_capacity]
+        message:
+          type: string
+        resource_kind:
+          type: string
+          nullable: true
+          description: What resource_id refers to, e.g. event.
+        resource_id:
+          type: string
+          format: uuid
+          nullable: true
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    NotificationResponse:
+      type: object
+      required: [notification]
+      properties:
+        notification:
+          $ref: '#/components/schemas/Notification'
+    NotificationListResponse:
+      type: object
+      required: [notifications, total, unread_count, limit, offset]
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        total:
+          type: integer
+          description: Matching the current filter/page.
+        unread_count:
+          type: integer
+          description: The caller's total unread count, independent of ?unread_only= and pagination.
+        limit:
+          type: integer
+        offset:
+          type: integer

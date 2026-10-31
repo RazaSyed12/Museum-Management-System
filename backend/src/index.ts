@@ -25,6 +25,7 @@ import staffRouter from './routes/staff';
 import visitorsRouter from './routes/visitors';
 import visitsRouter from './routes/visits';
 import reportsRouter from './routes/reports';
+import notificationsRouter from './routes/notifications';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use(staffRouter);
 app.use(visitorsRouter);
 app.use(visitsRouter);
 app.use(reportsRouter);
+app.use(notificationsRouter);
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses
 // anonClient() rather than the secret key, so this also proves RLS

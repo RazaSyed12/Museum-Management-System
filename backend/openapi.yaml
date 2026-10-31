@@ -170,6 +170,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /staff/me:
+    get:
+      summary: Get my staff profile
+      description: >-
+        Any signed-in, active account (not staff-only), so a non-staff or
+        not-yet-tiered caller gets a specific, actionable reason rather than
+        a generic 403. Returns the caller's own id, email, name, phone,
+        general role, Admin/Manager/Staff tier, account status and last login.
+      operationId: getStaffMe
+      tags: [Staff]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The caller's staff profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfileResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: >-
+            The account is not staff (code not_staff), or is staff but has
+            not been assigned a tier yet (code tier_not_assigned) — ask an
+            admin to set one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/refresh:
     post:
       summary: Swap a refresh token for a new session
@@ -449,6 +489,30 @@ paths:
           schema:
             type: string
             enum: ['true', 'false']
+        - name: status
+          in: query
+          description: >-
+            Only collections with this status. Narrows within whatever
+            row-level security already allows — a guest asking for
+            status=draft simply gets zero rows, not an error.
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: category_id
+          in: query
+          description: >-
+            Only collections tagged with this category OR one of that
+            category's direct sub-categories.
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          description: Sort order. Defaults to name (the original, unchanged behaviour).
+          schema:
+            type: string
+            enum: [name, newest, oldest, updated]
+            default: name
         - name: limit
           in: query
           description: Page size
@@ -466,7 +530,7 @@ paths:
             default: 0
       responses:
         '200':
-          description: A page of collections, ordered by name
+          description: A page of collections, ordered per the sort parameter (name by default)
           content:
             application/json:
               schema:
@@ -588,6 +652,11 @@ paths:
       description: >-
         Staff only. Only the fields that are sent are changed. If
         category_ids is sent, it replaces the collection's category list.
+        Setting status to archived requires an admin or manager tier.
+        The row update and the category-link update are separate writes;
+        if the row saves but syncing categories fails, the response is
+        207 (not an error) with categories_error describing what to
+        retry — the collection's other fields are not rolled back.
       operationId: updateCollection
       tags: [Collections]
       security:
@@ -604,7 +673,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionResponse'
+                $ref: '#/components/schemas/UpdateCollectionResponse'
+        '207':
+          description: >-
+            The collection's fields saved, but updating its categories
+            failed — see categories_error. Resend PATCH with just
+            category_ids to retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCollectionResponse'
         '400':
           description: Validation failed, or an unknown location or category was given
           content:
@@ -618,7 +696,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The signed-in user is not staff
+          description: >-
+            The signed-in user is not staff, or is staff but setting
+            status to archived without an admin or manager tier.
           content:
             application/json:
               schema:
@@ -647,8 +727,9 @@ paths:
     post:
       summary: Archive a collection
       description: >-
-        Staff only. Hides the collection from the public site but keeps it in
-        the database. Calling it again on an archived collection changes nothing.
+        Admin or manager tier only. Hides the collection from the public site
+        but keeps it in the database. Calling it again on an archived
+        collection changes nothing.
       operationId: archiveCollection
       tags: [Collections]
       security:
@@ -673,7 +754,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The signed-in user is not staff
+          description: The signed-in user is not staff, or lacks an admin/manager tier
           content:
             application/json:
               schema:
@@ -3836,7 +3917,7 @@ paths:
   /admin/users:
     get:
       summary: List users
-      description: Staff only. Newest first.
+      description: Admin tier only. Newest first.
       operationId: listUsers
       tags:
         - Admin
@@ -3865,6 +3946,15 @@ paths:
               - active
               - suspended
               - deleted
+        - name: tier
+          in: query
+          description: Admin/Manager/Staff portal tier
+          schema:
+            type: string
+            enum:
+              - admin
+              - manager
+              - staff
         - name: limit
           in: query
           schema:
@@ -3900,7 +3990,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The signed-in user is not staff
+          description: The signed-in user does not have an admin tier
           content:
             application/json:
               schema:
@@ -3914,7 +4004,7 @@ paths:
   /admin/users/{id}:
     get:
       summary: Get one user
-      description: Staff only. The user with their current membership and 10 most recent bookings.
+      description: Admin tier only. The user with their current membership and 10 most recent bookings.
       operationId: getUser
       tags:
         - Admin
@@ -3960,8 +4050,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
     patch:
-      summary: Change a user's role or status
-      description: Staff only. Send role, status or both. Suspending a user ends all of their sessions. Staff cannot demote or suspend themselves.
+      summary: Change a user's role, status or tier
+      description: >-
+        Admin tier only. Send role, status, tier, or some combination.
+        Suspending a user ends all of their sessions. An admin cannot change
+        their own role/status/tier, and the last active admin can never be
+        demoted, suspended, or re-tiered away from admin — by anyone.
       operationId: updateUser
       tags:
         - Admin
@@ -4013,7 +4107,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: cannot_change_self
+          description: cannot_change_self, or cannot_remove_last_admin
           content:
             application/json:
               schema:
@@ -4619,7 +4713,7 @@ components:
           nullable: true
     Collection:
       type: object
-      required: [collection_id, name, status, featured, created_at, updated_at, location, categories]
+      required: [collection_id, name, status, featured, created_at, updated_at, location, categories, historical_period, catalogue_total]
       properties:
         collection_id:
           type: string
@@ -4644,6 +4738,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRef'
+        historical_period:
+          type: string
+          nullable: true
+          description: Free-text period label, e.g. "1850s-1900s"
+        catalogue_total:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: >-
+            Full physical object count, including objects never individually
+            digitised. Independent of (and not derived from) collection_items.
         created_at:
           type: string
           format: date-time
@@ -4696,6 +4801,14 @@ components:
         featured:
           type: boolean
           default: false
+        historical_period:
+          type: string
+          maxLength: 150
+          nullable: true
+        catalogue_total:
+          type: integer
+          minimum: 0
+          nullable: true
         category_ids:
           type: array
           maxItems: 20
@@ -4725,6 +4838,14 @@ components:
           nullable: true
         featured:
           type: boolean
+        historical_period:
+          type: string
+          maxLength: 150
+          nullable: true
+        catalogue_total:
+          type: integer
+          minimum: 0
+          nullable: true
         category_ids:
           type: array
           maxItems: 20
@@ -4732,6 +4853,28 @@ components:
           items:
             type: string
             format: uuid
+    CategoriesError:
+      type: object
+      required: [code, message]
+      description: Present only when syncing a collection's categories failed after its other fields already saved.
+      properties:
+        code:
+          type: string
+          enum: [invalid_category, server_error]
+        message:
+          type: string
+    UpdateCollectionResponse:
+      type: object
+      required: [collection]
+      description: >-
+        Used for PATCH /collections/{id}. categories_error is present only on
+        a 207 response, where it means the collection's fields saved but
+        category_ids did not — resend category_ids alone to retry.
+      properties:
+        collection:
+          $ref: '#/components/schemas/Collection'
+        categories_error:
+          $ref: '#/components/schemas/CategoriesError'
     AuthUser:
       type: object
       required: [id, email, full_name, role, onboarding_completed]
@@ -4753,6 +4896,48 @@ components:
             false = send the user to the preferences page before anything else.
             True once they have at least one active interest pick; always true
             for staff.
+    StaffProfile:
+      type: object
+      required: [id, email, full_name, phone, role, tier, account_status, last_sign_in_at, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [registered, member, staff]
+        tier:
+          type: string
+          nullable: true
+          enum:
+            - admin
+            - manager
+            - staff
+          description: Null = role is staff but no tier has been assigned yet (no portal access).
+        account_status:
+          type: string
+          enum: [active, suspended, deleted]
+        last_sign_in_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    StaffProfileResponse:
+      type: object
+      required: [staff]
+      properties:
+        staff:
+          $ref: '#/components/schemas/StaffProfile'
     SignInRequest:
       type: object
       required: [email, password]
@@ -4895,6 +5080,10 @@ components:
                 - reset_failed
                 - unauthorized
                 - forbidden
+                - not_staff
+                - tier_not_assigned
+                - invalid_tier
+                - cannot_remove_last_admin
                 - not_found
                 - server_error
                 - invalid_category
@@ -6291,6 +6480,7 @@ components:
         - email
         - full_name
         - role
+        - tier
         - account_status
         - created_at
         - last_sign_in_at
@@ -6311,6 +6501,14 @@ components:
             - registered
             - member
             - staff
+        tier:
+          type: string
+          nullable: true
+          enum:
+            - admin
+            - manager
+            - staff
+          description: Null = role is staff but no tier has been assigned yet (no portal access).
         account_status:
           type: string
           enum:
@@ -6352,7 +6550,9 @@ components:
         - id
         - email
         - full_name
+        - phone
         - role
+        - tier
         - account_status
         - created_at
         - last_sign_in_at
@@ -6370,12 +6570,23 @@ components:
           format: email
         full_name:
           type: string
+        phone:
+          type: string
+          nullable: true
         role:
           type: string
           enum:
             - registered
             - member
             - staff
+        tier:
+          type: string
+          nullable: true
+          enum:
+            - admin
+            - manager
+            - staff
+          description: Null = role is staff but no tier has been assigned yet (no portal access).
         account_status:
           type: string
           enum:
@@ -6449,6 +6660,17 @@ components:
             - active
             - suspended
           description: suspended also ends all of the user's sessions
+        tier:
+          type: string
+          enum:
+            - admin
+            - manager
+            - staff
+          description: >-
+            Admin tier only. Omitted = unchanged. There is currently no way
+            to clear a tier back to unassigned through this endpoint — only
+            to set it to one of the three values, or implicitly clear it by
+            changing role away from staff.
       minProperties: 1
       additionalProperties: false
     AdminStats:

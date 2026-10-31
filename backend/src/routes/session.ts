@@ -7,6 +7,17 @@ import { isOnboardingCompleted } from '../lib/preferences';
 
 const router = Router();
 
+// NEW: a login lasts at most this many days, counted from sign-in. Refreshing does not extend it.
+const SESSION_MAX_DAYS = Number(process.env.SESSION_MAX_DAYS) || 30;
+
+// NEW: ends one login on the server, so its refresh token stops working.
+async function endSession(accessToken: string): Promise<void> {
+  await fetch(`${supabaseEnv.url}/auth/v1/logout?scope=local`, {
+    method: 'POST',
+    headers: { apikey: supabaseEnv.anonKey, Authorization: `Bearer ${accessToken}` },
+  }).catch(() => undefined);
+}
+
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ error: { message, code: 'validation_error' } });
 }
@@ -179,9 +190,49 @@ router.post('/refresh', async (req: Request, res: Response) => {
     refresh_token: parsed.data.refresh_token,
   });
 
-  if (error || !data.session) {
+  if (error || !data.session || !data.user) {
     return res.status(401).json({
       error: { message: 'Your session has expired. Please sign in again.', code: 'invalid_refresh_token' },
+    });
+  }
+
+  // NEW: a login older than SESSION_MAX_DAYS (30) cannot be refreshed any more.
+  // End it and make the user sign in again. Refreshing never extends this limit.
+  const { data: startedAt, error: ageError } = await userClient(data.session.access_token).rpc('session_started_at');
+  if (ageError) {
+    return res.status(500).json({
+      error: { message: 'Could not check your session.', code: 'server_error' },
+    });
+  }
+  if (typeof startedAt === 'string') {
+    const ageMs = Date.now() - new Date(startedAt).getTime();
+    if (ageMs > SESSION_MAX_DAYS * 24 * 60 * 60 * 1000) {
+      await endSession(data.session.access_token);
+      return res.status(401).json({
+        error: {
+          message: `Your login is older than ${SESSION_MAX_DAYS} days. Please sign in again.`,
+          code: 'session_expired',
+        },
+      });
+    }
+  }
+
+  // A suspended or deleted account must not get a fresh session. If the refresh worked anyway,
+  // end the new session again and refuse.
+  const { data: profile, error: profileError } = await userClient(data.session.access_token)
+    .from('profiles')
+    .select('account_status')
+    .eq('id', data.user.id)
+    .single();
+  if (profileError || !profile) {
+    return res.status(500).json({
+      error: { message: 'Could not check your account.', code: 'server_error' },
+    });
+  }
+  if (profile.account_status !== 'active') {
+    await endSession(data.session.access_token);
+    return res.status(403).json({
+      error: { message: 'This account is not active.', code: 'account_inactive' },
     });
   }
 
@@ -220,6 +271,3 @@ router.post('/sign-out', async (req: Request, res: Response) => {
   return res.status(200).json({ message: 'Signed out.' });
 });
 export default router;
-
-
-

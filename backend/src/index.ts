@@ -8,20 +8,72 @@ import collectionsRouter from './routes/collections';
 import categoriesRouter from './routes/categories';
 import meRouter from './routes/me';
 import eventsRouter from './routes/events';
+import locationsRouter from './routes/locations';
 import recommendationsRouter from './routes/recommendations';
+import collectionItemsRouter from './routes/collectionItems';
+import mediaRouter from './routes/media';
+import membershipRouter from './routes/membership';
+import allocationsRouter from './routes/allocations';
+import bookingsRouter from './routes/bookings';
+import interactionsRouter from './routes/interactions';
+import adminRouter from './routes/admin';
+import accountRouter from './routes/account';
+import newsletterRouter from './routes/newsletter';
+import searchRouter from './routes/search';
+import paymentsRouter from './routes/payments';
+import staffRouter from './routes/staff';
+import visitorsRouter from './routes/visitors';
+import visitsRouter from './routes/visits';
+import reportsRouter from './routes/reports';
+import notificationsRouter from './routes/notifications';
+import heroRouter from './routes/hero';
 
 const app = express();
-app.use(cors());
+
+// Only these origins may call the API from a browser. Set ALLOWED_ORIGINS
+// in .env as a comma-separated list for prod (e.g. the deployed frontend
+// URL); falls back to the local Next.js dev server when unset.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    // No Origin header (curl, server-to-server, same-origin) is allowed.
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} is not allowed`));
+  }
+}));
 app.use(express.json());
 
 app.use('/auth', authRouter);
 app.use('/auth', sessionRouter);
 app.use('/collections', collectionsRouter);
 app.use('/categories', categoriesRouter);
+app.use('/locations', locationsRouter);
 app.use('/me', meRouter);
 app.use('/events', eventsRouter);
 app.use('/recommendations', recommendationsRouter);
-
+app.use(collectionItemsRouter);
+app.use(mediaRouter);
+app.use(membershipRouter);
+app.use(allocationsRouter);
+app.use(bookingsRouter);
+app.use(interactionsRouter);
+app.use(adminRouter);
+app.use(accountRouter);
+app.use(newsletterRouter);
+app.use(searchRouter);
+app.use(paymentsRouter);
+app.use(staffRouter);
+app.use(visitorsRouter);
+app.use(visitsRouter);
+app.use(reportsRouter);
+app.use(notificationsRouter);
+app.use('/hero', heroRouter);
 // A simple route that proves the server AND the database connection
 // both actually work — not just that the server started. Uses
 // anonClient() rather than the secret key, so this also proves RLS

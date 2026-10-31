@@ -3461,7 +3461,11 @@ paths:
   /bookings/{id}/cancel:
     post:
       summary: Cancel a booking
-      description: The owner (or staff). Frees the seats and refunds a paid booking. A confirmed booking cannot be cancelled by its owner once the event has started. Repeating it is harmless.
+      description: >-
+        The owner (or staff). Frees the seats and refunds a paid booking. A
+        confirmed booking cannot be cancelled by its owner once the event has
+        started, and cannot be cancelled by anyone (staff included) once it
+        has been checked in. Repeating it is harmless.
       operationId: cancelBooking
       tags:
         - Bookings
@@ -3501,7 +3505,122 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: 'cannot_cancel: the event has already started'
+          description: 'cannot_cancel: the event has already started, or already_checked_in: the booking has been checked in'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/{id}/check-in:
+    post:
+      summary: Check in a booking
+      description: >-
+        Any staff tier. Marks the booking checked in at the door. Only works
+        on a confirmed booking (409 not_confirmed otherwise). Repeating it on
+        an already-checked-in booking is a harmless no-op, not an error.
+      operationId: checkInBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The booking's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The checked-in booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'not_confirmed: only a confirmed booking can be checked in'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bookings/{id}/refund:
+    post:
+      summary: Refund a booking
+      description: >-
+        Admin or manager tier only. Deliberately separate from cancel:
+        refunds the booking's completed payment(s) without cancelling it or
+        releasing its seats. Cancel it separately afterwards if that's also
+        wanted.
+      operationId: refundBooking
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The booking's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The booking, with its payment now refunded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff, or lacks an admin/manager tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'nothing_to_refund: this booking has no completed payment'
           content:
             application/json:
               schema:
@@ -3538,6 +3657,30 @@ paths:
             type: string
             format: uuid
           description: Only bookings for this event
+        - name: q
+          in: query
+          description: Searches ticket codes (the human-readable reference, e.g. MUS-3F9A1C07BE)
+          schema:
+            type: string
+            maxLength: 100
+        - name: date_from
+          in: query
+          description: Visit-date range lower bound, against the event's start_at (not when the booking was made)
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          description: Visit-date range upper bound
+          schema:
+            type: string
+            format: date-time
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [booked_at, visit_date]
+            default: booked_at
         - name: limit
           in: query
           schema:
@@ -3616,6 +3759,30 @@ paths:
             type: string
             format: uuid
           description: Only this user's bookings
+        - name: q
+          in: query
+          description: Searches ticket codes (the human-readable reference, e.g. MUS-3F9A1C07BE)
+          schema:
+            type: string
+            maxLength: 100
+        - name: date_from
+          in: query
+          description: Visit-date range lower bound, against the event's start_at (not when the booking was made)
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          description: Visit-date range upper bound
+          schema:
+            type: string
+            format: date-time
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [booked_at, visit_date]
+            default: booked_at
         - name: limit
           in: query
           schema:
@@ -3689,6 +3856,30 @@ paths:
               - cancelled
               - expired
           description: Only bookings with this status
+        - name: q
+          in: query
+          description: Searches ticket codes (the human-readable reference, e.g. MUS-3F9A1C07BE)
+          schema:
+            type: string
+            maxLength: 100
+        - name: date_from
+          in: query
+          description: Visit-date range lower bound, against the event's start_at (not when the booking was made)
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          description: Visit-date range upper bound
+          schema:
+            type: string
+            format: date-time
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [booked_at, visit_date]
+            default: booked_at
         - name: limit
           in: query
           schema:
@@ -5475,6 +5666,9 @@ components:
                 - tier_not_assigned
                 - invalid_tier
                 - cannot_remove_last_admin
+                - already_checked_in
+                - not_confirmed
+                - nothing_to_refund
                 - not_found
                 - server_error
                 - invalid_category
@@ -6466,6 +6660,11 @@ components:
         booked_at:
           type: string
           format: date-time
+        checked_in_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When staff checked this booking in at the door. null = not checked in. Once set, the booking can no longer be cancelled.
         event:
           type: object
           required:

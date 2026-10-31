@@ -158,6 +158,7 @@ router.delete('/media/:id', requireAuth, requireStaff, async (req: Request, res:
 const targets = [
   { base: '/collections/:id/media', link: 'collection_media', parent: 'collections', key: 'collection_id', label: 'Collection' },
   { base: '/events/:id/media', link: 'event_media', parent: 'events', key: 'event_id', label: 'Event' },
+  { base: '/items/:id/media', link: 'item_media', parent: 'collection_items', key: 'item_id', label: 'Item' },
 ];
 
 const replaceSchema = z.object({ media_ids: z.array(z.guid()).max(50) });

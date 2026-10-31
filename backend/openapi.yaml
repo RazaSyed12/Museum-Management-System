@@ -1628,7 +1628,11 @@ paths:
   /collections/{collectionId}/items:
     get:
       summary: List the items of a collection
-      description: Public for published collections. Staff (with a token) can also see items of draft and archived collections; to everyone else those look like a missing collection.
+      description: >-
+        Public for published collections and active artefacts. Staff (with a
+        token) also see items of draft/archived collections and archived
+        artefacts. No filters beyond pagination — for cross-collection
+        browsing with filters, see GET /items.
       operationId: listCollectionItems
       tags:
         - Collection items
@@ -1691,7 +1695,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       summary: Add an item to a collection
-      description: Staff only.
+      description: Staff only. accession_number, if sent, must not already be used by another artefact.
       operationId: createCollectionItem
       tags:
         - Collection items
@@ -1719,7 +1723,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ItemResponse'
         '400':
-          description: Validation failed, or the location does not exist
+          description: >-
+            Validation failed, the location/category does not exist (or the
+            category is deactivated, code invalid_category), or the
+            accession_number is already used by another artefact
           content:
             application/json:
               schema:
@@ -1738,6 +1745,97 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: No such collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /items:
+    get:
+      summary: List artefacts across all collections
+      description: >-
+        Public for active artefacts in published collections; staff (with a
+        token) also see drafts/archived of both. Full filter set, unlike the
+        lightweight GET /collections/{collectionId}/items.
+      operationId: listItems
+      tags:
+        - Collection items
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Only artefacts whose name contains this text (case-insensitive)
+          schema:
+            type: string
+            maxLength: 100
+        - name: collection_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: historical_period
+          in: query
+          description: Exact match
+          schema:
+            type: string
+            maxLength: 150
+        - name: origin
+          in: query
+          description: Exact match
+          schema:
+            type: string
+            maxLength: 150
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name, newest, oldest]
+            default: name
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A page of artefacts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemListResponse'
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
           content:
             application/json:
               schema:
@@ -1793,7 +1891,10 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     patch:
       summary: Edit an item
-      description: Staff only. Only the fields that are sent are changed; null clears an optional field.
+      description: >-
+        Staff only. Only the fields that are sent are changed; null clears an
+        optional field. Setting status to archived requires an admin or
+        manager tier.
       operationId: updateCollectionItem
       tags:
         - Collection items
@@ -1821,7 +1922,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ItemResponse'
         '400':
-          description: Validation failed, or the location does not exist
+          description: >-
+            Validation failed, the location/category does not exist (or the
+            category is deactivated, code invalid_category), or the
+            accession_number is already used by another artefact
           content:
             application/json:
               schema:
@@ -1833,7 +1937,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The signed-in user is not staff
+          description: The signed-in user is not staff, or is staff but setting status to archived without an admin or manager tier
           content:
             application/json:
               schema:
@@ -1852,7 +1956,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     delete:
       summary: Delete an item
-      description: Staff only. Nothing else depends on an item, so it is removed outright.
+      description: >-
+        Admin or manager tier only — outright deletion is strictly more
+        destructive than archiving, so it gets at least the same tier gate.
+        Nothing else depends on an item, so it is removed outright, not
+        archived. For a reversible removal, use archive instead.
       operationId: deleteCollectionItem
       tags:
         - Collection items
@@ -1873,6 +1981,165 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff, or lacks an admin/manager tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /items/{id}/archive:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The item's id
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Archive an artefact
+      description: >-
+        Admin or manager tier only. Hides the artefact from the public but
+        keeps it in the database. Same as PATCH {"status":"archived"}.
+        Calling it again on an already-archived artefact changes nothing.
+      operationId: archiveItem
+      tags:
+        - Collection items
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The archived item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+        '400':
+          description: The id is not a valid UUID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The signed-in user is not staff, or lacks an admin/manager tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /items/{id}/media:
+    get:
+      summary: List the images of an artefact
+      description: Public for active artefacts in published collections; a hidden one looks like a missing one. In display order (first = main image).
+      operationId: listItemMedia
+      tags:
+        - Media
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The item's id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '401':
+          description: A token was sent but it is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No such item, or it is not visible to the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Set the images of an artefact
+      description: Staff only. The list REPLACES the attached images, in the order given. An empty list removes them all.
+      operationId: replaceItemMedia
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The item's id
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMediaRequest'
+      responses:
+        '200':
+          description: The attached images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachedMediaResponse'
+        '400':
+          description: Validation failed, or one of the images does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing, invalid or expired access token
           content:
@@ -5404,7 +5671,12 @@ components:
         - origin
         - creator
         - location_id
+        - category
+        - accession_number
+        - tags
+        - status
         - created_at
+        - updated_at
       properties:
         item_id:
           type: string
@@ -5433,7 +5705,25 @@ components:
           type: string
           format: uuid
           nullable: true
+        category:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/CategoryRef'
+        accession_number:
+          type: string
+          nullable: true
+          description: The museum's own unique physical-object identifier. Unique among artefacts that have one.
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, archived]
         created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
     ItemResponse:
@@ -5494,6 +5784,23 @@ components:
         location_id:
           type: string
           format: uuid
+        category_id:
+          type: string
+          format: uuid
+        accession_number:
+          type: string
+          minLength: 1
+          maxLength: 100
+        tags:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        status:
+          type: string
+          enum: [active, archived]
+          default: active
       additionalProperties: false
     UpdateItemRequest:
       type: object
@@ -5526,8 +5833,26 @@ components:
           type: string
           format: uuid
           nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        accession_number:
+          type: string
+          maxLength: 100
+          nullable: true
+        tags:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        status:
+          type: string
+          enum: [active, archived]
+          description: Setting this to archived requires an admin or manager tier.
       minProperties: 1
-      description: Send only the fields to change. null clears an optional field.
+      description: Send only the fields to change. null clears an optional field (status is not nullable — there are only the two states).
     Media:
       type: object
       required:

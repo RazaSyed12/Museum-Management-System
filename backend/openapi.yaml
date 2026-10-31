@@ -816,6 +816,36 @@ paths:
           schema:
             type: string
             enum: [draft, scheduled, cancelled]
+        - name: type
+          in: query
+          description: Only events with this event_type
+          schema:
+            type: string
+            maxLength: 100
+        - name: date_from
+          in: query
+          description: >-
+            Only events whose [start_at, end_at] range overlaps this window.
+            Independent of `when`; combine the two at your own risk (both apply).
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          description: The other end of the overlap window described by date_from
+          schema:
+            type: string
+            format: date-time
+        - name: sort
+          in: query
+          description: >-
+            start_at (default) keeps the existing when-based direction
+            (soonest first for upcoming/all, most recent first for past).
+            newest/oldest instead sort by when the event was created.
+          schema:
+            type: string
+            enum: [start_at, newest, oldest]
+            default: start_at
         - name: limit
           in: query
           schema:
@@ -950,7 +980,11 @@ paths:
         Staff only. Changes only the fields sent. category_ids and
         collection_ids, if sent, replace the whole list (category_ids still
         needs at least one). Lowering the capacity below the tickets already
-        allocated to the event is refused (400).
+        allocated to the event is refused (400). Setting status to cancelled
+        requires an admin or manager tier, persists cancellation_reason if
+        sent, and triggers the same cascade described under
+        POST /events/{id}/cancel — the response's affected_bookings then
+        reports how many bookings that was.
       operationId: updateEvent
       tags: [Events]
       security:
@@ -967,7 +1001,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EventResponse'
+                $ref: '#/components/schemas/UpdateEventResponse'
         '400':
           description: validation_error or invalid_category
           content:
@@ -981,7 +1015,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Not a staff account
+          description: >-
+            The signed-in user is not staff, or is staff but setting status
+            to cancelled without an admin or manager tier.
           content:
             application/json:
               schema:
@@ -1003,22 +1039,37 @@ paths:
     post:
       summary: Cancel an event
       description: >-
-        Staff only. Sets status to cancelled; the event stays visible to the
-        public, marked cancelled. Repeating it is harmless. Every pending or
-        confirmed booking for the event is cancelled at the same time, the seats
-        are released and paid bookings are refunded (the same happens if the
-        status is changed to cancelled with PATCH).
+        Admin or manager tier only. Sets status to cancelled; the event stays
+        visible to the public, marked cancelled. Repeating it is harmless (and
+        reports affected_bookings: 0 the second time). An optional reason is
+        persisted as cancellation_reason — sending none leaves an existing
+        reason untouched. Every pending or confirmed booking for the event is
+        cancelled at the same time, the seats are released and paid bookings
+        are refunded (the same happens if the status is changed to cancelled
+        with PATCH); affected_bookings reports how many that was.
       operationId: cancelEvent
       tags: [Events]
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  maxLength: 2000
+                  nullable: true
       responses:
         '200':
           description: Event cancelled
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EventResponse'
+                $ref: '#/components/schemas/CancelEventResponse'
         '401':
           description: Missing, invalid or expired access token
           content:
@@ -1026,7 +1077,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Not a staff account
+          description: The signed-in user is not staff, or lacks an admin/manager tier
           content:
             application/json:
               schema:
@@ -4479,7 +4530,7 @@ components:
           type: string
     Event:
       type: object
-      required: [event_id, name, start_at, end_at, status, ticket_price, capacity, created_at, updated_at, location, categories, collections]
+      required: [event_id, name, start_at, end_at, status, display_status, ticket_price, capacity, created_at, updated_at, location, categories, collections, event_type, price_member, price_child, cancellation_reason]
       properties:
         event_id:
           type: string
@@ -4498,11 +4549,34 @@ components:
         status:
           type: string
           enum: [draft, scheduled, cancelled]
+          description: The stored status. See display_status for the derived "completed" label.
+        display_status:
+          type: string
+          enum: [draft, scheduled, cancelled, completed]
+          description: >-
+            status, except a scheduled event whose end_at has passed reads as
+            completed. Derived at read time — never stored, so it's never out
+            of date and the frontend never has to invent a fourth status itself.
+        event_type:
+          type: string
+          nullable: true
+          description: 'Free-text category, e.g. exhibition, workshop, lecture, tour, performance, other.'
         ticket_price:
           type: number
-          description: 0 means a free event
+          description: 0 means a free event. The general-admission price.
+        price_member:
+          type: number
+          nullable: true
+          description: Member ticket price. Null = this tier isn't offered for this event.
+        price_child:
+          type: number
+          nullable: true
+          description: Child ticket price. Null = this tier isn't offered for this event.
         capacity:
           type: integer
+        cancellation_reason:
+          type: string
+          nullable: true
         location_id:
           type: string
           format: uuid
@@ -4577,10 +4651,22 @@ components:
           type: string
           format: uuid
           nullable: true
+        event_type:
+          type: string
+          maxLength: 100
+          nullable: true
         ticket_price:
           type: number
           minimum: 0
           default: 0
+        price_member:
+          type: number
+          minimum: 0
+          nullable: true
+        price_child:
+          type: number
+          minimum: 0
+          nullable: true
         capacity:
           type: integer
           minimum: 0
@@ -4625,12 +4711,28 @@ components:
           type: string
           format: uuid
           nullable: true
+        event_type:
+          type: string
+          maxLength: 100
+          nullable: true
         ticket_price:
           type: number
           minimum: 0
+        price_member:
+          type: number
+          minimum: 0
+          nullable: true
+        price_child:
+          type: number
+          minimum: 0
+          nullable: true
         capacity:
           type: integer
           minimum: 0
+        cancellation_reason:
+          type: string
+          maxLength: 2000
+          nullable: true
         category_ids:
           type: array
           minItems: 1
@@ -4646,6 +4748,28 @@ components:
           items:
             type: string
             format: uuid
+    UpdateEventResponse:
+      type: object
+      required: [event]
+      description: >-
+        Used for PATCH /events/{id}. affected_bookings is present only when
+        this call set status to cancelled, and reports how many pending or
+        confirmed bookings were just cancelled (and, if paid, refunded).
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+        affected_bookings:
+          type: integer
+          description: Only present when this PATCH cancelled the event.
+    CancelEventResponse:
+      type: object
+      required: [event, affected_bookings]
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+        affected_bookings:
+          type: integer
+          description: How many pending/confirmed bookings were just cancelled (and, if paid, refunded). 0 if the event was already cancelled.
     Recommendation:
       type: object
       required: [source, reasons]

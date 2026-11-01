@@ -89,7 +89,7 @@ export function SignInScreen() {
             Forgot your password?
           </Link>
         </div>
-        <Button type="submit" size="lg" fullWidth>
+        <Button type="submit" size="lg" fullWidth disabled={!auth.ready}>
           Sign in
         </Button>
       </form>

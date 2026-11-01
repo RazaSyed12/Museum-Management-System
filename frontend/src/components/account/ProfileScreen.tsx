@@ -19,11 +19,20 @@ import { useSiteNav } from '@/lib/nav';
 import { useCurrency } from '@/lib/useCurrency';
 import { listBookings, type Booking } from '@/lib/api/bookings';
 import { recommendedForYou, hrefForRecommendation } from '@/lib/content';
+import { useMyMembership } from '@/lib/useMyMembership';
+import { formatMemberDate, membershipMockingDisabled } from '@/lib/api/membership';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 
 export function ProfileScreen() {
   const auth = useAuth();
+  const mine = useMyMembership();
+  // Real backend: the plan and end date come from /me/membership; mock data keeps the placeholder.
+  const memberLabel = membershipMockingDisabled()
+    ? mine
+      ? `${mine.plan.name} member${mine.endsAt ? ` · until ${formatMemberDate(mine.endsAt)}` : ''}`
+      : 'Member'
+    : 'Member · renews 4 Mar 2027';
   const nav = useSiteNav();
   const router = useRouter();
   const { format } = useCurrency();
@@ -73,7 +82,7 @@ export function ProfileScreen() {
                 {auth.isStaff
                   ? <StatusBadge tone="info" icon="shield-check">Staff account</StatusBadge>
                   : auth.isMember
-                  ? <StatusBadge tone="member">Member · renews 4 Mar 2027</StatusBadge>
+                  ? <StatusBadge tone="member">{memberLabel}</StatusBadge>
                   : <StatusBadge tone="neutral" icon="user">Registered visitor</StatusBadge>}
                 <StatusBadge tone="neutral" icon="mail">{user.email}</StatusBadge>
               </div>

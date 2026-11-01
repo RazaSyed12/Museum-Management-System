@@ -1,5 +1,7 @@
 import { listCollections } from '@/lib/api/collections';
 import { listEvents } from '@/lib/api/events';
+import { searchCatalogue, searchMockingDisabled } from '@/lib/api/search';
+import { getToken } from '@/lib/api/authed';
 
 /**
  * Site search over collections and events.
@@ -79,9 +81,68 @@ function matchesTitle(r: SearchResult, tokens: string[]): boolean {
   return tokens.every((t) => title.includes(t));
 }
 
+const SEARCH_TIMEZONE = 'Australia/Adelaide'; // matches lib/api/events.ts
+
+function searchDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-AU', { timeZone: SEARCH_TIMEZONE, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+}
+
+/** Real backend: events, collections and collection items come from GET /search;
+ *  the site's own pages are still matched locally. Returns undefined if the call
+ *  fails, so the caller falls back to the in-browser index. */
+async function searchReal(query: string, tokens: string[]): Promise<SearchOutcome | undefined> {
+  if (query.trim().length < 2) return { groups: [], total: 0 }; // the backend needs at least 2 characters
+  let hits;
+  try {
+    hits = await searchCatalogue(query, getToken());
+  } catch {
+    return undefined;
+  }
+  const collections: SearchResult[] = [
+    ...hits.collections.map((c) => ({
+      id: `collection-${c.id}`,
+      kind: 'Collection' as const,
+      title: c.name,
+      meta: c.description ?? '',
+      href: `/collections/${c.id}`,
+    })),
+    // Item pages aren't served by the real backend yet, so an object links to its collection.
+    ...hits.items.map((i) => ({
+      id: `item-${i.id}`,
+      kind: 'Collection' as const,
+      title: i.name,
+      meta: `In ${i.collectionName}`,
+      href: `/collections/${i.collectionId}`,
+    })),
+  ];
+  const events: SearchResult[] = hits.events.map((e) => ({
+    id: `event-${e.id}`,
+    kind: 'Event' as const,
+    title: e.name,
+    meta: [searchDate(e.startAt), e.location].filter(Boolean).join(' · '),
+    href: `/events/${e.id}`,
+  }));
+  const pages = PAGES.filter((r) => {
+    const haystack = `${r.title} ${r.meta} ${r.kind}`.toLowerCase();
+    return tokens.every((t) => haystack.includes(t));
+  });
+  const groups: SearchGroup[] = [];
+  let total = 0;
+  for (const [label, results] of [['Collections', collections], ['Events', events], ['Pages', pages]] as const) {
+    total += results.length;
+    if (results.length) groups.push({ label, results: results.slice(0, PER_GROUP) });
+  }
+  return { groups, total };
+}
+
 export async function searchSite(query: string): Promise<SearchOutcome> {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return { groups: [], total: 0 };
+
+  if (searchMockingDisabled()) {
+    const real = await searchReal(query, tokens);
+    if (real) return real;
+  }
 
   const index = await buildIndex();
   const groups: SearchGroup[] = [];

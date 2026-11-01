@@ -27,12 +27,17 @@ function serverError(res: Response, message: string) {
 // Turns the database row into the shape the frontend wants:
 // one "location" object and a flat "categories" list.
 export function shape(row: any) {
-  const { locations, collection_categories, ...rest } = row;
+  const { locations, collection_categories, collection_media, ...rest } = row;
   return {
     ...rest,
     location: locations ?? null,
     categories: (collection_categories ?? [])
       .map((link: any) => link.categories)
+      .filter(Boolean),
+    images: (collection_media ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      .map((link: any) => link.media)
       .filter(Boolean),
   };
 }

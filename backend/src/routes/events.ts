@@ -18,7 +18,8 @@ export const EVENT_SELECT =
   'event_id, name, description, start_at, end_at, status, ticket_price, price_member, price_child, event_type, ' +
   'cancellation_reason, capacity, location_id, created_at, updated_at, ' +
   'locations(name, city), event_categories(categories(category_id, name)), ' +
-  'event_collections(collections(collection_id, name))';
+  'event_collections(collections(collection_id, name)), ' +
+  'event_media(sort_order, media(media_id, url, alt_text))';
 
 function badRequest(res: Response, message: string, code = 'validation_error') {
   return res.status(400).json({ error: { message, code } });
@@ -45,6 +46,11 @@ export function shape(row: any) {
     location: locations ?? null,
     categories: (event_categories ?? []).map((link: any) => link.categories).filter(Boolean),
     collections: (event_collections ?? []).map((link: any) => link.collections).filter(Boolean),
+    images: (event_media ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      .map((link: any) => link.media)
+      .filter(Boolean),
   };
 }
 

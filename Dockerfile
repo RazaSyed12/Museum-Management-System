@@ -35,5 +35,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
+# Next's standalone server only binds to localhost unless told otherwise —
+# unreachable from outside the container (what Fly's proxy was hitting).
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]

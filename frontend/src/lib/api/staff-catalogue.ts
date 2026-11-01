@@ -126,7 +126,7 @@ function collection(row: RawCollection): CatalogueRecord {
     collections: [],
     locationId: row.location_id,
     location: row.location?.name ?? null,
-    images: row.images.map((m) => ({ id: m.media_id, url: m.url, alt: m.alt_text ?? '' })),
+    images: (row.images ?? []).map((m) => ({ id: m.media_id, url: m.url, alt: m.alt_text ?? '' })),
   };
 }
 function event(row: RawEvent): CatalogueRecord {
@@ -143,7 +143,7 @@ function event(row: RawEvent): CatalogueRecord {
     endAt: row.end_at,
     price: Math.round(row.ticket_price * 100),
     capacity: row.capacity,
-    images: row.images.map((m) => ({ id: m.media_id, url: m.url, alt: m.alt_text ?? '' })),
+    images: (row.images ?? []).map((m) => ({ id: m.media_id, url: m.url, alt: m.alt_text ?? '' })),
   };
 }
 function category(row: RawCategory): CatalogueRecord {

@@ -1,5 +1,5 @@
 -- ============================================================
--- Cover photos for the collections and events seeded in
+-- Cover photos for the collections and events created by
 -- 20261030000001_demo_seed_data.sql.
 -- ============================================================
 

@@ -99,7 +99,7 @@ interface RawCollection {
   featured: boolean;
   location: RawLocationRef | null;
   categories: RawCategoryRef[];
-  images: RawMediaRef[];
+  images?: RawMediaRef[];
   created_at: string;
   updated_at: string;
 }
@@ -113,7 +113,7 @@ function mapCollection(raw: RawCollection): Collection {
     featured: raw.featured,
     location: raw.location,
     categories: raw.categories.map((c) => ({ id: c.category_id, name: c.name })),
-    image: raw.images[0]?.url,
+    image: raw.images?.[0]?.url,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };

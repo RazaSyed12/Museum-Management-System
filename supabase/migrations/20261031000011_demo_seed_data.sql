@@ -11,7 +11,8 @@ where id = (select id from auth.users where email = 'admin@heritage.museum.com')
 
 -- 2. A location
 insert into locations (location_id, name, city, country, capacity)
-values ('11111111-1111-1111-1111-111111111111', 'Main Gallery', 'Adelaide', 'Australia', 200);
+values ('11111111-1111-1111-1111-111111111111', 'Main Gallery', 'Adelaide', 'Australia', 200)
+on conflict (location_id) do nothing;
 
 -- 3. Categories — the choices on the onboarding page.
 --    Top-level categories (no parent) are what onboarding shows;
@@ -47,7 +48,8 @@ values (
   '11111111-1111-1111-1111-111111111111',
   true,
   (select id from auth.users where email = 'admin@heritage.museum.com')
-);
+)
+on conflict (collection_id) do nothing;
 
 -- 5. A draft collection (should be invisible to the public)
 insert into collections (collection_id, name, description, status, location_id, created_by)
@@ -58,7 +60,8 @@ values (
   'draft',
   '11111111-1111-1111-1111-111111111111',
   (select id from auth.users where email = 'admin@heritage.museum.com')
-);
+)
+on conflict (collection_id) do nothing;
 
 -- 5b. Tag the published collection, so recommendations have
 --     something to match against.
@@ -69,7 +72,8 @@ on conflict do nothing;
 
 -- 6. A membership plan
 insert into membership_plans (plan_id, name, price, duration_months, active)
-values ('55555555-5555-5555-5555-555555555555', 'Standard Membership', 49.00, 12, true);
+values ('55555555-5555-5555-5555-555555555555', 'Standard Membership', 49.00, 12, true)
+on conflict (plan_id) do nothing;
 
 -- 7. Sample events, one of each kind the site has to handle. Dates
 --    are relative to today, so after any reset there are always

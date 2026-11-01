@@ -10,7 +10,7 @@ import { Media } from '@/components/foundation/Media';
 import { staffApi } from '@/lib/api/staff';
 import { date, localDay } from '@/lib/staff/format';
 import { staffUsesBackend } from '@/lib/staff/config';
-import { CatalogueDashboard } from './CatalogueDashboard';
+import { LiveDashboard } from './LiveOverview';
 import {
   Capacity,
   Loading,
@@ -22,7 +22,7 @@ import {
 } from './Shared';
 
 export function DashboardScreen() {
-  return staffUsesBackend() ? <CatalogueDashboard /> : <DemoDashboardScreen />;
+  return staffUsesBackend() ? <LiveDashboard /> : <DemoDashboardScreen />;
 }
 
 function DemoDashboardScreen() {

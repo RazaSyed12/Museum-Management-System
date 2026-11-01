@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { HomeContent } from '@/components/home/HomeContent';
 import { listCollections } from '@/lib/api/collections';
 import { listEvents } from '@/lib/api/events';
+import { listHeroSlides } from '@/lib/api/hero';
 
 export const metadata: Metadata = {
   title: 'Heritage Museum',
@@ -9,10 +10,11 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [{ items: allCollections }, allEvents] = await Promise.all([
+  const [{ items: allCollections }, allEvents, heroSlides] = await Promise.all([
     listCollections({ limit: 100 }),
     listEvents(),
+    listHeroSlides(),
   ]);
 
-  return <HomeContent allCollections={allCollections} allEvents={allEvents} />;
+  return <HomeContent allCollections={allCollections} allEvents={allEvents} heroSlides={heroSlides} />;
 }

@@ -20,6 +20,7 @@ import { recommendedForYou, popularRightNow, hrefForRecommendation } from '@/lib
 import { toneForIndex } from '@/lib/tone';
 import type { Collection } from '@/lib/api/collections';
 import type { MuseumEvent } from '@/lib/api/events';
+import type { HeroSlideData } from '@/lib/api/hero';
 
 /* Ported from HomeScreen in design-system/ui_kits/visitor_site/HomeScreen.jsx.
    The preview harness's own `<Page>` wrapper (header/footer/mobile nav) is
@@ -33,6 +34,8 @@ import type { MuseumEvent } from '@/lib/api/events';
 export interface HomeContentProps {
   allCollections: Collection[];
   allEvents: MuseumEvent[];
+  /** Real backend: the slides staff manage (see lib/api/hero.ts). */
+  heroSlides?: HeroSlideData[];
 }
 
 /* Filter rows above the collections and events grids. Categories come from the
@@ -48,7 +51,7 @@ const EVENT_FILTERS: Record<string, (e: MuseumEvent) => boolean> = {
   Available: (e) => e.availability === 'available' || e.availability === 'limited',
 };
 
-export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
+export function HomeContent({ allCollections, allEvents, heroSlides }: HomeContentProps) {
   const nav = useSiteNav();
   const router = useRouter();
   const signedIn = Boolean(nav.user);
@@ -62,7 +65,10 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
     .sort((a, b) => +new Date(a.date) - +new Date(b.date))
     .slice(0, 2);
   const exhibition = heroEvents[0];
-  const heroEventIds = new Set(heroEvents.map((e) => e.id));
+  // The grid below shouldn't repeat what the carousel already features.
+  const heroEventIds = heroSlides?.length
+    ? new Set(heroSlides.map((s) => s.eventId).filter((id): id is string => Boolean(id)))
+    : new Set(heroEvents.map((e) => e.id));
   const listedEvents = allEvents.filter((e) => !heroEventIds.has(e.id));
 
   const shownCollections = allCollections
@@ -73,7 +79,7 @@ export function HomeContent({ allCollections, allEvents }: HomeContentProps) {
 
   return (
     <>
-      <Hero go={nav.go} events={allEvents} />
+      <Hero go={nav.go} events={allEvents} slides={heroSlides} />
       {exhibition && (
         <PlanVisit exhibitionPriceValue={exhibition.priceValue} exhibitionMemberPrice={exhibition.memberPrice} onCheck={(plan) => router.push(`/tickets/${exhibition.id}?general=${plan.visitors}`)} />
       )}

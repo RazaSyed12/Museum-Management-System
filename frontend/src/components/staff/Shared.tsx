@@ -136,8 +136,8 @@ export function useStaffData<T>(
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    loader
-      .current(controller.signal)
+    Promise.resolve()
+      .then(() => loader.current(controller.signal))
       .then((value) => {
         if (!controller.signal.aborted) setData(value);
       })

@@ -49,7 +49,7 @@ export function apiUrlAbsolute(path: string): string {
 }
 
 export async function apiFetch<T>(path: string, opts?: { absolute?: boolean }): Promise<T> {
-  await ensureMockingStarted();
+  if (!opts?.absolute) await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
   if (!res.ok) {
     const { message, code } = await parseErrorBody(res);
@@ -65,7 +65,7 @@ export async function apiFetchOptional<T>(
   path: string,
   opts?: { absolute?: boolean },
 ): Promise<T | undefined> {
-  await ensureMockingStarted();
+  if (!opts?.absolute) await ensureMockingStarted();
   const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
   if (res.status === 404) return undefined;
   if (!res.ok) {

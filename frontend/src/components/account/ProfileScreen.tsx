@@ -26,6 +26,8 @@ import { ApiError } from '@/lib/api/client';
 import { getToken } from '@/lib/api/authed';
 import { profileMockingDisabled, saveFullName } from '@/lib/api/preferences';
 import { useInterestsSync } from '@/lib/useInterestsSync';
+import { PaymentHistory } from '@/components/account/PaymentHistory';
+import { paymentsMockingDisabled } from '@/lib/api/payments';
 import {
   getNewsletterStatus,
   newsletterMockingDisabled,
@@ -34,7 +36,7 @@ import {
 } from '@/lib/api/newsletter';
 import { useRecommendationRail } from '@/lib/useRecommendationRail';
 
-type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
+type Tab = 'bookings' | 'payments' | 'saved' | 'interests' | 'settings';
 
 export function ProfileScreen() {
   const auth = useAuth();
@@ -166,6 +168,7 @@ export function ProfileScreen() {
             onChange={(v) => setTab(v as Tab)}
             items={[
               { value: 'bookings', label: 'Bookings', count: bookings?.length ?? 0 },
+              ...(paymentsMockingDisabled() ? [{ value: 'payments', label: 'Payments' }] : []),
               { value: 'saved', label: 'Saved', count: 0 },
               { value: 'interests', label: 'Interests' },
               { value: 'settings', label: 'Settings' },
@@ -178,6 +181,8 @@ export function ProfileScreen() {
         {tab === 'bookings' && (
           bookings ? <DataTable<Booking> caption="Your bookings" columns={columns} rows={bookings} /> : <SkeletonCard />
         )}
+
+        {tab === 'payments' && <PaymentHistory />}
 
         {tab === 'saved' && (
           <EmptyState

@@ -24,6 +24,7 @@ export function Select({
   disabled,
   placeholder,
   className,
+  children,
   ...rest
 }: SelectProps) {
   return (
@@ -54,6 +55,7 @@ export function Select({
             </option>
           );
         })}
+        {children}
       </select>
       <Chevron />
     </span>

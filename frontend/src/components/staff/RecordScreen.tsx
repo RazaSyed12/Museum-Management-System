@@ -8,8 +8,31 @@ import { Loading, RequestError, useStaffData } from './Shared';
 import { RecordList } from './RecordList';
 import { RecordEditor } from './RecordEditor';
 import { RecordDetail } from './RecordDetail';
+import { staffUsesBackend } from '@/lib/staff/config';
+import { isCatalogueResource } from '@/lib/api/staff-catalogue';
+import { CatalogueScreen } from './CatalogueScreen';
+import { StaffUnavailable } from './Unavailable';
+import { RECORDS } from './records';
 
 export function RecordScreen({
+  resource,
+  segments,
+  saved,
+}: {
+  resource: Resource;
+  segments: string[];
+  saved: boolean;
+}) {
+  if (staffUsesBackend())
+    return isCatalogueResource(resource) ? (
+      <CatalogueScreen resource={resource} segments={segments} saved={saved} />
+    ) : (
+      <StaffUnavailable title={RECORDS[resource].title} />
+    );
+  return <DemoRecordScreen resource={resource} segments={segments} saved={saved} />;
+}
+
+function DemoRecordScreen({
   resource,
   segments,
   saved,

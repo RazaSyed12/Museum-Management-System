@@ -1,5 +1,0 @@
--- Intentionally empty. The demo data (location, categories, collections,
--- events, membership plan and images) now lives in the migrations
--- 20261031000011_demo_seed_data.sql and 20261031000012_demo_seed_media.sql,
--- so it also loads on a hosted database. Seeding it here as well would
--- insert the same rows twice and fail.

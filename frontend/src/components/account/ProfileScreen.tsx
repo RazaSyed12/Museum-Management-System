@@ -14,16 +14,41 @@ import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { Field } from '@/components/forms/Field';
 import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
+import { Alert } from '@/components/feedback/Alert';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
 import { useCurrency } from '@/lib/useCurrency';
 import { listBookings, type Booking } from '@/lib/api/bookings';
 import { recommendedForYou, hrefForRecommendation } from '@/lib/content';
+import { useMyMembership } from '@/lib/useMyMembership';
+import { formatMemberDate, membershipMockingDisabled } from '@/lib/api/membership';
+import { ApiError } from '@/lib/api/client';
+import { getToken } from '@/lib/api/authed';
+import { profileMockingDisabled, saveFullName } from '@/lib/api/preferences';
+import { useInterestsSync } from '@/lib/useInterestsSync';
+import { PaymentHistory } from '@/components/account/PaymentHistory';
+import { paymentsMockingDisabled } from '@/lib/api/payments';
+import {
+  getNewsletterStatus,
+  newsletterMockingDisabled,
+  subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+} from '@/lib/api/newsletter';
+import { useRecommendationRail } from '@/lib/useRecommendationRail';
 
-type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
+type Tab = 'bookings' | 'payments' | 'saved' | 'interests' | 'settings';
 
 export function ProfileScreen() {
   const auth = useAuth();
+  useInterestsSync();
+  const live = useRecommendationRail(1);
+  const mine = useMyMembership();
+  // Real backend: the plan and end date come from /me/membership; mock data keeps the placeholder.
+  const memberLabel = membershipMockingDisabled()
+    ? mine
+      ? `${mine.plan.name} member${mine.endsAt ? ` · until ${formatMemberDate(mine.endsAt)}` : ''}`
+      : 'Member'
+    : 'Member · renews 4 Mar 2027';
   const nav = useSiteNav();
   const router = useRouter();
   const { format } = useCurrency();
@@ -39,6 +64,12 @@ export function ProfileScreen() {
   const [tab, setTab] = useState<Tab>('bookings');
   const [name, setName] = useState(auth.user?.name ?? '');
   const [bookings, setBookings] = useState<Booking[]>();
+  const [settingsStatus, setSettingsStatus] = useState<{ tone: 'success' | 'danger'; text: string }>();
+  const [savingSettings, setSavingSettings] = useState(false);
+  // Real newsletter backend: what the server has vs what the box says now.
+  const [newsletterOnServer, setNewsletterOnServer] = useState<boolean>();
+  const [newsletterWanted, setNewsletterWanted] = useState(false);
+  const signedInId = auth.user?.id;
 
   useEffect(() => {
     if (auth.ready && !auth.user) router.replace('/sign-in');
@@ -49,6 +80,23 @@ export function ProfileScreen() {
   }, [auth.user]);
 
   useEffect(() => {
+    if (!newsletterMockingDisabled() || !signedInId) return;
+    const token = getToken();
+    if (!token) return;
+    let cancelled = false;
+    getNewsletterStatus(token)
+      .then((on) => {
+        if (cancelled) return;
+        setNewsletterOnServer(on);
+        setNewsletterWanted(on);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [signedInId]);
+
+  useEffect(() => {
     // A failed fetch shouldn't crash the whole profile page — just show no bookings.
     listBookings().then(setBookings).catch(() => setBookings([]));
   }, []);
@@ -56,9 +104,39 @@ export function ProfileScreen() {
   if (!auth.user) return null;
   const user = auth.user;
 
-  function saveSettings(e: FormEvent) {
+  async function saveSettings(e: FormEvent) {
     e.preventDefault();
-    auth.updateProfile({ name });
+    setSettingsStatus(undefined);
+    const realProfile = profileMockingDisabled();
+    const realNewsletter = newsletterMockingDisabled();
+    if (!realProfile && !realNewsletter) {
+      auth.updateProfile({ name });
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      setSettingsStatus({ tone: 'danger', text: 'Your session has expired. Please sign in again.' });
+      return;
+    }
+    setSavingSettings(true);
+    try {
+      if (realProfile) {
+        const saved = await saveFullName(token, name.trim());
+        auth.updateProfile({ name: saved });
+      } else {
+        auth.updateProfile({ name });
+      }
+      if (realNewsletter && newsletterOnServer !== undefined && newsletterWanted !== newsletterOnServer) {
+        if (newsletterWanted) await subscribeToNewsletter(user.email, token);
+        else await unsubscribeFromNewsletter(token);
+        setNewsletterOnServer(newsletterWanted);
+      }
+      setSettingsStatus({ tone: 'success', text: 'Your changes have been saved.' });
+    } catch (err) {
+      setSettingsStatus({ tone: 'danger', text: err instanceof ApiError ? err.message : 'We couldn’t save your changes. Please try again.' });
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   return (
@@ -73,7 +151,7 @@ export function ProfileScreen() {
                 {auth.isStaff
                   ? <StatusBadge tone="info" icon="shield-check">Staff account</StatusBadge>
                   : auth.isMember
-                  ? <StatusBadge tone="member">Member · renews 4 Mar 2027</StatusBadge>
+                  ? <StatusBadge tone="member">{memberLabel}</StatusBadge>
                   : <StatusBadge tone="neutral" icon="user">Registered visitor</StatusBadge>}
                 <StatusBadge tone="neutral" icon="mail">{user.email}</StatusBadge>
               </div>
@@ -90,6 +168,7 @@ export function ProfileScreen() {
             onChange={(v) => setTab(v as Tab)}
             items={[
               { value: 'bookings', label: 'Bookings', count: bookings?.length ?? 0 },
+              ...(paymentsMockingDisabled() ? [{ value: 'payments', label: 'Payments' }] : []),
               { value: 'saved', label: 'Saved', count: 0 },
               { value: 'interests', label: 'Interests' },
               { value: 'settings', label: 'Settings' },
@@ -102,6 +181,8 @@ export function ProfileScreen() {
         {tab === 'bookings' && (
           bookings ? <DataTable<Booking> caption="Your bookings" columns={columns} rows={bookings} /> : <SkeletonCard />
         )}
+
+        {tab === 'payments' && <PaymentHistory />}
 
         {tab === 'saved' && (
           <EmptyState
@@ -123,29 +204,40 @@ export function ProfileScreen() {
                 <Button size="sm" variant="ghost" iconLeft="pencil" onClick={() => router.push('/interests')}>Edit</Button>
               </div>
             </div>
+            {(!live.real || (live.rail?.items.length ?? 0) > 0) && (
             <div className="grid gap-4">
               <h2 className="type-h2">Because of what you&rsquo;ve explored</h2>
               <Grid cols={2}>
-                {recommendedForYou.slice(0, 2).map((r) => (
-                  <RecommendationCard key={r.title} {...r} href={hrefForRecommendation(r)} />
-                ))}
+                {live.real
+                  ? (live.rail?.items ?? []).slice(0, 2).map((r) => (
+                      <RecommendationCard key={r.key} title={r.title} kind={r.kind} image={r.image} tone={r.tone} href={r.href} reason={r.reason} />
+                    ))
+                  : recommendedForYou.slice(0, 2).map((r) => (
+                      <RecommendationCard key={r.title} {...r} href={hrefForRecommendation(r)} />
+                    ))}
               </Grid>
             </div>
+            )}
           </div>
         )}
 
         {tab === 'settings' && (
           <form className="grid max-w-130 gap-5" onSubmit={saveSettings}>
+            {settingsStatus && (
+              <Alert tone={settingsStatus.tone} onDismiss={() => setSettingsStatus(undefined)}>{settingsStatus.text}</Alert>
+            )}
             <Field label="Full name" htmlFor="s-n">
               <Input id="s-n" value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
             <Field label="Email address" htmlFor="s-e" hint="Contact support to change the address on your account.">
               <Input id="s-e" value={user.email} disabled />
             </Field>
-            <Checkbox id="s-nl" defaultChecked label="Email me what's on" description="Monthly exhibition news." />
+            {newsletterMockingDisabled()
+              ? <Checkbox id="s-nl" label="Email me what's on" description="Monthly exhibition news." checked={newsletterWanted} disabled={newsletterOnServer === undefined} onChange={(e) => setNewsletterWanted(e.target.checked)} />
+              : <Checkbox id="s-nl" defaultChecked label="Email me what's on" description="Monthly exhibition news." />}
             <Checkbox id="s-rec" defaultChecked label="Use my activity for recommendations" description="Turn this off and we'll show popular content instead." />
             <div className="flex gap-3">
-              <Button type="submit">Save changes</Button>
+              <Button type="submit" loading={savingSettings} disabled={profileMockingDisabled() && !name.trim()}>Save changes</Button>
               <Button type="button" variant="ghost" onClick={() => setName(user.name)}>Cancel</Button>
             </div>
           </form>

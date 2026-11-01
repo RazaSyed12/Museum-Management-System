@@ -48,7 +48,7 @@ interface RawEvent {
   ticket_price: number;
   capacity: number;
   location: { name: string; city: string | null } | null;
-  images: { media_id: string; url: string; alt_text: string | null }[];
+  images?: { media_id: string; url: string; alt_text: string | null }[];
 }
 
 function mapEvent(raw: RawEvent): MuseumEvent {
@@ -65,7 +65,7 @@ function mapEvent(raw: RawEvent): MuseumEvent {
     remaining: raw.capacity,
     capacity: raw.capacity,
     description: raw.description ?? '',
-    image: raw.images[0]?.url,
+    image: raw.images?.[0]?.url,
   };
 }
 

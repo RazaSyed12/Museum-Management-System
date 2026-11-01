@@ -8,10 +8,13 @@ import { Media, type MediaProps } from '@/components/foundation/Media';
 import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/cn';
 import type { MuseumEvent } from '@/lib/api/events';
+import type { HeroSlideData } from '@/lib/api/hero';
 
 export interface HeroProps {
   go: (label: string) => void;
   events: MuseumEvent[];
+  /** Real backend: the slides staff manage. Absent (or empty) = the built-in slides. */
+  slides?: HeroSlideData[];
 }
 
 interface Slide {
@@ -75,8 +78,52 @@ function buildSlides(events: MuseumEvent[]): Slide[] {
   ];
 }
 
-export function Hero({ go, events }: HeroProps) {
-  const [slides] = useState(() => buildSlides(events));
+const MUSEUM_TIMEZONE = 'Australia/Adelaide'; // matches lib/api/events.ts
+
+function slideDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-AU', { timeZone: MUSEUM_TIMEZONE, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+}
+
+/** Staff-managed slides from /hero. A slide's own buttons win; otherwise a
+ *  linked event or collection gets a sensible default button. */
+function slidesFromApi(data: HeroSlideData[]): Slide[] {
+  const tones: Slide['tone'][] = ['green', 'olive', 'sand', 'stone'];
+  return data.map((d, i) => {
+    const meta: Slide['meta'] = [];
+    if (d.eventMeta) {
+      const start = slideDate(d.eventMeta.start);
+      const end = slideDate(d.eventMeta.end);
+      meta.push({ icon: 'calendar-days', text: start === end ? start : `${start} – ${end}` });
+      if (d.eventMeta.location) meta.push({ icon: 'map-pin', text: d.eventMeta.location });
+    }
+    if (d.collectionPeriod) meta.push({ icon: 'landmark', text: d.collectionPeriod });
+
+    const defaultPrimary = d.eventId
+      ? { label: 'Book tickets', href: `/tickets/${d.eventId}` }
+      : d.collectionId
+        ? { label: 'Explore the collection', href: `/collections/${d.collectionId}` }
+        : { label: 'See what’s on', href: '/events' };
+    const defaultSecondary = d.eventId
+      ? { label: 'Event details', href: `/events/${d.eventId}` }
+      : { label: 'See what’s on', href: '/events' };
+
+    return {
+      id: d.id,
+      eyebrow: d.eyebrow ?? (d.eventId ? 'Coming up' : 'Featured'),
+      title: d.title,
+      description: d.description ?? '',
+      meta,
+      primary: d.primary ?? defaultPrimary,
+      secondary: d.secondary ?? defaultSecondary,
+      tone: tones[i % tones.length]!,
+      caption: d.imageAlt ?? `${d.title} — Heritage Museum`,
+      image: d.imageUrl,
+    };
+  });
+}
+
+export function Hero({ go, events, slides: apiSlides }: HeroProps) {
+  const [slides] = useState(() => (apiSlides?.length ? slidesFromApi(apiSlides) : buildSlides(events)));
   const [index, setIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
   // Hover or keyboard focus inside the hero holds the slide in place too.

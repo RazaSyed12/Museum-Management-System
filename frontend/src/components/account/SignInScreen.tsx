@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/auth';
  *  anyone else (always onboarding_completed — see backend/src/routes/me.ts);
  *  they reach the staff portal from the "Staff Portal" button on /account. */
 function destinationFor(onboardingCompleted: boolean): string {
-  return onboardingCompleted ? '/account' : '/interests';
+  return onboardingCompleted ? '/' : '/interests';
 }
 
 export function SignInScreen() {
@@ -25,6 +25,7 @@ export function SignInScreen() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
 
   // Already signed in (e.g. a stored session rehydrated) — don't show the form, just go.
   useEffect(() => {
@@ -33,9 +34,11 @@ export function SignInScreen() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setBusy(true);
     const result = await auth.signIn(email, password, rememberMe);
     if (!result.ok) {
       setError(result.error);
+      setBusy(false);
       return;
     }
     router.push(destinationFor(result.onboardingCompleted));
@@ -89,7 +92,7 @@ export function SignInScreen() {
             Forgot your password?
           </Link>
         </div>
-        <Button type="submit" size="lg" fullWidth>
+        <Button type="submit" size="lg" fullWidth disabled={!auth.ready} loading={busy}>
           Sign in
         </Button>
       </form>

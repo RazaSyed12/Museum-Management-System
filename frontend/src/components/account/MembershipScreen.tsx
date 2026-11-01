@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Container } from '@/components/layout/Container';
 import { Section } from '@/components/layout/Section';
 import { Grid } from '@/components/layout/Grid';
@@ -11,6 +12,17 @@ import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
 import { useCurrency } from '@/lib/useCurrency';
 import { cn } from '@/lib/cn';
+import { money } from '@/lib/ticketing';
+import { useMyMembership } from '@/lib/useMyMembership';
+import {
+  MEMBERSHIP_CURRENCY,
+  formatMemberDate,
+  getPlans,
+  membershipMockingDisabled,
+  planPeriod,
+  type MembershipPlan,
+} from '@/lib/api/membership';
+import { Alert } from '@/components/feedback/Alert';
 
 const BENEFITS = [
   {
@@ -55,6 +67,22 @@ export function MembershipScreen() {
   // currency's symbol, not a real amount.
   const PLANS = PLAN_INFO.map((p) => ({ ...p, price: `${symbol}00` }));
 
+  // Real backend: the plans, prices and benefits come from /membership/plans.
+  const real = membershipMockingDisabled();
+  const mine = useMyMembership();
+  const [plans, setPlans] = useState<MembershipPlan[]>();
+  const [plansError, setPlansError] = useState(false);
+  useEffect(() => {
+    if (!real) return;
+    let cancelled = false;
+    getPlans()
+      .then((p) => !cancelled && setPlans(p))
+      .catch(() => !cancelled && setPlansError(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [real]);
+
   return (
     <>
       <div className="bg-surface-accent">
@@ -71,16 +99,30 @@ export function MembershipScreen() {
           </p>
           {auth.isMember ? (
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <StatusBadge tone="member">Active member since March 2024</StatusBadge>
-              <Button variant="secondary" iconLeft="settings">
-                Manage membership
-              </Button>
+              <StatusBadge tone="member">
+                {real
+                  ? mine
+                    ? `${mine.plan.name} member${mine.endsAt ? ` until ${formatMemberDate(mine.endsAt)}` : ''}`
+                    : 'Active member'
+                  : 'Active member since March 2024'}
+              </StatusBadge>
+              {!real && (
+                <Button variant="secondary" iconLeft="settings">
+                  Manage membership
+                </Button>
+              )}
             </div>
           ) : (
             <div className="mt-2 flex flex-wrap gap-3">
-              <Button size="lg" onClick={() => nav.setMember(true)}>
-                Become a member
-              </Button>
+              {real ? (
+                <Button size="lg" as="a" href="#plans">
+                  Become a member
+                </Button>
+              ) : (
+                <Button size="lg" onClick={() => nav.setMember(true)}>
+                  Become a member
+                </Button>
+              )}
               <Button size="lg" variant="ghost" onClick={() => nav.go('Tickets')}>
                 Just book a ticket
               </Button>
@@ -89,6 +131,7 @@ export function MembershipScreen() {
         </Container>
       </div>
 
+      {!real && (
       <Section title="What membership includes">
         <Grid cols={3}>
           {BENEFITS.map((b) => (
@@ -102,7 +145,58 @@ export function MembershipScreen() {
           ))}
         </Grid>
       </Section>
+      )}
 
+      {real && (
+        <Section tone="muted" title="Choose a membership" id="plans">
+          {plansError && (
+            <Alert tone="danger" title="We couldn’t load the memberships">
+              Please refresh the page in a moment.
+            </Alert>
+          )}
+          {!plans && !plansError && <p className="type-body text-muted">Loading memberships…</p>}
+          {plans && plans.length === 0 && (
+            <Alert tone="info" title="No memberships on sale right now">
+              Please check back soon.
+            </Alert>
+          )}
+          {plans && plans.length > 0 && (
+            <Grid cols={3}>
+              {plans.map((p) => (
+                <Card key={p.id} interactive className="grid content-start gap-4">
+                  <h3 className="type-h3">{p.name}</h3>
+                  <span className="font-display text-3xl/none text-heading">
+                    {p.price === 0 ? 'Free' : money(p.price, MEMBERSHIP_CURRENCY)}
+                    <span className="type-body-sm text-muted"> / {planPeriod(p.durationMonths)}</span>
+                  </span>
+                  {p.description && <p className="type-body-sm text-muted">{p.description}</p>}
+                  {p.benefits.length > 0 && (
+                    <ul className="grid gap-2">
+                      {p.benefits.map((b) => (
+                        <li key={b.id} className="type-body-sm flex gap-2">
+                          <Icon name="check" size={16} className="mt-0.5 flex-none text-olive-600" />
+                          {b.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    as="a"
+                    href={auth.isMember ? undefined : `/membership/join?plan=${p.id}`}
+                    disabled={auth.isMember}
+                  >
+                    {auth.isMember ? 'You are a member' : `Choose ${p.name}`}
+                  </Button>
+                </Card>
+              ))}
+            </Grid>
+          )}
+        </Section>
+      )}
+
+      {!real && (
       <Section tone="muted" title="Choose a membership">
         <Grid cols={3}>
           {PLANS.map((p, i) => (
@@ -137,6 +231,7 @@ export function MembershipScreen() {
           Prices are placeholders pending the museum&rsquo;s 2027 rates.
         </p>
       </Section>
+      )}
     </>
   );
 }

@@ -16,6 +16,7 @@ import { useStaffSession } from '@/lib/staff/session';
 import { staffApi } from '@/lib/api/staff';
 import type { SearchResult } from '@/lib/staff/types';
 import { date } from '@/lib/staff/format';
+import { records, string } from '@/lib/staff/backend-resources';
 import { Loading, RequestError, useStaffData } from './Shared';
 
 const NAV = [
@@ -23,17 +24,21 @@ const NAV = [
   ['Collections', '/staff/collections', 'library-big'],
   ['Artefacts', '/staff/items', 'gem'],
   ['Categories', '/staff/categories', 'tags'],
+  ['Locations', '/staff/locations', 'map-pin'],
   ['Events & exhibitions', '/staff/events', 'calendar-days'],
   ['Tickets & bookings', '/staff/bookings', 'ticket'],
   ['Memberships', '/staff/memberships', 'award'],
+  ['Membership plans', '/staff/plans', 'badge-dollar-sign'],
   ['Visitors', '/staff/visitors', 'users'],
+  ['Recorded visits', '/staff/visits', 'scan-line'],
+  ['Hero slides', '/staff/hero', 'images'],
   ['Reports', '/staff/reports', 'chart-no-axes-combined'],
   ['User management', '/staff/users', 'shield-check'],
   ['Settings', '/staff/settings', 'settings'],
 ] as const;
 
 export function StaffShell({ children }: { children: ReactNode }) {
-  const { user, loading, error, refresh, logout } = useStaffSession();
+  const { user, loading, error, refresh, logout, live, backend } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -43,9 +48,38 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const [searchError, setSearchError] = useState('');
   const [searching, setSearching] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [notificationPage, setNotificationPage] = useState(1);
   const notifications = useStaffData(
-    () => (user ? staffApi.notifications() : Promise.resolve([])),
-    [user?.id, pathname],
+    async (signal) => {
+      if (!user) return { rows: [], unread: 0, total: 0 };
+      if (!live) {
+        const rows = await staffApi.notifications();
+        return { rows, unread: rows.filter((row) => !row.read).length, total: rows.length };
+      }
+      const data = await backend.request(
+        `/admin/notifications?limit=20&offset=${(notificationPage - 1) * 20}`,
+        { signal },
+      );
+      const destinations: Record<string, string> = {
+        event: 'events',
+        booking: 'bookings',
+        membership: 'memberships',
+        collection: 'collections',
+        item: 'items',
+      };
+      const rows = records(data.notifications).map((row) => ({
+        id: string(row.notification_id),
+        title: string(row.message),
+        createdAt: string(row.created_at),
+        read: Boolean(row.read_at),
+        href:
+          destinations[string(row.resource_kind)] && /^[a-zA-Z0-9-]+$/.test(string(row.resource_id))
+            ? `/staff/${destinations[string(row.resource_kind)]}/${row.resource_id}`
+            : '/staff',
+      }));
+      return { rows, unread: Number(data.unread_count), total: Number(data.total) };
+    },
+    [user?.id, pathname, live, notificationPage],
   );
 
   useEffect(() => {
@@ -57,17 +91,22 @@ export function StaffShell({ children }: { children: ReactNode }) {
   }, [pathname]);
   useEffect(() => {
     const controller = new AbortController();
-    if (!query.trim()) {
+    if (!query.trim() || (live && query.trim().length < 2) || !user) {
       setResults([]);
+      setSearchError('');
       setSearching(false);
       return;
     }
     setSearching(true);
     const timer = setTimeout(() => {
       setSearchError('');
-      staffApi
-        .search(query.trim(), controller.signal)
-        .then(setResults)
+      const search = live
+        ? backend.search(query.trim(), controller.signal)
+        : staffApi.search(query.trim(), controller.signal);
+      search
+        .then((rows) => {
+          if (!controller.signal.aborted) setResults(rows);
+        })
         .catch((err: unknown) => {
           if (!controller.signal.aborted)
             setSearchError(err instanceof Error ? err.message : 'Search failed.');
@@ -80,7 +119,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [query, live, backend, user]);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setQuery('');
@@ -99,6 +138,14 @@ export function StaffShell({ children }: { children: ReactNode }) {
     return (
       <div className="p-8">
         <RequestError error={error} retry={() => void refresh()} />
+        <div className="mt-4 flex gap-3">
+          <Button as="a" href="/account" variant="secondary">
+            Back to my account
+          </Button>
+          <Button variant="ghost" onClick={() => void logout()}>
+            Sign out
+          </Button>
+        </div>
       </div>
     );
   if (!user)
@@ -117,29 +164,31 @@ export function StaffShell({ children }: { children: ReactNode }) {
         </span>
       </div>
       <nav aria-label="Staff navigation" className="grid gap-1">
-        {NAV.filter(([, href]) => href !== '/staff/users' || can(user.role, 'users')).map(
-          ([label, href, icon]) => {
-            const active = href === '/staff' ? pathname === href : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMenu(false)}
-                aria-current={active ? 'page' : undefined}
-                title={label}
-                className={cn(
-                  'flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold no-underline transition-control',
-                  active
-                    ? 'bg-olive-600 text-paper-50 hover:text-paper-50'
-                    : 'text-paper-100/85 hover:bg-sand-300/10 hover:text-sand-300',
-                )}
-              >
-                <Icon name={icon} size={18} />
-                <span>{label}</span>
-              </Link>
-            );
-          },
-        )}
+        {NAV.filter(
+          ([, href]) =>
+            (href !== '/staff/users' || can(user.role, 'users')) &&
+            (live || !['/staff/locations', '/staff/plans', '/staff/hero'].includes(href)),
+        ).map(([label, href, icon]) => {
+          const active = href === '/staff' ? pathname === href : pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMenu(false)}
+              aria-current={active ? 'page' : undefined}
+              title={label}
+              className={cn(
+                'flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold no-underline transition-control',
+                active
+                  ? 'bg-olive-600 text-paper-50 hover:text-paper-50'
+                  : 'text-paper-100/85 hover:bg-sand-300/10 hover:text-sand-300',
+              )}
+            >
+              <Icon name={icon} size={18} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );
@@ -170,7 +219,12 @@ export function StaffShell({ children }: { children: ReactNode }) {
               id="portal-search"
               iconLeft="search"
               type="search"
-              placeholder="Search visitors, events, bookings…"
+              placeholder={
+                live
+                  ? 'Search catalogue, visitors, bookings…'
+                  : 'Search visitors, events, bookings…'
+              }
+              maxLength={100}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-expanded={Boolean(query.trim())}
@@ -202,7 +256,11 @@ export function StaffShell({ children }: { children: ReactNode }) {
                     </Link>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-muted">No matching records.</p>
+                  <p className="p-3 text-sm text-muted">
+                    {live && query.trim().length < 2
+                      ? 'Enter at least two characters.'
+                      : 'No matching records.'}
+                  </p>
                 )}
               </div>
             )}
@@ -213,19 +271,21 @@ export function StaffShell({ children }: { children: ReactNode }) {
               label="Visit the public site"
               onClick={() => router.push('/')}
             />
-            <div className="relative">
-              <IconButton
-                icon="bell"
-                label={`Notifications, ${notifications.data?.filter((n) => !n.read).length ?? 0} unread`}
-                onClick={() => {
-                  notifications.refresh();
-                  setNotificationsOpen(true);
-                }}
-              />
-              {notifications.data?.some((n) => !n.read) && (
-                <span className="pointer-events-none absolute top-1 right-1 size-2 rounded-full bg-danger-600" />
-              )}
-            </div>
+            {
+              <div className="relative">
+                <IconButton
+                  icon="bell"
+                  label={`Notifications, ${notifications.data?.unread ?? 0} unread`}
+                  onClick={() => {
+                    notifications.refresh();
+                    setNotificationsOpen(true);
+                  }}
+                />
+                {Boolean(notifications.data?.unread) && (
+                  <span className="pointer-events-none absolute top-1 right-1 size-2 rounded-full bg-danger-600" />
+                )}
+              </div>
+            }
             <span className="grid size-10 place-items-center rounded-full bg-olive-100 font-semibold text-olive-700">
               {user.name
                 .split(' ')
@@ -235,7 +295,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
             </span>
             <span className="hidden md:grid">
               <span className="type-label text-heading">{user.name}</span>
-              <span className="text-xs text-muted">{user.role}</span>
+              <span className="text-xs text-muted">{user.role ?? 'Staff account'}</span>
             </span>
             <IconButton
               icon="log-out"
@@ -273,8 +333,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
             <RequestError error={notifications.error} retry={notifications.refresh} />
           ) : notifications.loading ? (
             <Loading />
-          ) : notifications.data?.length ? (
-            notifications.data.map((n) => (
+          ) : notifications.data?.rows.length ? (
+            notifications.data.rows.map((n) => (
               <button
                 key={n.id}
                 className={cn(
@@ -283,7 +343,12 @@ export function StaffShell({ children }: { children: ReactNode }) {
                 )}
                 onClick={async () => {
                   try {
-                    await staffApi.readNotification(n.id);
+                    if (live)
+                      await backend.request(
+                        `/admin/notifications/${encodeURIComponent(n.id)}/read`,
+                        { method: 'POST' },
+                      );
+                    else await staffApi.readNotification(n.id);
                     notifications.refresh();
                     setNotificationsOpen(false);
                     router.push(n.href);
@@ -300,6 +365,26 @@ export function StaffShell({ children }: { children: ReactNode }) {
             ))
           ) : (
             <p className="text-muted">You are up to date.</p>
+          )}
+          {live && (
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                disabled={notificationPage === 1 || notifications.loading}
+                onClick={() => setNotificationPage((page) => page - 1)}
+              >
+                Newer
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={
+                  notificationPage * 20 >= (notifications.data?.total ?? 0) || notifications.loading
+                }
+                onClick={() => setNotificationPage((page) => page + 1)}
+              >
+                Older
+              </Button>
+            </div>
           )}
           <Button variant="ghost" onClick={() => setNotificationsOpen(false)}>
             Close

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getEvent } from '@/lib/api/events';
+import { bookingsMockingDisabled, getAllocations } from '@/lib/api/bookings';
 import { ConfirmationScreen } from '@/components/tickets/ConfirmationScreen';
 import { qtyFromParams, qtyToSearchParams, contactFromParams } from '@/lib/ticketing';
 
@@ -15,6 +16,8 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { eventId } = await params;
   const event = await getEvent(eventId);
   if (!event) notFound();
+  const allocations = await getAllocations(eventId);
+  if (bookingsMockingDisabled() && !allocations) notFound();
 
   const sp = await searchParams;
   const qty = qtyFromParams(sp);
@@ -25,5 +28,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   const contact = contactFromParams(sp);
 
-  return <ConfirmationScreen event={event} qty={qty} contact={contact} bookingRef={bookingRef} />;
+  const bookingId = typeof sp.booking === 'string' ? sp.booking : undefined;
+
+  return <ConfirmationScreen event={event} qty={qty} contact={contact} bookingRef={bookingRef} allocations={allocations} bookingId={bookingId} />;
 }

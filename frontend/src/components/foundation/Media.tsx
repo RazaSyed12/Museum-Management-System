@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
+import { artFor } from '@/lib/imagery';
 
 /* Stand-in for museum photography. Swap the placeholder for a real <img> when
    artefact photography is available — the ratio, radius and scrim stay the same.
@@ -26,7 +27,7 @@ export interface MediaProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Media({
-  src,
+  src: srcProp,
   alt = '',
   ratio = '4 / 3',
   tone = 'olive',
@@ -37,6 +38,8 @@ export function Media({
   style,
   ...rest
 }: MediaProps) {
+  // A real photo (src) always wins; otherwise fall back to the illustration for this caption, if any.
+  const src = srcProp ?? artFor(caption);
   return (
     <div
       className={cn(

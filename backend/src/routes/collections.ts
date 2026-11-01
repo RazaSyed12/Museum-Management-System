@@ -9,10 +9,12 @@ const router = Router();
 
 // What the public site needs about a collection. The embedded bits
 // follow the foreign keys: locations(...) is the collection's location,
-// collection_categories -> categories(...) is its category list.
+// collection_categories -> categories(...) is its category list,
+// collection_media -> media(...) its photos (sorted in shape(), not by Postgres).
 export const COLLECTION_SELECT =
   'collection_id, name, description, status, featured, location_id, historical_period, catalogue_total, created_at, updated_at, ' +
-  'locations(name, city), collection_categories(categories(category_id, name))';
+  'locations(name, city), collection_categories(categories(category_id, name)), ' +
+  'collection_media(sort_order, media(media_id, url, alt_text))';
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ error: { message, code: 'validation_error' } });

@@ -10,7 +10,8 @@ const router = Router();
 
 // What the site needs about an event. The embedded bits follow the foreign
 // keys: locations(...) is the venue, event_categories -> categories(...) its
-// tags, event_collections -> collections(...) the collections it showcases.
+// tags, event_collections -> collections(...) the collections it showcases,
+// event_media -> media(...) its photos (sorted in shape(), not by Postgres).
 // RLS also applies to the embedded rows, so a guest never receives an
 // inactive category or a draft collection here.
 export const EVENT_SELECT =
@@ -34,7 +35,7 @@ function notFound(res: Response) {
 // Turns the database row into the shape the frontend wants:
 // one "location" object and flat "categories" / "collections" lists.
 export function shape(row: any) {
-  const { locations, event_categories, event_collections, ...rest } = row;
+  const { locations, event_categories, event_collections, event_media, ...rest } = row;
   // "Completed" is derived, never stored: a scheduled event whose end_at has
   // passed reads as completed without needing a fourth persisted status.
   const display_status = rest.status === 'scheduled' && new Date(rest.end_at) <= new Date() ? 'completed' : rest.status;

@@ -37,7 +37,6 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 
 const REPORT_KINDS = ['visitors', 'tickets', 'memberships', 'events', 'collections'] as const;
 type ReportKind = (typeof REPORT_KINDS)[number];
-type ReportResult = { error: string } | { rpc: ReturnType<ReturnType<typeof userClient>['rpc']> };
 
 // Each report kind's own query schema and the RPC call it maps to. collections
 // is the one exception that takes no date range (see its migration comment:
@@ -50,7 +49,7 @@ const reportQuerySchemas = {
   collections: z.object({ group: z.enum(['category', 'period']).default('category') }),
 };
 
-function runReport(db: ReturnType<typeof userClient>, kind: ReportKind, query: unknown): ReportResult {
+function runReport(db: ReturnType<typeof userClient>, kind: ReportKind, query: unknown) {
   switch (kind) {
     case 'visitors': {
       const parsed = reportQuerySchemas.visitors.safeParse(query);
@@ -98,7 +97,7 @@ router.get('/admin/reports/:kind', requireAuth, requireStaff, async (req: Reques
   }
   const db = userClient(req.auth!.token);
   const result = runReport(db, kindParsed.data.kind, req.query);
-  if ('error' in result) return badRequest(res, result.error);
+  if ('error' in result) return badRequest(res, result.error ?? 'Invalid report request.');
 
   const { data, error } = await result.rpc;
   if (error) return rpcFailure(res, error, 'Could not load the report.');
@@ -137,7 +136,7 @@ router.get(
     const kind = kindParsed.data.kind;
     const db = userClient(req.auth!.token);
     const result = runReport(db, kind, req.query);
-    if ('error' in result) return badRequest(res, result.error);
+    if ('error' in result) return badRequest(res, result.error ?? 'Invalid report request.');
 
     const { data, error } = await result.rpc;
     if (error) return rpcFailure(res, error, 'Could not load the report.');

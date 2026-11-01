@@ -14,6 +14,7 @@ import { Summary } from './Summary';
 import { useAuth } from '@/lib/auth';
 import { useCurrency } from '@/lib/useCurrency';
 import { ApiError } from '@/lib/api/client';
+import { newsletterMockingDisabled, subscribeQuietly } from '@/lib/api/newsletter';
 import type { MuseumEvent } from '@/lib/api/events';
 import { BOOKING_CURRENCY, createBooking, getAccessToken, quoteBooking, type Allocation, type BookingQuote } from '@/lib/api/bookings';
 import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, quoteLines, selectedBooking, money, type TicketQty } from '@/lib/ticketing';
@@ -51,6 +52,7 @@ export function CheckoutScreen({ event, qty, allocations }: CheckoutScreenProps)
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState('');
   const [access, setAccess] = useState('none');
+  const [newsletter, setNewsletter] = useState(false);
 
   const [quote, setQuote] = useState<BookingQuote>();
   const [quoteError, setQuoteError] = useState<string>();
@@ -91,6 +93,9 @@ export function CheckoutScreen({ event, qty, allocations }: CheckoutScreenProps)
     params.set('email', email);
     if (phone) params.set('phone', phone); else params.delete('phone');
     params.set('access', access);
+
+    // Real newsletter backend: honour the "Email me what's on" box (best-effort, never blocks the booking).
+    if (newsletter && email && newsletterMockingDisabled()) void subscribeQuietly(email, getAccessToken());
 
     if (real) {
       const token = getAccessToken();
@@ -174,7 +179,7 @@ export function CheckoutScreen({ event, qty, allocations }: CheckoutScreenProps)
               <Select id="ch" placeholder="Select an option" options={HEARD_OPTIONS} />
             </Field>
           </div>
-          <Checkbox id="nl" label="Email me what's on" description="Monthly, and never shared." />
+          <Checkbox id="nl" label="Email me what's on" description="Monthly, and never shared." checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)} />
         </div>
         <div className="grid gap-4 rounded-lg border border-line-subtle bg-surface-card p-6">
           <h2 className="type-h3">Access requirements</h2>

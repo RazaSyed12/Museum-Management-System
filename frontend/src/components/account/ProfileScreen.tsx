@@ -26,6 +26,12 @@ import { ApiError } from '@/lib/api/client';
 import { getToken } from '@/lib/api/authed';
 import { profileMockingDisabled, saveFullName } from '@/lib/api/preferences';
 import { useInterestsSync } from '@/lib/useInterestsSync';
+import {
+  getNewsletterStatus,
+  newsletterMockingDisabled,
+  subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+} from '@/lib/api/newsletter';
 import { useRecommendationRail } from '@/lib/useRecommendationRail';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
@@ -58,6 +64,10 @@ export function ProfileScreen() {
   const [bookings, setBookings] = useState<Booking[]>();
   const [settingsStatus, setSettingsStatus] = useState<{ tone: 'success' | 'danger'; text: string }>();
   const [savingSettings, setSavingSettings] = useState(false);
+  // Real newsletter backend: what the server has vs what the box says now.
+  const [newsletterOnServer, setNewsletterOnServer] = useState<boolean>();
+  const [newsletterWanted, setNewsletterWanted] = useState(false);
+  const signedInId = auth.user?.id;
 
   useEffect(() => {
     if (auth.ready && !auth.user) router.replace('/sign-in');
@@ -66,6 +76,23 @@ export function ProfileScreen() {
   useEffect(() => {
     if (auth.user) setName(auth.user.name);
   }, [auth.user]);
+
+  useEffect(() => {
+    if (!newsletterMockingDisabled() || !signedInId) return;
+    const token = getToken();
+    if (!token) return;
+    let cancelled = false;
+    getNewsletterStatus(token)
+      .then((on) => {
+        if (cancelled) return;
+        setNewsletterOnServer(on);
+        setNewsletterWanted(on);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [signedInId]);
 
   useEffect(() => {
     // A failed fetch shouldn't crash the whole profile page — just show no bookings.
@@ -78,7 +105,9 @@ export function ProfileScreen() {
   async function saveSettings(e: FormEvent) {
     e.preventDefault();
     setSettingsStatus(undefined);
-    if (!profileMockingDisabled()) {
+    const realProfile = profileMockingDisabled();
+    const realNewsletter = newsletterMockingDisabled();
+    if (!realProfile && !realNewsletter) {
       auth.updateProfile({ name });
       return;
     }
@@ -89,8 +118,17 @@ export function ProfileScreen() {
     }
     setSavingSettings(true);
     try {
-      const saved = await saveFullName(token, name.trim());
-      auth.updateProfile({ name: saved });
+      if (realProfile) {
+        const saved = await saveFullName(token, name.trim());
+        auth.updateProfile({ name: saved });
+      } else {
+        auth.updateProfile({ name });
+      }
+      if (realNewsletter && newsletterOnServer !== undefined && newsletterWanted !== newsletterOnServer) {
+        if (newsletterWanted) await subscribeToNewsletter(user.email, token);
+        else await unsubscribeFromNewsletter(token);
+        setNewsletterOnServer(newsletterWanted);
+      }
       setSettingsStatus({ tone: 'success', text: 'Your changes have been saved.' });
     } catch (err) {
       setSettingsStatus({ tone: 'danger', text: err instanceof ApiError ? err.message : 'We couldn’t save your changes. Please try again.' });
@@ -189,7 +227,9 @@ export function ProfileScreen() {
             <Field label="Email address" htmlFor="s-e" hint="Contact support to change the address on your account.">
               <Input id="s-e" value={user.email} disabled />
             </Field>
-            <Checkbox id="s-nl" defaultChecked label="Email me what's on" description="Monthly exhibition news." />
+            {newsletterMockingDisabled()
+              ? <Checkbox id="s-nl" label="Email me what's on" description="Monthly exhibition news." checked={newsletterWanted} disabled={newsletterOnServer === undefined} onChange={(e) => setNewsletterWanted(e.target.checked)} />
+              : <Checkbox id="s-nl" defaultChecked label="Email me what's on" description="Monthly exhibition news." />}
             <Checkbox id="s-rec" defaultChecked label="Use my activity for recommendations" description="Turn this off and we'll show popular content instead." />
             <div className="flex gap-3">
               <Button type="submit" loading={savingSettings} disabled={profileMockingDisabled() && !name.trim()}>Save changes</Button>

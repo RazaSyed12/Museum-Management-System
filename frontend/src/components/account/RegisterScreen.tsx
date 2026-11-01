@@ -10,6 +10,8 @@ import { Checkbox } from '@/components/forms/Checkbox';
 import { Button } from '@/components/forms/Button';
 import { Alert } from '@/components/feedback/Alert';
 import { useAuth } from '@/lib/auth';
+import { getToken } from '@/lib/api/authed';
+import { newsletterMockingDisabled, subscribeQuietly } from '@/lib/api/newsletter';
 
 const MIN_PASSWORD_LENGTH = 10;
 
@@ -44,6 +46,8 @@ export function RegisterScreen() {
       setBusy(false);
       return;
     }
+    // Real backend: honour the "Email me what's on" box. A failure here never blocks the new account.
+    if (newsletter && newsletterMockingDisabled()) await subscribeQuietly(email, getToken());
     router.push('/interests');
   }
 

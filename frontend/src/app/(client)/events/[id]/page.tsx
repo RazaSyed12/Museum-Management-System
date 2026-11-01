@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EventDetail } from '@/components/events/EventDetail';
+import { TrackView } from '@/components/tracking/TrackView';
 import { listEvents, getEvent } from '@/lib/api/events';
 
 interface Props {
@@ -21,5 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventDetailPage({ params }: Props) {
   const event = await getEvent((await params).id);
   if (!event) notFound();
-  return <EventDetail event={event} />;
+  return (
+    <>
+      <TrackView eventId={event.id} />
+      <EventDetail event={event} />
+    </>
+  );
 }

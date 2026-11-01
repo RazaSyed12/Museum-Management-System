@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CollectionDetail } from '@/components/collections/CollectionDetail';
+import { TrackView } from '@/components/tracking/TrackView';
 import { listCollections, getCollection, listCollectionItems } from '@/lib/api/collections';
 import { listEvents } from '@/lib/api/events';
 
@@ -34,11 +35,14 @@ export default async function CollectionDetailPage({ params }: Props) {
   const relatedEvents = allEvents.slice(0, 2);
 
   return (
-    <CollectionDetail
-      collection={collection}
-      relatedItems={relatedItems}
-      relatedCollections={relatedCollections}
-      relatedEvents={relatedEvents}
-    />
+    <>
+      <TrackView collectionId={collection.id} />
+      <CollectionDetail
+        collection={collection}
+        relatedItems={relatedItems}
+        relatedCollections={relatedCollections}
+        relatedEvents={relatedEvents}
+      />
+    </>
   );
 }

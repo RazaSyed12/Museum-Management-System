@@ -1,0 +1,25 @@
+app = "heritage-museum-frontend"
+primary_region = "syd"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[build.args]
+  NEXT_PUBLIC_API_BASE_URL = "https://backend-little-lagoon-8707.fly.dev"
+  NEXT_PUBLIC_SITE_URL = "https://heritage-museum-frontend.fly.dev"
+  NEXT_PUBLIC_API_MOCKING = "disabled"
+  NEXT_PUBLIC_AUTH_API_MOCKING = "disabled"
+  NEXT_PUBLIC_COLLECTIONS_API_MOCKING = "disabled"
+  NEXT_PUBLIC_EVENTS_API_MOCKING = "disabled"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

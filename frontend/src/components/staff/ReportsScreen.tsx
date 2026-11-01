@@ -14,10 +14,10 @@ import { downloadCsv, localDay, money } from '@/lib/staff/format';
 import type { ReportKind, ReportRow } from '@/lib/staff/types';
 import { Loading, PageHeading, Panel, RequestError, useStaffData } from './Shared';
 import { staffUsesBackend } from '@/lib/staff/config';
-import { StaffUnavailable } from './Unavailable';
+import { LiveReports } from './LiveOverview';
 
 export function ReportsScreen() {
-  return staffUsesBackend() ? <StaffUnavailable title="Reports" /> : <DemoReportsScreen />;
+  return staffUsesBackend() ? <LiveReports /> : <DemoReportsScreen />;
 }
 
 function DemoReportsScreen() {

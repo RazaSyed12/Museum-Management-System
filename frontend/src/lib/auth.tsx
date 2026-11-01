@@ -132,9 +132,14 @@ export interface AuthContextValue {
    *  email matches an account — never reveal which emails are registered. */
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<AuthResult>;
-  /** Demo-only instant membership toggle — buying membership for real has
-   *  no backend endpoint yet. */
+  /** Demo-only instant membership toggle, used while membership runs on mock
+   *  data (see lib/api/membership.ts for the real purchase). */
   setMember: (isMember: boolean) => void;
+  /** Re-reads the signed-in account from /auth/me — e.g. right after buying a
+   *  membership, so the role (and everything keyed off isMember) updates.
+   *  Resolves to the fresh role, or undefined if nobody is signed in or the
+   *  call failed. */
+  refreshUser: () => Promise<Role | undefined>;
   /** Demo-only — no backend endpoint for editing full_name yet. */
   updateProfile: (input: { name: string }) => void;
   /** Local-only (see AuthUserView.interests) until /me/preferences is wired up. */
@@ -345,6 +350,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     setMember(isMember) {
       setAuthUser((cur) => (cur ? { ...cur, role: isMember ? 'member' : 'registered' } : cur));
+    },
+    async refreshUser() {
+      if (!session) return undefined;
+      try {
+        const { user } = await authApi.getMe(session.access_token);
+        setAuthUser(user);
+        return user.role;
+      } catch {
+        return undefined;
+      }
     },
     updateProfile({ name }) {
       setAuthUser((cur) => (cur ? { ...cur, full_name: name } : cur));

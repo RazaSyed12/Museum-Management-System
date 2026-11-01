@@ -13,6 +13,7 @@ import {
 import * as authApi from '@/lib/api/auth';
 import type { AuthUser, Role, Session } from '@/lib/api/auth';
 import { ApiError, apiUrlAbsolute } from '@/lib/api/client';
+import { getMyMembership, membershipMockingDisabled } from '@/lib/api/membership';
 
 /**
  * One sign-in for the whole site — visitors, members and staff alike (see
@@ -132,9 +133,14 @@ export interface AuthContextValue {
    *  email matches an account — never reveal which emails are registered. */
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<AuthResult>;
-  /** Demo-only instant membership toggle — buying membership for real has
-   *  no backend endpoint yet. */
+  /** Demo-only instant membership toggle, used while membership runs on mock
+   *  data (see lib/api/membership.ts for the real purchase). */
   setMember: (isMember: boolean) => void;
+  /** Re-reads the signed-in account from /auth/me — e.g. right after buying a
+   *  membership, so the role (and everything keyed off isMember) updates.
+   *  Resolves to the fresh role, or undefined if nobody is signed in or the
+   *  call failed. */
+  refreshUser: () => Promise<Role | undefined>;
   /** Demo-only — no backend endpoint for editing full_name yet. */
   updateProfile: (input: { name: string }) => void;
   /** Local-only (see AuthUserView.interests) until /me/preferences is wired up. */
@@ -229,6 +235,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [refreshSession, expireSession],
   );
 
+  // Real membership backend: the account's role is not flipped to "member" when a
+  // plan is bought, so whether the account holds an active membership is read from
+  // /me/membership instead and counts as being a member too.
+  const [hasMembership, setHasMembership] = useState(false);
+  const accessToken = session?.access_token;
+  const userId = authUser?.id;
+
+  useEffect(() => {
+    if (!membershipMockingDisabled() || !accessToken || !userId) {
+      setHasMembership(false);
+      return;
+    }
+    let cancelled = false;
+    getMyMembership(accessToken)
+      .then((m) => !cancelled && setHasMembership(Boolean(m)))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, userId]);
+
   useEffect(() => {
     if (restoration.current) return;
     const stored = readStoredSession();
@@ -281,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useMemo(() => authUser && toView(authUser), [authUser]);
   const value: AuthContextValue = {
     user,
-    isMember: authUser?.role === 'member',
+    isMember: authUser?.role === 'member' || (authUser?.role === 'registered' && hasMembership),
     isStaff: authUser?.role === 'staff',
     ready,
     request,
@@ -345,6 +372,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     setMember(isMember) {
       setAuthUser((cur) => (cur ? { ...cur, role: isMember ? 'member' : 'registered' } : cur));
+    },
+    async refreshUser() {
+      if (!session) return undefined;
+      try {
+        const { user } = await authApi.getMe(session.access_token);
+        setAuthUser(user);
+        if (membershipMockingDisabled()) {
+          setHasMembership(Boolean(await getMyMembership(session.access_token).catch(() => undefined)));
+        }
+        return user.role;
+      } catch {
+        return undefined;
+      }
     },
     updateProfile({ name }) {
       setAuthUser((cur) => (cur ? { ...cur, full_name: name } : cur));

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getEvent } from '@/lib/api/events';
+import { bookingsMockingDisabled, getAllocations } from '@/lib/api/bookings';
 import { CheckoutScreen } from '@/components/tickets/CheckoutScreen';
 import { qtyFromParams } from '@/lib/ticketing';
 
@@ -15,9 +16,11 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   const { eventId } = await params;
   const event = await getEvent(eventId);
   if (!event) notFound();
+  const allocations = await getAllocations(eventId);
+  if (bookingsMockingDisabled() && !allocations) notFound();
 
   const qty = qtyFromParams(await searchParams);
   if (!qty.general && !qty.member && !qty.child) redirect(`/tickets/${eventId}`);
 
-  return <CheckoutScreen event={event} qty={qty} />;
+  return <CheckoutScreen event={event} qty={qty} allocations={allocations} />;
 }

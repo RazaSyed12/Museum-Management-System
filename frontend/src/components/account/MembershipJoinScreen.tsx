@@ -54,10 +54,8 @@ export function MembershipJoinScreen({ planId }: { planId?: string }) {
     setFailure(undefined);
     try {
       const membership = await purchasePlan(token, plan.id, simulate);
-      // The role flips to "member" server-side once the payment settles; re-read it,
-      // and fall back to the local flag if the account call is slow to catch up.
-      const role = await auth.refreshUser();
-      if (role !== 'member') auth.setMember(true);
+      // Re-read the account so the member price and members-only tickets apply straight away.
+      await auth.refreshUser();
       setDone(membership);
       setStatus('idle');
     } catch (err) {

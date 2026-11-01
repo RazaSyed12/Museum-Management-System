@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -13,6 +14,8 @@ import { useAuth } from '@/lib/auth';
 import { staffApi } from '@/lib/api/staff';
 import { usesBackendAuth } from '@/lib/api/auth';
 import { createStaffCatalogueApi, type StaffCatalogueApi } from '@/lib/api/staff-catalogue';
+import { createStaffBackendApi, type StaffBackendApi } from '@/lib/api/staff-backend';
+import { object, string } from './backend-resources';
 import { staffUsesBackend } from './config';
 import type { StaffRole, StaffUser } from './types';
 
@@ -22,6 +25,7 @@ interface StaffSession {
   user: StaffIdentity | null;
   live: boolean;
   catalogue: StaffCatalogueApi;
+  backend: StaffBackendApi;
   loading: boolean;
   error: string;
   refresh: () => Promise<void>;
@@ -42,33 +46,48 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState('');
   const live = staffUsesBackend();
   const catalogue = useMemo(() => createStaffCatalogueApi(auth.request), [auth.request]);
+  const backend = useMemo(() => createStaffBackendApi(auth.request), [auth.request]);
+  const verifiedIdentity = useRef<string | null>(null);
+  const revision = useRef(0);
   const identity = auth.user;
 
   const refresh = useCallback(async () => {
+    const attempt = ++revision.current;
     if (!auth.ready) return;
     if (!auth.isStaff || !identity) {
       setStaffUser(null);
+      verifiedIdentity.current = null;
       setError(identity ? 'This account does not have staff access.' : '');
       setLoading(false);
       return;
     }
     setError('');
-    setLoading(true);
+    if (verifiedIdentity.current !== identity.id) setLoading(true);
     try {
       if (live) {
         if (!usesBackendAuth())
           throw new Error(
             'Sign in with a museum account to use the staff portal. Demo sign-in is enabled in this environment.',
           );
-        // The existing backend verifies the general staff role. It does not
-        // supply a portal tier, so do not grant a made-up Admin/Manager role.
+        const profile = object((await backend.request('/staff/me')).staff);
+        if (attempt !== revision.current) return;
+        const roles: Record<string, StaffRole> = {
+          admin: 'Admin',
+          manager: 'Manager',
+          staff: 'Staff',
+        };
+        const role = roles[string(profile.tier)];
+        if (!role || profile.id !== identity.id || profile.account_status !== 'active')
+          throw new Error('Your staff profile is not active or has no assigned tier.');
+        verifiedIdentity.current = identity.id;
         setStaffUser({
-          id: identity.id,
-          name: identity.name,
-          email: identity.email,
-          phone: '',
+          id: string(profile.id),
+          name: string(profile.full_name),
+          email: string(profile.email),
+          phone: string(profile.phone),
+          role,
           status: 'Active',
-          lastLogin: null,
+          lastLogin: string(profile.last_sign_in_at) || null,
         });
         return;
       }
@@ -82,11 +101,14 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
         setStaffUser(profile);
       }
     } catch (err) {
+      if (attempt !== revision.current) return;
+      setStaffUser(null);
+      verifiedIdentity.current = null;
       setError(err instanceof Error ? err.message : 'Could not load your staff profile.');
     } finally {
-      setLoading(false);
+      if (attempt === revision.current) setLoading(false);
     }
-  }, [auth.ready, auth.isStaff, identity, live]);
+  }, [auth.ready, auth.isStaff, identity, live, backend]);
 
   useEffect(() => {
     void refresh();
@@ -99,7 +121,13 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const update = () => void refresh();
     window.addEventListener('staff-data-changed', update);
-    return () => window.removeEventListener('staff-data-changed', update);
+    window.addEventListener('focus', update);
+    window.addEventListener('staff-access-changed', update);
+    return () => {
+      window.removeEventListener('staff-data-changed', update);
+      window.removeEventListener('focus', update);
+      window.removeEventListener('staff-access-changed', update);
+    };
   }, [refresh]);
 
   return (
@@ -108,6 +136,7 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
         user: staffUser,
         live,
         catalogue,
+        backend,
         loading: loading || !auth.ready,
         error,
         refresh,

@@ -26,12 +26,14 @@ import { ApiError } from '@/lib/api/client';
 import { getToken } from '@/lib/api/authed';
 import { profileMockingDisabled, saveFullName } from '@/lib/api/preferences';
 import { useInterestsSync } from '@/lib/useInterestsSync';
+import { useRecommendationRail } from '@/lib/useRecommendationRail';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 
 export function ProfileScreen() {
   const auth = useAuth();
   useInterestsSync();
+  const live = useRecommendationRail(1);
   const mine = useMyMembership();
   // Real backend: the plan and end date come from /me/membership; mock data keeps the placeholder.
   const memberLabel = membershipMockingDisabled()
@@ -159,14 +161,20 @@ export function ProfileScreen() {
                 <Button size="sm" variant="ghost" iconLeft="pencil" onClick={() => router.push('/interests')}>Edit</Button>
               </div>
             </div>
+            {(!live.real || (live.rail?.items.length ?? 0) > 0) && (
             <div className="grid gap-4">
               <h2 className="type-h2">Because of what you&rsquo;ve explored</h2>
               <Grid cols={2}>
-                {recommendedForYou.slice(0, 2).map((r) => (
-                  <RecommendationCard key={r.title} {...r} href={hrefForRecommendation(r)} />
-                ))}
+                {live.real
+                  ? (live.rail?.items ?? []).slice(0, 2).map((r) => (
+                      <RecommendationCard key={r.key} title={r.title} kind={r.kind} image={r.image} tone={r.tone} href={r.href} reason={r.reason} />
+                    ))
+                  : recommendedForYou.slice(0, 2).map((r) => (
+                      <RecommendationCard key={r.title} {...r} href={hrefForRecommendation(r)} />
+                    ))}
               </Grid>
             </div>
+            )}
           </div>
         )}
 

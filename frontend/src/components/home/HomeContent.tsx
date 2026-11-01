@@ -15,6 +15,8 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { CollectionCard } from '@/components/cards/CollectionCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { RecommendationCard } from '@/components/cards/RecommendationCard';
+import { SkeletonCard } from '@/components/feedback/Skeleton';
+import { useRecommendationRail } from '@/lib/useRecommendationRail';
 import { useSiteNav } from '@/lib/nav';
 import { recommendedForYou, popularRightNow, hrefForRecommendation } from '@/lib/content';
 import { toneForIndex } from '@/lib/tone';
@@ -56,6 +58,9 @@ export function HomeContent({ allCollections, allEvents, heroSlides }: HomeConte
   const router = useRouter();
   const signedIn = Boolean(nav.user);
   const rail = signedIn ? recommendedForYou : popularRightNow;
+  // Real backend: the ranked row replaces the fixed examples (see lib/api/recommendations.ts).
+  const live = useRecommendationRail();
+  const personal = signedIn && (live.real ? Boolean(live.rail?.personalised) : true);
   const [collectionFilter, setCollectionFilter] = useState('All');
   const [eventFilter, setEventFilter] = useState('All');
 
@@ -130,18 +135,30 @@ export function HomeContent({ allCollections, allEvents, heroSlides }: HomeConte
         </Grid>
       </Section>
 
-      <Section
-        eyebrow={signedIn ? 'For you' : 'Popular right now'}
-        title={signedIn ? `Recommended for ${nav.user!.name.split(' ')[0]}` : 'What other visitors are exploring'}>
-        <Grid cols={2}>
-          {rail.map((r) => <RecommendationCard key={r.title} {...r} reason={signedIn ? r.reason : undefined} href={hrefForRecommendation(r)} />)}
-        </Grid>
-        {!signedIn && (
-          <p className="type-body-sm mt-6 text-muted">
-            <a href="#" onClick={(e) => { e.preventDefault(); nav.go('SignIn'); }}>Sign in</a> to see recommendations based on what you have explored.
-          </p>
-        )}
-      </Section>
+      {(!live.real || live.loading || (live.rail && live.rail.items.length > 0)) && (
+        <Section
+          eyebrow={personal ? 'For you' : 'Popular right now'}
+          title={personal ? `Recommended for ${nav.user!.name.split(' ')[0]}` : 'What other visitors are exploring'}>
+          <Grid cols={2}>
+            {live.real ? (
+              live.loading ? (
+                [0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)
+              ) : (
+                live.rail!.items.map((r) => (
+                  <RecommendationCard key={r.key} title={r.title} kind={r.kind} image={r.image} tone={r.tone} href={r.href} reason={signedIn ? r.reason : undefined} />
+                ))
+              )
+            ) : (
+              rail.map((r) => <RecommendationCard key={r.title} {...r} reason={signedIn ? r.reason : undefined} href={hrefForRecommendation(r)} />)
+            )}
+          </Grid>
+          {!signedIn && (
+            <p className="type-body-sm mt-6 text-muted">
+              <a href="#" onClick={(e) => { e.preventDefault(); nav.go('SignIn'); }}>Sign in</a> to see recommendations based on what you have explored.
+            </p>
+          )}
+        </Section>
+      )}
 
       <MembershipPromo isMember={nav.isMember} go={nav.go} />
     </>

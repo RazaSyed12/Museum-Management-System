@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle (.next/standalone) for the Docker image —
+  // copies in only the node_modules the build actually traced, instead of
+  // the Dockerfile needing a full `npm install` in the runtime stage.
+  output: 'standalone',
   webpack: (config, { isServer }) => {
     /* msw/browser's package export is blocked under Node's resolution
        condition (it's browser-only code) — but Next SSRs client

@@ -20,6 +20,7 @@ primary_region = "syd"
   NEXT_PUBLIC_NEWSLETTER_API_MOCKING = "disabled"
   NEXT_PUBLIC_SEARCH_API_MOCKING = "disabled"
   NEXT_PUBLIC_PAYMENTS_API_MOCKING = "disabled"
+  NEXT_PUBLIC_ITEMS_API_MOCKING = "disabled"
 
 [http_service]
   internal_port = 3000

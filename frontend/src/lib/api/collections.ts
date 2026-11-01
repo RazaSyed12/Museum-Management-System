@@ -8,7 +8,7 @@ import {
 } from '@/mocks/resolve';
 
 /** Matches backend/src/routes/collections.ts + categories.ts (openapi.yaml).
- *  Own toggle: NEXT_PUBLIC_COLLECTIONS_API_MOCKING. Items stay mock-only — no real /collections/{id}/items endpoint exists. */
+ *  Own toggle: NEXT_PUBLIC_COLLECTIONS_API_MOCKING. Items have their own toggle: NEXT_PUBLIC_ITEMS_API_MOCKING. */
 export type CollectionStatus = 'draft' | 'published' | 'archived';
 
 export interface LocationRef {
@@ -152,13 +152,59 @@ export async function getCollection(id: string): Promise<Collection | undefined>
   return apiFetchOptional<Collection>(`/api/collections/${id}`);
 }
 
-/** Always mocks — no real /collections/{id}/items endpoint yet. */
+interface RawItem {
+  item_id: string;
+  collection_id: string;
+  name: string;
+  description: string | null;
+  historical_period: string | null;
+  year_label: string | null;
+  origin: string | null;
+  creator: string | null;
+  status: string;
+}
+
+function itemsMockingDisabled(): boolean {
+  return process.env.NEXT_PUBLIC_ITEMS_API_MOCKING === 'disabled';
+}
+
+/** Real items carry no collection name or gallery text, so those come from the owning collection. */
+function mapItem(raw: RawItem, collection: Collection | undefined): Item {
+  return {
+    id: raw.item_id,
+    name: raw.name,
+    period: raw.historical_period ?? '',
+    date: raw.year_label ?? '',
+    origin: raw.origin ?? '',
+    description: raw.description ?? '',
+    collection: collection?.name ?? '',
+    location: collection?.location?.name ?? '',
+  };
+}
+
+/** GET /collections/{id}/items — real when NEXT_PUBLIC_ITEMS_API_MOCKING=disabled, otherwise mock. */
 export async function listCollectionItems(collectionId: string): Promise<Item[]> {
+  if (itemsMockingDisabled()) {
+    const [data, collection] = await Promise.all([
+      apiFetchOptional<{ items: RawItem[] }>(`/collections/${collectionId}/items?limit=100`, { absolute: true }),
+      getCollection(collectionId),
+    ]);
+    return (data?.items ?? []).map((i) => mapItem(i, collection));
+  }
   if (shouldMockDirectly()) return resolveCollectionItems(collectionId);
   return (await apiFetchOptional<Item[]>(`/api/collections/${collectionId}/items`)) ?? [];
 }
 
+/** GET /items/{id}. The item must belong to the collection in the URL. */
 export async function getCollectionItem(collectionId: string, itemId: string): Promise<Item | undefined> {
+  if (itemsMockingDisabled()) {
+    const [data, collection] = await Promise.all([
+      apiFetchOptional<{ item: RawItem }>(`/items/${itemId}`, { absolute: true }),
+      getCollection(collectionId),
+    ]);
+    if (!data || data.item.collection_id !== collectionId) return undefined;
+    return mapItem(data.item, collection);
+  }
   if (shouldMockDirectly()) return resolveCollectionItem(collectionId, itemId);
   return apiFetchOptional<Item>(`/api/collections/${collectionId}/items/${itemId}`);
 }

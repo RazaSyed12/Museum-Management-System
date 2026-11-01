@@ -14,6 +14,7 @@ import { RecommendationCard } from '@/components/cards/RecommendationCard';
 import { Field } from '@/components/forms/Field';
 import { Input } from '@/components/forms/Input';
 import { Checkbox } from '@/components/forms/Checkbox';
+import { Alert } from '@/components/feedback/Alert';
 import { useAuth } from '@/lib/auth';
 import { useSiteNav } from '@/lib/nav';
 import { useCurrency } from '@/lib/useCurrency';
@@ -21,11 +22,16 @@ import { listBookings, type Booking } from '@/lib/api/bookings';
 import { recommendedForYou, hrefForRecommendation } from '@/lib/content';
 import { useMyMembership } from '@/lib/useMyMembership';
 import { formatMemberDate, membershipMockingDisabled } from '@/lib/api/membership';
+import { ApiError } from '@/lib/api/client';
+import { getToken } from '@/lib/api/authed';
+import { profileMockingDisabled, saveFullName } from '@/lib/api/preferences';
+import { useInterestsSync } from '@/lib/useInterestsSync';
 
 type Tab = 'bookings' | 'saved' | 'interests' | 'settings';
 
 export function ProfileScreen() {
   const auth = useAuth();
+  useInterestsSync();
   const mine = useMyMembership();
   // Real backend: the plan and end date come from /me/membership; mock data keeps the placeholder.
   const memberLabel = membershipMockingDisabled()
@@ -48,6 +54,8 @@ export function ProfileScreen() {
   const [tab, setTab] = useState<Tab>('bookings');
   const [name, setName] = useState(auth.user?.name ?? '');
   const [bookings, setBookings] = useState<Booking[]>();
+  const [settingsStatus, setSettingsStatus] = useState<{ tone: 'success' | 'danger'; text: string }>();
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     if (auth.ready && !auth.user) router.replace('/sign-in');
@@ -65,9 +73,28 @@ export function ProfileScreen() {
   if (!auth.user) return null;
   const user = auth.user;
 
-  function saveSettings(e: FormEvent) {
+  async function saveSettings(e: FormEvent) {
     e.preventDefault();
-    auth.updateProfile({ name });
+    setSettingsStatus(undefined);
+    if (!profileMockingDisabled()) {
+      auth.updateProfile({ name });
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      setSettingsStatus({ tone: 'danger', text: 'Your session has expired. Please sign in again.' });
+      return;
+    }
+    setSavingSettings(true);
+    try {
+      const saved = await saveFullName(token, name.trim());
+      auth.updateProfile({ name: saved });
+      setSettingsStatus({ tone: 'success', text: 'Your changes have been saved.' });
+    } catch (err) {
+      setSettingsStatus({ tone: 'danger', text: err instanceof ApiError ? err.message : 'We couldn’t save your changes. Please try again.' });
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   return (
@@ -145,6 +172,9 @@ export function ProfileScreen() {
 
         {tab === 'settings' && (
           <form className="grid max-w-130 gap-5" onSubmit={saveSettings}>
+            {settingsStatus && (
+              <Alert tone={settingsStatus.tone} onDismiss={() => setSettingsStatus(undefined)}>{settingsStatus.text}</Alert>
+            )}
             <Field label="Full name" htmlFor="s-n">
               <Input id="s-n" value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
@@ -154,7 +184,7 @@ export function ProfileScreen() {
             <Checkbox id="s-nl" defaultChecked label="Email me what's on" description="Monthly exhibition news." />
             <Checkbox id="s-rec" defaultChecked label="Use my activity for recommendations" description="Turn this off and we'll show popular content instead." />
             <div className="flex gap-3">
-              <Button type="submit">Save changes</Button>
+              <Button type="submit" loading={savingSettings} disabled={profileMockingDisabled() && !name.trim()}>Save changes</Button>
               <Button type="button" variant="ghost" onClick={() => setName(user.name)}>Cancel</Button>
             </div>
           </form>

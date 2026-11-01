@@ -13,7 +13,7 @@ import { useStaffSession } from '@/lib/staff/session';
 import { can } from '@/lib/staff/permissions';
 import { ImageGallery } from './ImageGallery';
 import { staffUsesBackend } from '@/lib/staff/config';
-import { StaffUnavailable } from './Unavailable';
+import { LiveSettings } from './LiveOverview';
 import {
   Loading,
   PageHeading,
@@ -253,7 +253,7 @@ function SettingsForm({ settings }: { settings: MuseumSettings }) {
 }
 
 export function SettingsScreen() {
-  return staffUsesBackend() ? <StaffUnavailable title="Settings" /> : <DemoSettingsScreen />;
+  return staffUsesBackend() ? <LiveSettings /> : <DemoSettingsScreen />;
 }
 
 function DemoSettingsScreen() {

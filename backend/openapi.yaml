@@ -6201,6 +6201,13 @@ components:
           type: number
           nullable: true
           description: Child ticket price. Null = this tier isn't offered for this event.
+        availability:
+          type: string
+          enum: [available, limited, soldout, cancelled, completed, notonsale]
+          description: Public list/detail availability from live allocations and booking dates.
+        remaining:
+          type: integer
+          description: Unreserved tickets across allocations, excluding expired holds.
         capacity:
           type: integer
         cancellation_reason:
@@ -7075,6 +7082,23 @@ components:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/CategoryRef'
+        location:
+          $ref: '#/components/schemas/LocationRef'
+        images:
+          type: array
+          description: Saved artefact photographs in display order; the first is the cover.
+          items:
+            type: object
+            properties:
+              media_id:
+                type: string
+                format: uuid
+              url:
+                type: string
+                format: uri
+              alt_text:
+                type: string
+                nullable: true
         accession_number:
           type: string
           nullable: true
@@ -7352,6 +7376,10 @@ components:
         allocation_name:
           type: string
           example: General
+        ticket_kind:
+          type: string
+          enum: [general, member, child]
+          description: Selects the event price; member tickets require an active membership.
         membership_required:
           type: boolean
           description: true = only active members can book this ticket type
@@ -7407,6 +7435,10 @@ components:
           type: integer
           minimum: 1
           maximum: 1000000
+        ticket_kind:
+          type: string
+          enum: [general, member, child]
+          description: Selects the event price; member tickets require an active membership.
         membership_required:
           type: boolean
           default: false
@@ -7421,6 +7453,10 @@ components:
           type: integer
           minimum: 0
           maximum: 1000000
+        ticket_kind:
+          type: string
+          enum: [general, member, child]
+          description: Selects the event price; member tickets require an active membership.
         membership_required:
           type: boolean
       minProperties: 1

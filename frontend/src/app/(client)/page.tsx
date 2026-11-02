@@ -9,10 +9,8 @@ export const metadata: Metadata = {
   description: 'Our past. Our stories. Our future. Plan your visit, explore the collections, and see what’s on at Heritage Museum.',
 };
 
-/* The homepage reads live data (hero slides, events, collections). Without
-   this, Next.js renders it once at build time and serves that frozen copy, so
-   slides staff add later never show. Re-fetch at most once a minute. */
-export const revalidate = 60;
+/* Staff-managed content and stock must be read at request time. */
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const [{ items: allCollections }, allEvents, heroSlides] = await Promise.all([

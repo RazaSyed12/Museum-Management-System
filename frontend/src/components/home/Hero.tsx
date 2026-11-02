@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/forms/Button';
 import { IconButton } from '@/components/forms/IconButton';
 import { Icon } from '@/components/foundation/Icon';
@@ -37,7 +37,7 @@ const SLIDE_MS = 7000;
    exhibition" flag to pick one specially. Membership slide is static copy. */
 function buildSlides(events: MuseumEvent[]): Slide[] {
   const upcoming = [...events]
-    .filter((e) => e.availability !== 'cancelled')
+    .filter((e) => e.availability === 'available' || e.availability === 'limited')
     .sort((a, b) => +new Date(a.date) - +new Date(b.date));
 
   const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
@@ -99,7 +99,9 @@ function slidesFromApi(data: HeroSlideData[]): Slide[] {
     if (d.collectionPeriod) meta.push({ icon: 'landmark', text: d.collectionPeriod });
 
     const defaultPrimary = d.eventId
-      ? { label: 'Book tickets', href: `/tickets/${d.eventId}` }
+      ? d.eventBookable
+        ? { label: 'Book tickets', href: `/tickets/${d.eventId}` }
+        : { label: 'Event details', href: `/events/${d.eventId}` }
       : d.collectionId
         ? { label: 'Explore the collection', href: `/collections/${d.collectionId}` }
         : { label: 'See what’s on', href: '/events' };
@@ -113,7 +115,7 @@ function slidesFromApi(data: HeroSlideData[]): Slide[] {
       title: d.title,
       description: d.description ?? '',
       meta,
-      primary: d.primary ?? defaultPrimary,
+      primary: d.eventId && !d.eventBookable && d.primary?.href.startsWith('/tickets/') ? defaultPrimary : d.primary ?? defaultPrimary,
       secondary: d.secondary ?? defaultSecondary,
       tone: tones[i % tones.length]!,
       caption: d.imageAlt ?? `${d.title} — Heritage Museum`,
@@ -123,8 +125,9 @@ function slidesFromApi(data: HeroSlideData[]): Slide[] {
 }
 
 export function Hero({ go, events, slides: apiSlides }: HeroProps) {
-  const [slides] = useState(() => (apiSlides?.length ? slidesFromApi(apiSlides) : buildSlides(events)));
+  const slides = useMemo(() => (apiSlides?.length ? slidesFromApi(apiSlides) : buildSlides(events)), [apiSlides, events]);
   const [index, setIndex] = useState(0);
+  useEffect(() => setIndex(0), [slides]);
   const [userPaused, setUserPaused] = useState(false);
   // Hover or keyboard focus inside the hero holds the slide in place too.
   const [holding, setHolding] = useState(false);
@@ -147,7 +150,7 @@ export function Hero({ go, events, slides: apiSlides }: HeroProps) {
     return () => window.clearTimeout(timer);
   }, [index, playing, holding, slides.length]);
 
-  const slide = slides[index]!;
+  const slide = slides[index % slides.length]!;
   const step = (by: number) => setIndex((i) => (i + by + slides.length) % slides.length);
 
   function action(a: Slide['primary']) {

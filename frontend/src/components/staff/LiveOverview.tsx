@@ -36,7 +36,7 @@ export function LiveDashboard() {
   const metrics = [
     ['Recorded visits this month', data.visits_current_period],
     ['Recorded visits last month', data.visits_previous_period],
-    ['Booked tickets this month', data.booked_tickets_current_period],
+    ['Tickets booked or held this month', data.booked_tickets_current_period],
     ['Active memberships', data.active_memberships],
   ] as const;
   return (
@@ -102,7 +102,7 @@ const REPORTS = {
   },
   tickets: {
     label: 'Tickets',
-    description: 'Booked and cancelled quantities and recorded payment outcomes, by booking date.',
+    description: 'Confirmed tickets and unexpired reservations, cancellations and payments, grouped by booking date.',
     columns: ['event_name', 'booked_quantity', 'cancelled_quantity', 'revenue', 'refunded'],
   },
   memberships: {
@@ -137,7 +137,10 @@ export function LiveReports() {
   const { backend, user } = useStaffSession();
   const [kind, setKind] = useState<ReportKind>('visitors');
   const [from, setFrom] = useState(`${localDay().slice(0, 7)}-01`);
-  const [to, setTo] = useState(localDay());
+  const [to, setTo] = useState(() => {
+    const [year, month] = localDay().split('-').map(Number);
+    return new Date(Date.UTC(year!, month!, 0)).toISOString().slice(0, 10);
+  });
   const [group, setGroup] = useState('day');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
@@ -178,6 +181,7 @@ export function LiveReports() {
         title="Reports"
         description="Museum reports use Adelaide calendar dates. Values come from recorded activity."
       >
+        <Button variant="secondary" onClick={result.refresh}>Refresh</Button>
         {(user?.role === 'Admin' || user?.role === 'Manager') && (
           <Button
             loading={exporting}
@@ -243,6 +247,7 @@ export function LiveReports() {
         </div>
       </Panel>
       <p className="text-muted">{description.description}</p>
+      {kind !== 'collections' && <p className="text-sm text-muted">Showing {from} through {to}, inclusive. Change these dates to include earlier or future activity.</p>}
       {error && <Alert tone="danger">{error}</Alert>}
       {result.error ? (
         <RequestError error={result.error} retry={result.refresh} />

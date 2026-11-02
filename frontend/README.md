@@ -13,6 +13,15 @@ npm run dev                  # http://localhost:3000
 
 Other scripts: `npm run build`, `npm run start` (serve the build), `npm run lint`.
 
+The staff portal always uses the authenticated backend configured by
+`NEXT_PUBLIC_API_BASE_URL`. Staff accounts need an active profile and an assigned
+permission tier. Backend errors and empty results are displayed directly; there
+is no staff mock mode or sample-data fallback. The former
+`NEXT_PUBLIC_STAFF_API_MOCKING` setting is no longer supported. Visitor preview
+settings remain available, but mock sign-in sessions cannot access the staff portal.
+Run `npm run test:staff` to check backend responses, empty lists, access errors,
+outages, and staff search.
+
 ## Styling
 
 Styling is [Tailwind CSS v4](https://tailwindcss.com). The brand tokens are the

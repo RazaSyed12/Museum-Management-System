@@ -2,17 +2,13 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EventDetail } from '@/components/events/EventDetail';
 import { TrackView } from '@/components/tracking/TrackView';
-import { listEvents, getEvent } from '@/lib/api/events';
+import { getEvent } from '@/lib/api/events';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-/** Prerender every known event at build time; anything else 404s. */
-export async function generateStaticParams() {
-  const events = await listEvents();
-  return events.map((e) => ({ id: e.id }));
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent((await params).id);

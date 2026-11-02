@@ -50,7 +50,7 @@ export function apiUrlAbsolute(path: string): string {
 
 export async function apiFetch<T>(path: string, opts?: { absolute?: boolean }): Promise<T> {
   if (!opts?.absolute) await ensureMockingStarted();
-  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), { cache: 'no-store' });
   if (!res.ok) {
     const { message, code } = await parseErrorBody(res);
     throw new ApiError(message, code, res.status);
@@ -66,7 +66,7 @@ export async function apiFetchOptional<T>(
   opts?: { absolute?: boolean },
 ): Promise<T | undefined> {
   if (!opts?.absolute) await ensureMockingStarted();
-  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path));
+  const res = await fetch(opts?.absolute ? apiUrlAbsolute(path) : apiUrl(path), { cache: 'no-store' });
   if (res.status === 404) return undefined;
   if (!res.ok) {
     const { message, code } = await parseErrorBody(res);

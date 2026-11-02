@@ -18,7 +18,6 @@ import { cn } from '@/lib/cn';
    invented "Materials" or "Accession number" values. "Category" comes from
    the parent collection rather than being hardcoded. Only the gallery's
    thumbnail selection needs client state; navigation elsewhere is plain links. */
-const GALLERY_TONES = ['stone', 'olive', 'green', 'sand'] as const;
 
 export interface ItemDetailProps {
   collection: Collection;
@@ -29,6 +28,8 @@ export interface ItemDetailProps {
 
 export function ItemDetail({ collection, item, relatedItems, suggestions }: ItemDetailProps) {
   const [shot, setShot] = useState(0);
+  const images = item.images ?? [];
+  const photo = images[shot] ?? images[0];
   const facts: [string, string][] = [
     ['Historical period', item.period],
     ['Approximate date', item.date],
@@ -52,14 +53,16 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
         <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_1fr]">
           <div className="grid gap-3">
             <Media
+              src={photo?.url}
+              alt={photo?.alt ?? item.name}
               ratio="4 / 3"
-              tone={GALLERY_TONES[shot]}
+              tone="stone"
               caption={`${item.name} — view ${shot + 1}`}
             />
-            <div className="flex gap-3">
-              {GALLERY_TONES.map((tone, i) => (
+            {images.length > 1 && <div className="flex flex-wrap gap-3" aria-label="Artefact photographs">
+              {images.map((image, i) => (
                 <button
-                  key={i}
+                  key={image.id}
                   type="button"
                   onClick={() => setShot(i)}
                   aria-label={`View ${i + 1}`}
@@ -69,10 +72,10 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
                     i === shot ? 'border-olive-500' : 'border-transparent',
                   )}
                 >
-                  <Media ratio="1 / 1" tone={tone} caption="" className="rounded-sm" />
+                  <Media src={image.url} alt={image.alt} ratio="1 / 1" className="w-20 rounded-sm" />
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
           <div className="grid gap-5">
             <div className="flex flex-wrap gap-2">
@@ -115,6 +118,7 @@ export function ItemDetail({ collection, item, relatedItems, suggestions }: Item
           <Grid cols={3} className="lg:grid-cols-4">
             {relatedItems.map((i) => (
               <ItemCard
+                image={i.image}
                 key={i.id}
                 name={i.name}
                 period={i.period}

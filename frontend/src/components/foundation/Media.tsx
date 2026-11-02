@@ -1,4 +1,6 @@
-import type { HTMLAttributes } from 'react';
+'use client';
+
+import { useState, type HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 import { artFor } from '@/lib/imagery';
 
@@ -39,7 +41,9 @@ export function Media({
   ...rest
 }: MediaProps) {
   // A real photo (src) always wins; otherwise fall back to the illustration for this caption, if any.
-  const src = srcProp ?? artFor(caption);
+  const [failedSource, setFailedSource] = useState<string>();
+  const requested = srcProp || artFor(caption);
+  const src = requested === failedSource ? undefined : requested;
   return (
     <div
       className={cn(
@@ -56,6 +60,7 @@ export function Media({
         <img
           src={src}
           alt={alt}
+          onError={() => setFailedSource(requested)}
           className="size-full object-cover transition-transform duration-800 ease-[cubic-bezier(0.22,0.7,0.2,1)] group-hover/card:scale-105 motion-reduce:transition-none"
         />
       ) : (

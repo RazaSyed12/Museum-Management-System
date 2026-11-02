@@ -48,13 +48,12 @@ export function LiveMedia({ resource, id }: { resource: LiveResource; id: string
     setDirty(true);
     setMessage('');
   }
-  async function save() {
-    if (busy) return;
+  async function save(next = images) {
     setBusy(true);
     setError('');
     setMessage('');
     try {
-      for (const image of images) {
+      for (const image of next) {
         await backend.request(`/media/${encodeURIComponent(string(image.media_id))}`, {
           method: 'PATCH',
           body: JSON.stringify({ alt_text: string(image.alt_text) || null }),
@@ -62,7 +61,7 @@ export function LiveMedia({ resource, id }: { resource: LiveResource; id: string
       }
       const data = await backend.request(path, {
         method: 'PUT',
-        body: JSON.stringify({ media_ids: images.map((image) => image.media_id) }),
+        body: JSON.stringify({ media_ids: next.map((image) => image.media_id) }),
       });
       setImages(records(data.media));
       setDirty(false);
@@ -162,7 +161,7 @@ export function LiveMedia({ resource, id }: { resource: LiveResource; id: string
             <Field
               label="Upload images"
               htmlFor="record-media"
-              hint="JPG, PNG, WebP or GIF · up to 5 MB each · up to 50 attachments."
+              hint="Uploads are attached automatically. JPG, PNG, WebP or GIF · up to 5 MB each."
             >
               <Input
                 id="record-media"
@@ -181,12 +180,15 @@ export function LiveMedia({ resource, id }: { resource: LiveResource; id: string
                   setBusy(true);
                   setError('');
                   setMessage('');
+                  const next = [...images];
                   try {
                     for (const file of files) {
                       const image = await backend.upload(file);
-                      setImages((current) => [...current, image]);
+                      next.push(image);
+                      setImages([...next]);
                       setDirty(true);
                     }
+                    await save(next);
                   } catch (failure) {
                     setError(
                       failure instanceof Error
@@ -216,8 +218,10 @@ export function LiveMedia({ resource, id }: { resource: LiveResource; id: string
               <MediaLibrary
                 excluded={images.map((image) => string(image.media_id))}
                 onChoose={(image) => {
-                  change([...images, image]);
+                  const next = [...images, image];
+                  change(next);
                   setLibraryOpen(false);
+                  void save(next);
                 }}
               />
             )}
@@ -326,6 +330,7 @@ function AllocationEditor({
   const [name, setName] = useState(string(allocation?.allocation_name));
   const [quantity, setQuantity] = useState(string(allocation?.quantity));
   const [members, setMembers] = useState(Boolean(allocation?.membership_required));
+  const [kind, setKind] = useState(string(allocation?.ticket_kind) || (members ? 'member' : 'general'));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -344,6 +349,7 @@ function AllocationEditor({
             allocation_name: name.trim(),
             quantity: Number(quantity),
             membership_required: members,
+            ticket_kind: kind,
           }),
         },
       );
@@ -351,6 +357,7 @@ function AllocationEditor({
         setName('');
         setQuantity('');
         setMembers(false);
+        setKind('general');
       }
       setMessage('Allocation saved.');
       refresh();
@@ -371,6 +378,11 @@ function AllocationEditor({
       {error && <Alert tone="danger">{error}</Alert>}
       {message && <Alert tone="success">{message}</Alert>}
       <fieldset disabled={busy} className="grid gap-3 border-0 p-0 md:grid-cols-2">
+        <Field label="Ticket price type" htmlFor={`allocation-kind-${allocation?.allocation_id ?? 'new'}`}>
+          <Select id={`allocation-kind-${allocation?.allocation_id ?? 'new'}`} value={kind}
+            options={[{value: 'general', label: 'General admission'}, {value: 'member', label: 'Member admission'}, {value: 'child', label: 'Child or student'}]}
+            onChange={(event) => { setKind(event.target.value); setMembers(event.target.value === 'member'); }} />
+        </Field>
         <Field
           label="Allocation name"
           htmlFor={`allocation-name-${allocation?.allocation_id ?? 'new'}`}
@@ -401,7 +413,7 @@ function AllocationEditor({
         <Checkbox
           label="Membership required"
           checked={members}
-          onChange={(event) => setMembers(event.target.checked)}
+          onChange={(event) => { setMembers(event.target.checked); if (event.target.checked) setKind('member'); else if (kind === 'member') setKind('general'); }}
         />
       </fieldset>
       <div className="flex flex-wrap gap-2">

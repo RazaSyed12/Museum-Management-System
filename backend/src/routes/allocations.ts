@@ -7,7 +7,7 @@ import { requireAuth, requireStaff } from '../middleware/auth';
 // Paths are written in full (/events/:id/allocations and /allocations/:id), so this router has no prefix.
 const router = Router();
 
-const ALLOCATION_SELECT = 'allocation_id, event_id, allocation_name, membership_required, quantity, reserved_quantity';
+const ALLOCATION_SELECT = 'allocation_id, event_id, allocation_name, ticket_kind, membership_required, quantity, reserved_quantity';
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ error: { message, code: 'validation_error' } });
@@ -29,6 +29,7 @@ const createSchema = z.object({
   allocation_name: z.string().trim().min(1).max(100),
   quantity: quantity.min(1),
   membership_required: z.boolean().default(false),
+  ticket_kind: z.enum(['general', 'member', 'child']).optional(),
 });
 
 const updateSchema = z
@@ -36,6 +37,7 @@ const updateSchema = z
     allocation_name: z.string().trim().min(1).max(100),
     quantity: quantity.min(0),
     membership_required: z.boolean(),
+    ticket_kind: z.enum(['general', 'member', 'child']),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Send at least one field to change.' });
@@ -75,16 +77,11 @@ router.get('/events/:id/allocations', async (req: Request, res: Response) => {
   if (eventError) return serverError(res, 'Could not load the event.');
   if (!event) return notFound(res, 'Event');
 
-  const { data, error } = await db
-    .from('ticket_allocations')
-    .select(ALLOCATION_SELECT)
-    .eq('event_id', id)
-    .order('membership_required', { ascending: true })
-    .order('allocation_name', { ascending: true });
+  const { data, error } = await db.rpc('event_allocations', { p_event_ids: [id] });
   if (error) return serverError(res, 'Could not load the allocations.');
 
-  const allocations = (data ?? []).map(withAvailable);
-  const allocated = allocations.reduce((sum, a) => sum + a.quantity, 0);
+  const allocations = data ?? [];
+  const allocated = allocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
   return res.json({
     allocations,
     capacity: event.capacity,
@@ -107,7 +104,7 @@ router.post('/events/:id/allocations', requireAuth, requireStaff, async (req: Re
 
   const { data, error } = await db
     .from('ticket_allocations')
-    .insert({ ...parsed.data, event_id: id })
+    .insert({ ...parsed.data, ticket_kind: parsed.data.ticket_kind ?? (parsed.data.membership_required ? 'member' : 'general'), membership_required: parsed.data.membership_required || parsed.data.ticket_kind === 'member', event_id: id })
     .select(ALLOCATION_SELECT)
     .single();
   if (error || !data) return writeError(res, error ?? {}, event.capacity, 'Could not create the allocation.');
@@ -132,7 +129,11 @@ router.patch('/allocations/:id', requireAuth, requireStaff, async (req: Request,
 
   const { data: event } = await db.from('events').select('capacity').eq('event_id', existing.event_id).maybeSingle();
 
-  const { data, error } = await db.from('ticket_allocations').update(parsed.data).eq('allocation_id', id).select(ALLOCATION_SELECT).maybeSingle();
+  const fields = { ...parsed.data };
+  if (fields.ticket_kind === 'member') fields.membership_required = true;
+  if (fields.ticket_kind === undefined && fields.membership_required !== undefined)
+    fields.ticket_kind = fields.membership_required ? 'member' : 'general';
+  const { data, error } = await db.from('ticket_allocations').update(fields).eq('allocation_id', id).select(ALLOCATION_SELECT).maybeSingle();
   if (error) return writeError(res, error, event?.capacity ?? null, 'Could not update the allocation.');
   if (!data) return notFound(res, 'Allocation');
   return res.json({ allocation: withAvailable(data) });

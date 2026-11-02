@@ -12,16 +12,7 @@ interface Props {
   params: Promise<{ id: string; itemId: string }>;
 }
 
-/** Prerender every known artefact at build time; anything else 404s. */
-export async function generateStaticParams() {
-  const { items: collections } = await listCollections({ limit: 100 });
-  const perCollection = await Promise.all(
-    collections.map(async (c) =>
-      (await listCollectionItems(c.id)).map((item) => ({ id: c.id, itemId: item.id })),
-    ),
-  );
-  return perCollection.flat();
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id, itemId } = await params;

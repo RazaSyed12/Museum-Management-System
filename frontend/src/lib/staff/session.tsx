@@ -11,19 +11,16 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/lib/auth';
-import { staffApi } from '@/lib/api/staff';
 import { usesBackendAuth } from '@/lib/api/auth';
 import { createStaffCatalogueApi, type StaffCatalogueApi } from '@/lib/api/staff-catalogue';
 import { createStaffBackendApi, type StaffBackendApi } from '@/lib/api/staff-backend';
 import { object, string } from './backend-resources';
-import { staffUsesBackend } from './config';
 import type { StaffRole, StaffUser } from './types';
 
 type StaffIdentity = Omit<StaffUser, 'role'> & { role?: StaffRole };
 
 interface StaffSession {
   user: StaffIdentity | null;
-  live: boolean;
   catalogue: StaffCatalogueApi;
   backend: StaffBackendApi;
   loading: boolean;
@@ -36,15 +33,13 @@ const Context = createContext<StaffSession | null>(null);
 /**
  * There's no staff-only sign-in any more (see lib/auth.tsx) — this just
  * watches the one unified session and, once it reports role === 'staff',
- * uses the backend identity for the available catalogue services. Only the
- * explicit demo resolves a separate roster profile and its portal tier.
+ * verifies the active staff profile and permission tier with the backend.
  */
 export function StaffSessionProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const [staffUser, setStaffUser] = useState<StaffIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const live = staffUsesBackend();
   const catalogue = useMemo(() => createStaffCatalogueApi(auth.request), [auth.request]);
   const backend = useMemo(() => createStaffBackendApi(auth.request), [auth.request]);
   const verifiedIdentity = useRef<string | null>(null);
@@ -64,42 +59,31 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
     setError('');
     if (verifiedIdentity.current !== identity.id) setLoading(true);
     try {
-      if (live) {
-        if (!usesBackendAuth())
-          throw new Error(
-            'Sign in with a museum account to use the staff portal. Demo sign-in is enabled in this environment.',
-          );
-        const profile = object((await backend.request('/staff/me')).staff);
-        if (attempt !== revision.current) return;
-        const roles: Record<string, StaffRole> = {
-          admin: 'Admin',
-          manager: 'Manager',
-          staff: 'Staff',
-        };
-        const role = roles[string(profile.tier)];
-        if (!role || profile.id !== identity.id || profile.account_status !== 'active')
-          throw new Error('Your staff profile is not active or has no assigned tier.');
-        verifiedIdentity.current = identity.id;
-        setStaffUser({
-          id: string(profile.id),
-          name: string(profile.full_name),
-          email: string(profile.email),
-          phone: string(profile.phone),
-          role,
-          status: 'Active',
-          lastLogin: string(profile.last_sign_in_at) || null,
-        });
-        return;
-      }
-      const profile = await staffApi.myProfile(identity.email);
-      if (!profile) {
-        setStaffUser(null);
-        setError(
-          'Your account is signed in, but is not yet set up in the staff portal. Ask an administrator to add you under User management.',
+      if (!usesBackendAuth())
+        throw new Error(
+          'Sign in with a museum account to use the staff portal. Demo sign-in is enabled in this environment.',
         );
-      } else {
-        setStaffUser(profile);
-      }
+      const profile = object((await backend.request('/staff/me')).staff);
+      if (attempt !== revision.current) return;
+      const roles: Record<string, StaffRole> = {
+        admin: 'Admin',
+        manager: 'Manager',
+        staff: 'Staff',
+      };
+      const role = roles[string(profile.tier)];
+      if (!role || profile.id !== identity.id || profile.account_status !== 'active')
+        throw new Error('Your staff profile is not active or has no assigned tier.');
+      verifiedIdentity.current = identity.id;
+      setStaffUser({
+        id: string(profile.id),
+        name: string(profile.full_name),
+        email: string(profile.email),
+        phone: string(profile.phone),
+        role,
+        status: 'Active',
+        lastLogin: string(profile.last_sign_in_at) || null,
+      });
+      return;
     } catch (err) {
       if (attempt !== revision.current) return;
       setStaffUser(null);
@@ -108,7 +92,7 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
     } finally {
       if (attempt === revision.current) setLoading(false);
     }
-  }, [auth.ready, auth.isStaff, identity, live, backend]);
+  }, [auth.ready, auth.isStaff, identity, backend]);
 
   useEffect(() => {
     void refresh();
@@ -134,14 +118,12 @@ export function StaffSessionProvider({ children }: { children: ReactNode }) {
     <Context.Provider
       value={{
         user: staffUser,
-        live,
         catalogue,
         backend,
         loading: loading || !auth.ready,
         error,
         refresh,
         logout: async () => {
-          if (!live) await staffApi.clearProfile().catch(() => undefined);
           await auth.signOut();
           setStaffUser(null);
         },

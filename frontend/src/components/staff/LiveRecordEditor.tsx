@@ -132,6 +132,12 @@ export function LiveRecordEditor({
         errors.visitor_id = 'Choose either a visitor or an account holder.';
       if (resource === 'hero' && values.event_id && values.collection_id)
         errors.collection_id = 'Link to an event or a collection, not both.';
+      if (resource === 'hero') {
+        for (const prefix of ['primary', 'secondary']) {
+          if (Boolean(values[`${prefix}_label`]) !== Boolean(values[`${prefix}_href`]))
+            errors[`${prefix}_href`] = 'Enter both a button label and a link, or leave both empty.';
+        }
+      }
       if (resource === 'users' && values.role === 'staff' && !values.tier)
         errors.tier = 'Choose a staff tier.';
       if (resource === 'memberships' && user?.role !== 'Admin') delete payload.user_id;

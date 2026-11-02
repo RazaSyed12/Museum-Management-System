@@ -50,7 +50,7 @@ export function EventsBrowse() {
         if (!matches) return false;
       }
       if (selected.Availability!.length) {
-        const label = e.availability === 'available' ? 'Available' : e.availability === 'limited' ? 'Limited' : 'Sold out';
+        const label = e.availability === 'available' ? 'Available' : e.availability === 'limited' ? 'Limited' : e.availability === 'soldout' ? 'Sold out' : e.availability === 'notonsale' ? 'Not on sale' : 'Booking closed';
         if (!selected.Availability!.includes(label)) return false;
       }
       return true;
@@ -73,7 +73,7 @@ export function EventsBrowse() {
     <FilterPanel
       groups={[
         { title: 'Price', options: ['Free', 'Paid'] },
-        { title: 'Availability', options: ['Available', 'Limited', 'Sold out'] },
+        { title: 'Availability', options: ['Available', 'Limited', 'Sold out', 'Not on sale', 'Booking closed'] },
       ]}
       selected={selected}
       onToggle={toggle}

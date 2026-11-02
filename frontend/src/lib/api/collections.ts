@@ -54,6 +54,8 @@ export interface Item {
   /** The owning collection's `name` — resolve via `collections.find(c => c.name === item.collection)`. */
   collection: string;
   location: string;
+  image?: string;
+  images?: { id: string; url: string; alt: string }[];
 }
 
 /** Matches GET /collections — no server-side category/sort; callers filter/sort client-side. limit caps at 100. */
@@ -162,13 +164,15 @@ interface RawItem {
   origin: string | null;
   creator: string | null;
   status: string;
+  location: RawLocationRef | null;
+  images: RawMediaRef[];
 }
 
 function itemsMockingDisabled(): boolean {
   return process.env.NEXT_PUBLIC_ITEMS_API_MOCKING === 'disabled';
 }
 
-/** Real items carry no collection name or gallery text, so those come from the owning collection. */
+/** An item's own location takes precedence; unassigned objects inherit the collection's gallery. */
 function mapItem(raw: RawItem, collection: Collection | undefined): Item {
   return {
     id: raw.item_id,
@@ -178,7 +182,9 @@ function mapItem(raw: RawItem, collection: Collection | undefined): Item {
     origin: raw.origin ?? '',
     description: raw.description ?? '',
     collection: collection?.name ?? '',
-    location: collection?.location?.name ?? '',
+    location: raw.location?.name ?? collection?.location?.name ?? '',
+    image: raw.images?.[0]?.url,
+    images: (raw.images ?? []).map((image) => ({ id: image.media_id, url: image.url, alt: image.alt_text ?? raw.name })),
   };
 }
 

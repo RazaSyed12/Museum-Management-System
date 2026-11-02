@@ -15,10 +15,14 @@ export interface TicketQty {
   general: number;
   member: number;
   child: number;
+  /** Stable identity of the real allocation selected, independent of its category or display order. */
+  allocationId?: string;
 }
 
+type TicketCategory = 'general' | 'member' | 'child';
+
 export interface TicketType {
-  key: keyof TicketQty;
+  key: TicketCategory;
   name: string;
   description: string;
   price: number;
@@ -39,30 +43,30 @@ export function ticketTypesFor(event: MuseumEvent, allocations?: Allocation[]): 
   ];
 }
 
-/** Real backend: an event has a general ticket type and, usually, a members-only
- *  one (its two "allocations"). There is no child/student type, so that row is
- *  simply not offered. Prices are the event's single ticket price — the member
- *  discount is the server's, applied in the quote. */
+/** Prices shown here match allocation price categories; the server confirms discounts and fees. */
 function ticketTypesFromAllocations(event: MuseumEvent, allocations: Allocation[]): TicketType[] {
-  const general = allocations.find((a) => !a.membersOnly);
-  const member = allocations.find((a) => a.membersOnly);
-  const types: TicketType[] = [];
-  if (general) {
-    types.push({ key: 'general', name: general.name, description: 'Standard entry', price: event.priceValue, allocationId: general.id, available: general.available });
-  }
-  if (member) {
-    types.push({ key: 'member', name: member.name, description: 'Requires an active membership', price: event.priceValue, memberOnly: true, allocationId: member.id, available: member.available });
-  }
-  return types;
+  return allocations.map((allocation) => {
+    const key: TicketCategory = allocation.membersOnly ? 'member' : allocation.kind === 'child' ? 'child' : 'general';
+    return {
+      key,
+      name: allocation.name,
+      description: key === 'member' ? 'Requires an active membership' : key === 'child' ? 'Child or student entry' : 'Standard entry',
+      price: key === 'member' ? event.memberPrice ?? event.priceValue : key === 'child' ? event.childPrice ?? event.priceValue : event.priceValue,
+      memberOnly: allocation.membersOnly,
+      allocationId: allocation.id,
+      available: allocation.available,
+    };
+  });
 }
 
 /** The one ticket type (and count) a real booking is made for — the backend
  *  books one type per order. undefined when nothing is selected, or when more
  *  than one type is (the select screen prevents that in real mode). */
 export function selectedBooking(qty: TicketQty, types: TicketType[]): { type: TicketType; quantity: number } | undefined {
-  const chosen = types.filter((t) => qty[t.key] > 0);
-  const only = chosen[0];
-  return chosen.length === 1 && only?.allocationId ? { type: only, quantity: qty[only.key] } : undefined;
+  const categories = (['general', 'member', 'child'] as const).filter((key) => qty[key] > 0);
+  if (categories.length !== 1) return undefined;
+  const type = types.find((t) => t.key === categories[0] && (!qty.allocationId || t.allocationId === qty.allocationId));
+  return type?.allocationId ? { type, quantity: qty[type.key] } : undefined;
 }
 
 /** Summary rows from the server's quote or booking totals (AUD). */
@@ -102,13 +106,15 @@ export interface Order {
  *  a flat, visible incentive rather than a per-event negotiated rate the
  *  fixture has no field for. */
 export function computeOrder(qty: TicketQty, types: TicketType[], isMember: boolean): Order {
-  const priceOf = (key: keyof TicketQty) => types.find((t) => t.key === key)?.price ?? 0;
-  const sub = qty.general * priceOf('general') + qty.member * priceOf('member') + qty.child * priceOf('child');
+  const real = types.some((type) => type.allocationId);
+  const selection = real ? selectedBooking(qty, types) : undefined;
+  const sub = real ? (selection ? selection.quantity * selection.type.price : 0)
+    : types.reduce((total, type) => total + qty[type.key] * type.price, 0);
   const fee = sub ? 1.5 : 0;
   const vat = Math.round(sub * 0.05 * 100) / 100;
-  const discount = isMember && qty.general ? Math.round(qty.general * 2 * 100) / 100 : 0;
+  const discount = !real && isMember && qty.general ? Math.round(qty.general * 2 * 100) / 100 : 0;
   const total = Math.round((sub + fee + vat - discount) * 100) / 100;
-  const count = qty.general + qty.member + qty.child;
+  const count = real ? selection?.quantity ?? 0 : qty.general + qty.member + qty.child;
   return { qty, sub, fee, vat, discount, total, count };
 }
 
@@ -128,7 +134,8 @@ export function qtyFromParams(params: SearchParamsLike): TicketQty {
     const n = Number(paramValue(params, key));
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   };
-  return { general: get('general'), member: get('member'), child: get('child') };
+  const allocationId = paramValue(params, 'allocation')?.toLowerCase();
+  return { general: get('general'), member: get('member'), child: get('child'), ...(allocationId ? { allocationId } : {}) };
 }
 
 export interface Contact {
@@ -146,6 +153,7 @@ export function qtyToSearchParams(qty: TicketQty): URLSearchParams {
   if (qty.general) params.set('general', String(qty.general));
   if (qty.member) params.set('member', String(qty.member));
   if (qty.child) params.set('child', String(qty.child));
+  if (qty.allocationId) params.set('allocation', qty.allocationId);
   return params;
 }
 
@@ -153,7 +161,11 @@ export function qtyToSearchParams(qty: TicketQty): URLSearchParams {
  *  duck-typed here rather than importing that type, so this file (plain
  *  order math) doesn't depend on a component. */
 export function ticketTypeLines(qty: TicketQty, types: TicketType[], currency: CurrencyCode = DEFAULT_CURRENCY) {
-  return types.map((t) => ({ label: `${t.name} × ${qty[t.key]}`, value: money(qty[t.key] * t.price, currency), muted: !qty[t.key] }));
+  const selection = selectedBooking(qty, types);
+  return types.map((type) => {
+    const quantity = type.allocationId ? (selection?.type.allocationId === type.allocationId ? selection.quantity : 0) : qty[type.key];
+    return { label: `${type.name} × ${quantity}`, value: money(quantity * type.price, currency), muted: !quantity };
+  });
 }
 
 export function orderBreakdownLines(order: Order, currency: CurrencyCode = DEFAULT_CURRENCY) {

@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useCurrency } from '@/lib/useCurrency';
 import type { MuseumEvent } from '@/lib/api/events';
 import { BOOKING_CURRENCY, getAccessToken, getBooking, type Allocation, type PlacedBooking } from '@/lib/api/bookings';
-import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, quoteLines, money, type TicketQty } from '@/lib/ticketing';
+import { ticketTypesFor, computeOrder, ticketTypeLines, orderBreakdownLines, quoteLines, selectedBooking, money, type TicketQty } from '@/lib/ticketing';
 
 export interface ConfirmationScreenProps {
   event: MuseumEvent;
@@ -29,7 +29,7 @@ export function ConfirmationScreen({ event, qty, contact, bookingRef, allocation
   const currency = real ? BOOKING_CURRENCY : localCurrency;
   const types = ticketTypesFor(event, allocations);
   const order = computeOrder(qty, types, isMember);
-  const ticketLine = types.find((t) => qty[t.key] > 0);
+  const ticketLine = real ? selectedBooking(qty, types)?.type : types.find((t) => qty[t.key] > 0);
 
   const [booking, setBooking] = useState<PlacedBooking>();
   const [loadError, setLoadError] = useState(false);

@@ -4,6 +4,7 @@ out/
 build/
 dist/
 coverage/
+test-results/
 /backend/uploads/
 supabase/.temp/
 supabase/.branches/
@@ -22,3 +23,8 @@ yarn-error.log*
 Thumbs.db
 *.tsbuildinfo
 .vercel
+
+# Source archives and local backups
+*.zip
+*.bak
+*.backup

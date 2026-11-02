@@ -159,11 +159,11 @@ export const LIVE_RESOURCES: Record<LiveResource, LiveDefinition> = {
       price('ticket_price', 'General admission (AUD)', true),
       {
         ...price('price_member', 'Member admission (AUD)'),
-        hint: 'Leave blank if not offered. Booking charges currently use general admission and plan discounts.',
+        hint: 'Applied to member ticket allocations. Leave blank to use general admission and plan discounts.',
       },
       {
         ...price('price_child', 'Child admission (AUD)'),
-        hint: 'Leave blank if not offered. This saved price is not currently used by checkout.',
+        hint: 'Applied to child or student ticket allocations. Leave blank to use general admission.',
       },
       { key: 'capacity', label: 'Event capacity', type: 'number', required: true, min: 0 },
       { ...categories, required: true },

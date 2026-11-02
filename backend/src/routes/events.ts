@@ -4,6 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { userClient } from '../lib/supabaseClients';
 import { readerClient } from '../lib/readerClient';
 import { replaceLinks, allCategoriesActive } from '../lib/links';
+import { eventAvailability } from '../lib/eventAvailability';
 import { requireAuth, requireStaff, requireAdminOrManager } from '../middleware/auth';
 
 const router = Router();
@@ -181,9 +182,11 @@ router.get('/', async (req: Request, res: Response) => {
 
   const { data, error, count } = await query;
   if (error) return serverError(res, 'Could not load events.');
+  const available = await eventAvailability(db, data ?? []);
+  if (!available) return serverError(res, 'Could not load ticket availability.');
 
   return res.status(200).json({
-    events: (data ?? []).map(shape),
+    events: available.map(shape),
     total: count ?? 0,
     limit,
     offset,
@@ -212,7 +215,9 @@ router.get('/:id', async (req: Request, res: Response) => {
 
   if (error) return serverError(res, 'Could not load the event.');
   if (!data) return notFound(res);
-  return res.status(200).json({ event: shape(data) });
+  const available = await eventAvailability(db, [data]);
+  if (!available) return serverError(res, 'Could not load ticket availability.');
+  return res.status(200).json({ event: shape(available[0]) });
 });
 
 // ---------------------------------------------------------------------------

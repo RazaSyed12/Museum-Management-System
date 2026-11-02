@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 import { useCurrency } from '@/lib/useCurrency';
 
 /* Ported from design-system/components/cards/EventCard.jsx + EventCard.d.ts. */
-type Availability = 'available' | 'limited' | 'soldout' | 'cancelled';
+import type { EventAvailability as Availability } from '@/lib/api/events';
 
 export interface EventCardProps extends HTMLAttributes<HTMLElement> {
   title: string;
@@ -24,7 +24,7 @@ export interface EventCardProps extends HTMLAttributes<HTMLElement> {
   /** Shown alongside priceValue as "<price> · <memberPrice> members" when present. */
   memberPrice?: number;
   free?: boolean;
-  /** Drives the badge and the CTA. cancelled/soldout never render a bookable primary button. */
+  /** Only available and limited events render a booking link. */
   availability?: Availability;
   image?: string;
   /** horizontal is the events-listing row on desktop; vertical is the home grid. */
@@ -42,6 +42,8 @@ const AVAIL: Record<Availability, { tone: 'success' | 'warning' | 'danger'; labe
   limited: { tone: 'warning', label: 'Limited availability' },
   soldout: { tone: 'danger', label: 'Sold out' },
   cancelled: { tone: 'danger', label: 'Cancelled' },
+  completed: { tone: 'warning', label: 'Booking closed' },
+  notonsale: { tone: 'warning', label: 'Not on sale' },
 };
 
 function Meta({ icon, children }: { icon: string; children: ReactNode }) {
@@ -56,7 +58,7 @@ function Meta({ icon, children }: { icon: string; children: ReactNode }) {
 export function EventCard({ title, description, date, time, location, priceValue, memberPrice, free, availability = 'available', image, layout = 'vertical', href = '#', onBook, detailHref, className, ...rest }: EventCardProps) {
   const { format } = useCurrency();
   const a = AVAIL[availability];
-  const blocked = availability === 'soldout' || availability === 'cancelled';
+  const blocked = availability !== 'available' && availability !== 'limited';
   const row = layout === 'horizontal';
   const price = priceValue != null ? (memberPrice != null ? `${format(priceValue)} · ${format(memberPrice)} members` : format(priceValue)) : undefined;
   return (
@@ -85,7 +87,7 @@ export function EventCard({ title, description, date, time, location, priceValue
             {free ? 'Free entry' : price}
           </span>
           <Button variant={blocked ? 'secondary' : 'primary'} size="sm" disabled={blocked} onClick={onBook} as={blocked ? 'button' : 'a'} href={blocked ? undefined : href}>
-            {availability === 'cancelled' ? 'Event cancelled' : availability === 'soldout' ? 'Join waiting list' : free ? 'Reserve a place' : 'Book tickets'}
+            {blocked ? a.label : free ? 'Reserve a place' : 'Book tickets'}
           </Button>
         </div>
       </div>

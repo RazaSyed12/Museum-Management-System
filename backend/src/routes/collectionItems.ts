@@ -12,12 +12,22 @@ const router = Router();
 // category:categories(...) is a direct alias of a to-one relation (one
 // category per artefact, unlike a collection's many-to-many category_ids),
 // so the row comes back with a clean `category` field already — no reshaping
-// needed. Images are NOT embedded here, same convention as collections/events:
-// fetch them separately via GET /items/:id/media (see media.ts).
+// needed. Include the artefact's own location and ordered gallery for visitors.
 const ITEM_SELECT =
   'item_id, collection_id, name, description, historical_period, year_label, origin, creator, ' +
   'location_id, accession_number, tags, status, created_at, updated_at, ' +
-  'category:categories(category_id, name)';
+  'category:categories(category_id, name), location:locations(name, city), ' +
+  'item_media(sort_order, media(media_id, url, alt_text))';
+
+function shapeItem(row: any) {
+  const { item_media, ...item } = row;
+  return {
+    ...item,
+    images: (item_media ?? []).slice()
+      .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      .map((link: any) => link.media).filter(Boolean),
+  };
+}
 
 function badRequest(res: Response, message: string, code = 'validation_error') {
   return res.status(400).json({ error: { message, code } });
@@ -120,7 +130,7 @@ router.get('/collections/:collectionId/items', async (req: Request, res: Respons
     .order('created_at', { ascending: true })
     .range(offset, offset + limit - 1);
   if (error) return serverError(res, 'Could not load the items.');
-  return res.json({ items: data ?? [], total: count ?? 0, limit, offset });
+  return res.json({ items: (data ?? []).map(shapeItem), total: count ?? 0, limit, offset });
 });
 
 // ---------------------------------------------------------------------------
@@ -167,7 +177,7 @@ router.get('/items', async (req: Request, res: Response) => {
 
   const { data, error, count } = await query;
   if (error) return serverError(res, 'Could not load the items.');
-  return res.json({ items: data ?? [], total: count ?? 0, limit, offset });
+  return res.json({ items: (data ?? []).map(shapeItem), total: count ?? 0, limit, offset });
 });
 
 // POST /collections/:collectionId/items — staff only.
@@ -200,7 +210,7 @@ router.post('/collections/:collectionId/items', requireAuth, requireStaff, async
     const message = error && writeErrorMessage(error);
     return message ? badRequest(res, message) : serverError(res, 'Could not create the item.');
   }
-  return res.status(201).json({ item: data });
+  return res.status(201).json({ item: shapeItem(data) });
 });
 
 // GET /items/:id — public if the item is active and its collection is published; staff see all.
@@ -214,7 +224,7 @@ router.get('/items/:id', async (req: Request, res: Response) => {
   const { data, error } = await db.from('collection_items').select(ITEM_SELECT).eq('item_id', id).maybeSingle();
   if (error) return serverError(res, 'Could not load the item.');
   if (!data) return notFound(res, 'Item');
-  return res.json({ item: data });
+  return res.json({ item: shapeItem(data) });
 });
 
 // PATCH /items/:id — staff only. Changes only the fields that are sent.
@@ -254,7 +264,7 @@ router.patch('/items/:id', requireAuth, requireStaff, async (req: Request, res: 
     return message ? badRequest(res, message) : serverError(res, 'Could not update the item.');
   }
   if (!data) return notFound(res, 'Item');
-  return res.json({ item: data });
+  return res.json({ item: shapeItem(data) });
 });
 
 // POST /items/:id/archive — admin/manager only. Same as PATCH {"status":"archived"},
@@ -272,7 +282,7 @@ router.post('/items/:id/archive', requireAuth, requireStaff, requireAdminOrManag
     .maybeSingle();
   if (error) return serverError(res, 'Could not archive the item.');
   if (!data) return notFound(res, 'Item');
-  return res.json({ item: data });
+  return res.json({ item: shapeItem(data) });
 });
 
 // DELETE /items/:id — admin/manager only (outright deletion is strictly more

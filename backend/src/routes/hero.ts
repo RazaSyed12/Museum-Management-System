@@ -16,8 +16,8 @@ const router = Router();
 export const HERO_SELECT =
   'slide_id, eyebrow, title, description, primary_label, primary_href, secondary_label, secondary_href, ' +
   'event_id, collection_id, media_id, sort_order, is_active, starts_at, ends_at, created_at, updated_at, ' +
-  'events(event_id, name, start_at, end_at, locations(name, city)), ' +
-  'collections(collection_id, name, historical_period), ' +
+  'events(event_id, name, status, start_at, end_at, locations(name, city), event_media(sort_order, media(media_id, url, alt_text))), ' +
+  'collections(collection_id, name, historical_period, collection_media(sort_order, media(media_id, url, alt_text))), ' +
   'media(media_id, url, alt_text)';
 
 function badRequest(res: Response, message: string) {
@@ -37,11 +37,13 @@ function notFound(res: Response) {
 // points at, named for what it is rather than the raw embed name.
 export function shape(row: any) {
   const { events, collections, media, ...rest } = row;
+  const cover = (events?.event_media ?? collections?.collection_media ?? [])
+    .slice().sort((a: any, b: any) => a.sort_order - b.sort_order).find((link: any) => link.media)?.media;
   return {
     ...rest,
     linked_event: events ?? null,
     linked_collection: collections ?? null,
-    image: media ?? null,
+    image: media ?? cover ?? null,
   };
 }
 
@@ -68,6 +70,10 @@ const isoDateTime = z.iso.datetime({
   offset: true,
   message: 'Use an ISO date-time with a timezone, e.g. 2026-11-14T18:00:00+10:30',
 });
+
+function buttonsValid(body: Record<string, unknown>) {
+  return ['primary', 'secondary'].every((prefix) => Boolean(body[`${prefix}_label`]) === Boolean(body[`${prefix}_href`]));
+}
 
 // ---------------------------------------------------------------------------
 // GET /hero — public. Uses readerClient so RLS does the filtering: an
@@ -110,6 +116,7 @@ const createSchema = z
     starts_at: isoDateTime.nullish(),
     ends_at: isoDateTime.nullish(),
   })
+  .refine(buttonsValid, { message: 'Each button needs both a label and a link.' })
   .refine((body) => !(body.event_id && body.collection_id), {
     message: 'A slide can link to an event or a collection, not both',
     path: ['collection_id'],
@@ -215,6 +222,14 @@ router.patch('/:id', requireAuth, requireStaff, async (req: Request, res: Respon
 
   const id = idParsed.data.id;
   const db = userClient(req.auth!.token);
+
+  if (['primary_label', 'primary_href', 'secondary_label', 'secondary_href'].some((key) => key in parsed.data)) {
+    const { data: existing, error: readError } = await db.from('hero_slides')
+      .select('primary_label, primary_href, secondary_label, secondary_href').eq('slide_id', id).maybeSingle();
+    if (readError) return serverError(res, 'Could not load the hero slide.');
+    if (!existing) return notFound(res);
+    if (!buttonsValid({ ...existing, ...parsed.data })) return badRequest(res, 'Each button needs both a label and a link.');
+  }
 
   // updated_at is not maintained by a database trigger, so we set it here.
   const { data: updated, error } = await db

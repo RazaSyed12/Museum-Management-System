@@ -57,7 +57,7 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
         {relatedItems.length ? (
           <Grid cols={3} className="lg:grid-cols-4">
             {relatedItems.map((i) => (
-              <ItemCard key={i.id} name={i.name} period={i.period} date={i.date} description={i.description} href={`/collections/${collection.id}/${i.id}`} />
+              <ItemCard key={i.id} name={i.name} period={i.period} date={i.date} description={i.description} image={i.image} href={`/collections/${collection.id}/${i.id}`} />
             ))}
           </Grid>
         ) : (
@@ -66,13 +66,13 @@ export function CollectionDetail({ collection, relatedItems, relatedCollections,
       </Section>
 
       <Section tone="muted" title="Events about this collection">
-        <Grid cols={2}>
+        {relatedEvents.length ? <Grid cols={2}>
           {relatedEvents.map((e) => (
             <EventCard key={e.id} title={e.title} description={e.description} date={e.date} time={e.time}
               location={e.location} priceValue={e.priceValue} memberPrice={e.memberPrice} free={e.free} availability={e.availability}
               image={e.image} detailHref={`/events/${e.id}`} href={`/tickets/${e.id}`} />
           ))}
-        </Grid>
+        </Grid> : <EmptyState compact title="No linked events" description="Events will appear here when they feature this collection." />}
       </Section>
 
       <Section title="Related collections">

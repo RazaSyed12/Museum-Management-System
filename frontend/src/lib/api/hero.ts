@@ -21,6 +21,7 @@ export interface HeroSlideData {
   secondary?: { label: string; href: string };
   /** The event or collection the slide points at, when it has one. */
   eventId?: string;
+  eventBookable?: boolean;
   collectionId?: string;
   eventMeta?: { start: string; end: string; location?: string };
   collectionPeriod?: string;
@@ -41,7 +42,7 @@ interface RawSlide {
   secondary_href: string | null;
   event_id: string | null;
   collection_id: string | null;
-  linked_event: { name: string; start_at: string; end_at: string; locations?: Place | null; location?: Place | null } | null;
+  linked_event: { name: string; status: string; start_at: string; end_at: string; locations?: Place | null; location?: Place | null } | null;
   linked_collection: { name: string; historical_period: string | null } | null;
   image: { url: string; alt_text: string | null } | null;
 }
@@ -64,6 +65,7 @@ export async function listHeroSlides(): Promise<HeroSlideData[] | undefined> {
       primary: link(s.primary_label, s.primary_href),
       secondary: link(s.secondary_label, s.secondary_href),
       eventId: s.event_id ?? undefined,
+      eventBookable: s.linked_event?.status === 'scheduled' && new Date(s.linked_event.start_at) > new Date(),
       collectionId: s.collection_id ?? undefined,
       eventMeta: s.linked_event
         ? {

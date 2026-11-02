@@ -13,7 +13,6 @@ import { Alert } from '@/components/feedback/Alert';
 import { cn } from '@/lib/cn';
 import { can } from '@/lib/staff/permissions';
 import { useStaffSession } from '@/lib/staff/session';
-import { staffApi } from '@/lib/api/staff';
 import type { SearchResult } from '@/lib/staff/types';
 import { date } from '@/lib/staff/format';
 import { records, string } from '@/lib/staff/backend-resources';
@@ -38,7 +37,7 @@ const NAV = [
 ] as const;
 
 export function StaffShell({ children }: { children: ReactNode }) {
-  const { user, loading, error, refresh, logout, live, backend } = useStaffSession();
+  const { user, loading, error, refresh, logout, backend } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -52,10 +51,6 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const notifications = useStaffData(
     async (signal) => {
       if (!user) return { rows: [], unread: 0, total: 0 };
-      if (!live) {
-        const rows = await staffApi.notifications();
-        return { rows, unread: rows.filter((row) => !row.read).length, total: rows.length };
-      }
       const data = await backend.request(
         `/admin/notifications?limit=20&offset=${(notificationPage - 1) * 20}`,
         { signal },
@@ -79,7 +74,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       }));
       return { rows, unread: Number(data.unread_count), total: Number(data.total) };
     },
-    [user?.id, pathname, live, notificationPage],
+    [user?.id, pathname, notificationPage],
   );
 
   useEffect(() => {
@@ -91,7 +86,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
   }, [pathname]);
   useEffect(() => {
     const controller = new AbortController();
-    if (!query.trim() || (live && query.trim().length < 2) || !user) {
+    if (query.trim().length < 2 || !user) {
       setResults([]);
       setSearchError('');
       setSearching(false);
@@ -100,9 +95,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
     setSearching(true);
     const timer = setTimeout(() => {
       setSearchError('');
-      const search = live
-        ? backend.search(query.trim(), controller.signal)
-        : staffApi.search(query.trim(), controller.signal);
+      const search = backend.search(query.trim(), controller.signal);
       search
         .then((rows) => {
           if (!controller.signal.aborted) setResults(rows);
@@ -119,7 +112,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, live, backend, user]);
+  }, [query, backend, user]);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setQuery('');
@@ -164,11 +157,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
         </span>
       </div>
       <nav aria-label="Staff navigation" className="grid gap-1">
-        {NAV.filter(
-          ([, href]) =>
-            (href !== '/staff/users' || can(user.role, 'users')) &&
-            (live || !['/staff/locations', '/staff/plans', '/staff/hero'].includes(href)),
-        ).map(([label, href, icon]) => {
+        {NAV.filter(([, href]) => href !== '/staff/users' || can(user.role, 'users')).map(([label, href, icon]) => {
           const active = href === '/staff' ? pathname === href : pathname.startsWith(href);
           return (
             <Link
@@ -219,11 +208,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
               id="portal-search"
               iconLeft="search"
               type="search"
-              placeholder={
-                live
-                  ? 'Search catalogue, visitors, bookings…'
-                  : 'Search visitors, events, bookings…'
-              }
+              placeholder="Search catalogue, visitors, bookings…"
               maxLength={100}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -257,7 +242,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
                   ))
                 ) : (
                   <p className="p-3 text-sm text-muted">
-                    {live && query.trim().length < 2
+                    {query.trim().length < 2
                       ? 'Enter at least two characters.'
                       : 'No matching records.'}
                   </p>
@@ -343,12 +328,10 @@ export function StaffShell({ children }: { children: ReactNode }) {
                 )}
                 onClick={async () => {
                   try {
-                    if (live)
-                      await backend.request(
-                        `/admin/notifications/${encodeURIComponent(n.id)}/read`,
-                        { method: 'POST' },
-                      );
-                    else await staffApi.readNotification(n.id);
+                    await backend.request(
+                      `/admin/notifications/${encodeURIComponent(n.id)}/read`,
+                      { method: 'POST' },
+                    );
                     notifications.refresh();
                     setNotificationsOpen(false);
                     router.push(n.href);
@@ -366,26 +349,24 @@ export function StaffShell({ children }: { children: ReactNode }) {
           ) : (
             <p className="text-muted">You are up to date.</p>
           )}
-          {live && (
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                disabled={notificationPage === 1 || notifications.loading}
-                onClick={() => setNotificationPage((page) => page - 1)}
-              >
-                Newer
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={
-                  notificationPage * 20 >= (notifications.data?.total ?? 0) || notifications.loading
-                }
-                onClick={() => setNotificationPage((page) => page + 1)}
-              >
-                Older
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              disabled={notificationPage === 1 || notifications.loading}
+              onClick={() => setNotificationPage((page) => page - 1)}
+            >
+              Newer
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={
+                notificationPage * 20 >= (notifications.data?.total ?? 0) || notifications.loading
+              }
+              onClick={() => setNotificationPage((page) => page + 1)}
+            >
+              Older
+            </Button>
+          </div>
           <Button variant="ghost" onClick={() => setNotificationsOpen(false)}>
             Close
           </Button>

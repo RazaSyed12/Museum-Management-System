@@ -398,16 +398,17 @@ router.patch('/staff/memberships/:id', requireAuth, requireStaff, async (req: Re
 // GET /me/membership — signed-in user. The current active, unexpired membership, or null.
 router.get('/me/membership', requireAuth, async (req: Request, res: Response) => {
   const auth = req.auth!;
+  const now = new Date();
   const { data, error } = await userClient(auth.token)
     .from('memberships')
     .select(`membership_id, status, starts_at, ends_at, membership_plans(${PLAN_SELECT})`)
     .eq('user_id', auth.userId)
     .eq('status', 'active')
+    .lte('starts_at', now.toISOString())
     .order('starts_at', { ascending: false });
   if (error) return serverError(res, 'Could not load your membership.');
 
-  const now = Date.now();
-  const current: any = (data ?? []).find((m: any) => !m.ends_at || new Date(m.ends_at).getTime() > now);
+  const current: any = (data ?? []).find((m: any) => !m.ends_at || new Date(m.ends_at).getTime() > now.getTime());
   if (!current) return res.json({ is_member: false, membership: null });
 
   const { membership_plans, ...rest } = current;

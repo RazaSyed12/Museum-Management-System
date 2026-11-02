@@ -1,5 +1,4 @@
 import { http, HttpResponse, delay } from 'msw';
-import { staffHandlers } from './staff';
 import { ApiError } from '@/lib/api/client';
 import {
   resolveCollections,
@@ -51,7 +50,6 @@ function bearerToken(request: Request): string {
 }
 
 export const handlers = [
-  ...staffHandlers,
   http.post('/auth/sign-up', async ({ request }) => {
     await delay(LATENCY_MS);
     try {

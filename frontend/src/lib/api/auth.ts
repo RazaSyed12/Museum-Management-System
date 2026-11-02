@@ -20,7 +20,6 @@
  * resources still on NEXT_PUBLIC_API_MOCKING.
  */
 import { apiPost, apiGetAuthed, apiPostAuthed, shouldMockDirectly } from './client';
-import { staffUsesBackend } from '@/lib/staff/config';
 import {
   resolveSignUp,
   resolveSignIn,
@@ -58,12 +57,9 @@ export interface NewAccountUser {
 }
 
 function authMockingDisabled(): boolean {
-  // Staff use the same sign-in as visitors, so a live portal needs a real
-  // session too. An explicit auth preview still takes precedence.
-  return (
-    process.env.NEXT_PUBLIC_AUTH_API_MOCKING === 'disabled' ||
-    (process.env.NEXT_PUBLIC_AUTH_API_MOCKING !== 'enabled' && staffUsesBackend())
-  );
+  // Shared sign-in uses the backend by default. Explicit visitor previews
+  // are rejected by the staff session provider.
+  return process.env.NEXT_PUBLIC_AUTH_API_MOCKING !== 'enabled';
 }
 
 export function usesBackendAuth(): boolean {

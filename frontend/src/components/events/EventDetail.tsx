@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/forms/Button';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { Alert } from '@/components/feedback/Alert';
@@ -16,6 +15,8 @@ const BADGE: Record<EventAvailability, { tone: 'success' | 'warning' | 'danger';
   limited: { tone: 'warning', label: 'Limited' },
   soldout: { tone: 'danger', label: 'Sold out' },
   cancelled: { tone: 'danger', label: 'Cancelled' },
+  completed: { tone: 'warning', label: 'Booking closed' },
+  notonsale: { tone: 'warning', label: 'Not on sale' },
 };
 
 export interface EventDetailProps {
@@ -25,9 +26,9 @@ export interface EventDetailProps {
 export function EventDetail({ event: e }: EventDetailProps) {
   const nav = useSiteNav();
   const { format } = useCurrency();
-  const [waitlisted, setWaitlisted] = useState(false);
   const cancelled = e.availability === 'cancelled';
   const soldout = e.availability === 'soldout';
+  const blocked = e.availability !== 'available' && e.availability !== 'limited';
   const badge = BADGE[e.availability];
   const priceLabel = e.memberPrice != null ? `${format(e.priceValue)} · ${format(e.memberPrice)} members` : format(e.priceValue);
 
@@ -67,7 +68,7 @@ export function EventDetail({ event: e }: EventDetailProps) {
             )}
             {soldout && (
               <Alert tone="warning" title="This event is sold out">
-                Join the waiting list and we&rsquo;ll email you if a place is returned.
+                Please check back for returned tickets.
               </Alert>
             )}
             <div className="grid gap-4">
@@ -89,17 +90,8 @@ export function EventDetail({ event: e }: EventDetailProps) {
               <MetaItem icon="map-pin">{e.location}</MetaItem>
               <MetaItem icon="users">{e.remaining} of {e.capacity} places left</MetaItem>
             </div>
-            {cancelled ? (
-              <Button disabled fullWidth>Event cancelled</Button>
-            ) : soldout ? (
-              waitlisted ? (
-                <Alert tone="success" title="You&rsquo;re on the waiting list">We&rsquo;ll email you if a place is returned.</Alert>
-              ) : (
-                <>
-                  <Button variant="secondary" fullWidth onClick={() => setWaitlisted(true)}>Join the waiting list</Button>
-                  <span className="type-body-sm text-muted">We release returns 48 hours before.</span>
-                </>
-              )
+            {blocked ? (
+              <Button disabled fullWidth>{badge.label}</Button>
             ) : (
               <>
                 <Button fullWidth size="lg" as="a" href={`/tickets/${e.id}`}>{e.free ? 'Reserve a place' : 'Book tickets'}</Button>

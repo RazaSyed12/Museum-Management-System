@@ -99,9 +99,8 @@ export const bookings: Booking[] = [
 
 /** One sign-in for every visitor (see lib/api/auth.ts) — `role` is what
  *  tells the frontend apart a registered visitor, a member and a staff
- *  account, not a separate login. `admin@heritage.example` is deliberately
- *  the same person as the Admin seed in mocks/staff.ts (same name, same
- *  email) — signing in here and being recognised there is the whole point. */
+ *  account, not a separate login. These fixtures support visitor previews
+ *  only; mock accounts cannot access the backend-only staff portal. */
 export interface MockAccount {
   id: string;
   full_name: string;
@@ -117,6 +116,4 @@ export const accounts: MockAccount[] = [
     role: 'registered', onboardingCompleted: true, interests: ['Prehistory', 'Archaeology'] },
   { id: 'judith', full_name: 'Judith Clarke', email: 'judith@example.com', password: 'password123',
     role: 'member', onboardingCompleted: true, interests: ['Medieval', 'Renaissance'] },
-  { id: 'admin', full_name: 'Sarah Mitchell', email: 'admin@heritage.example', password: 'museum-demo',
-    role: 'staff', onboardingCompleted: true, interests: [] },
 ];

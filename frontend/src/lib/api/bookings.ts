@@ -58,6 +58,7 @@ export interface Allocation {
   id: string;
   name: string;
   membersOnly: boolean;
+  kind?: 'general' | 'member' | 'child';
   /** Tickets still unreserved in this allocation. */
   available: number;
 }
@@ -66,6 +67,7 @@ interface RawAllocation {
   allocation_id: string;
   allocation_name: string;
   membership_required: boolean;
+  ticket_kind: 'general' | 'member' | 'child';
   available: number;
 }
 
@@ -74,7 +76,7 @@ export async function getAllocations(eventId: string): Promise<Allocation[] | un
   if (!bookingsMockingDisabled()) return undefined;
   const data = await apiFetchOptional<{ allocations: RawAllocation[] }>(`/events/${eventId}/allocations`, { absolute: true });
   if (!data) return undefined;
-  return data.allocations.map((a) => ({ id: a.allocation_id, name: a.allocation_name, membersOnly: a.membership_required, available: a.available }));
+  return data.allocations.map((a) => ({ id: a.allocation_id, name: a.allocation_name, kind: a.ticket_kind, membersOnly: a.membership_required, available: a.available }));
 }
 
 export interface BookingQuote {

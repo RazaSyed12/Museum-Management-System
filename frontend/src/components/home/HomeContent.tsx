@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Hero } from './Hero';
 import { PlanVisit } from './PlanVisit';
@@ -56,6 +56,12 @@ const EVENT_FILTERS: Record<string, (e: MuseumEvent) => boolean> = {
 export function HomeContent({ allCollections, allEvents, heroSlides }: HomeContentProps) {
   const nav = useSiteNav();
   const router = useRouter();
+  useEffect(() => {
+    const refresh = () => router.refresh();
+    const timer = window.setInterval(refresh, 60000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [router]);
   const signedIn = Boolean(nav.user);
   const rail = signedIn ? recommendedForYou : popularRightNow;
   // Real backend: the ranked row replaces the fixed examples (see lib/api/recommendations.ts).
@@ -66,7 +72,7 @@ export function HomeContent({ allCollections, allEvents, heroSlides }: HomeConte
 
   // Same "soonest two" selection Hero uses, so the grid below doesn't repeat its slides.
   const heroEvents = [...allEvents]
-    .filter((e) => e.availability !== 'cancelled')
+    .filter((e) => e.availability === 'available' || e.availability === 'limited')
     .sort((a, b) => +new Date(a.date) - +new Date(b.date))
     .slice(0, 2);
   const exhibition = heroEvents[0];
@@ -74,7 +80,7 @@ export function HomeContent({ allCollections, allEvents, heroSlides }: HomeConte
   const heroEventIds = heroSlides?.length
     ? new Set(heroSlides.map((s) => s.eventId).filter((id): id is string => Boolean(id)))
     : new Set(heroEvents.map((e) => e.id));
-  const listedEvents = allEvents.filter((e) => !heroEventIds.has(e.id));
+  const listedEvents = allEvents.filter((e) => e.availability !== 'completed' && !heroEventIds.has(e.id));
 
   const shownCollections = allCollections
     .filter((c) => collectionFilter === 'All' || c.categories.some((cat) => cat.name === collectionFilter))

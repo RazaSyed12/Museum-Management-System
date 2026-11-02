@@ -28,6 +28,8 @@ export interface HeroSlideData {
   imageAlt?: string;
 }
 
+type Place = { name?: string; city?: string | null };
+
 interface RawSlide {
   slide_id: string;
   eyebrow: string | null;
@@ -39,7 +41,7 @@ interface RawSlide {
   secondary_href: string | null;
   event_id: string | null;
   collection_id: string | null;
-  linked_event: { name: string; start_at: string; end_at: string; location: { name?: string; city?: string | null } | null } | null;
+  linked_event: { name: string; start_at: string; end_at: string; locations?: Place | null; location?: Place | null } | null;
   linked_collection: { name: string; historical_period: string | null } | null;
   image: { url: string; alt_text: string | null } | null;
 }
@@ -67,7 +69,8 @@ export async function listHeroSlides(): Promise<HeroSlideData[] | undefined> {
         ? {
             start: s.linked_event.start_at,
             end: s.linked_event.end_at,
-            location: [s.linked_event.location?.name, s.linked_event.location?.city].filter(Boolean).join(', ') || undefined,
+            // The API names this key `locations` (singular object); accept `location` too.
+            location: [(s.linked_event.locations ?? s.linked_event.location)?.name, (s.linked_event.locations ?? s.linked_event.location)?.city].filter(Boolean).join(', ') || undefined,
           }
         : undefined,
       collectionPeriod: s.linked_collection?.historical_period ?? undefined,

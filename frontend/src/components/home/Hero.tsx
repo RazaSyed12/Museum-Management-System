@@ -181,12 +181,14 @@ export function Hero({ go, events, slides: apiSlides }: HeroProps) {
           aria-label={`${index + 1} of ${slides.length}`}
           // Announce slide changes only when the visitor moved them, not on every auto-advance.
           aria-live={playing ? 'off' : 'polite'}
-          className="stagger-in grid content-start gap-5 pt-16 md:min-h-100 md:max-w-150 md:pt-20"
+          // Fixed height (longest realistic slide) so the hero never resizes between
+          // slides; line-clamp + the meta row's max-h are the overflow backstop.
+          className="stagger-in grid h-[430px] content-center gap-5 overflow-hidden pt-16 md:h-125 md:max-w-150 md:pt-20"
         >
           <span className="type-eyebrow tracking-wider text-sand-300 uppercase">{slide.eyebrow}</span>
-          <h1 className="text-4xl/[1.05] text-paper-50 md:text-6xl/[1.05]">{slide.title}</h1>
-          <p className="type-body max-w-120 text-paper-100/86 md:text-md">{slide.description}</p>
-          <div className="type-body-sm flex flex-wrap items-center gap-x-4 gap-y-2 text-sand-300">
+          <h1 className="line-clamp-2 text-4xl/[1.05] text-paper-50 md:text-6xl/[1.05]">{slide.title}</h1>
+          <p className="type-body line-clamp-2 max-w-120 text-paper-100/86 md:text-md">{slide.description}</p>
+          <div className="type-body-sm max-h-13 flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden text-sand-300">
             {slide.meta.map((m) => (
               <span key={m.text} className="inline-flex items-center gap-1.5">
                 <Icon name={m.icon} size={16} />
